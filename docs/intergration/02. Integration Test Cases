@@ -1,0 +1,153 @@
+# 02. Integration Test Cases
+
+산불 재난 대응 멀티에이전트 시뮬레이터  
+통합 담당 Mock / Contract Test 참고용 최종본
+
+---
+
+## 1. 목적
+
+초기 통합 단계에서 반드시 확인할 테스트는 두 개만 둔다.
+
+1. 정상 상황에서 기본 폐루프가 끝까지 실행되는가
+2. 선택된 자원이 임무를 수행할 수 없을 때 REJECT 후 다른 자원을 재평가할 수 있는가
+
+COUNTER, 통신 장애, 배터리 저하, 이기종 대체 등은 초기 필수 테스트에서 제외한다.
+
+---
+
+## 2. 공통 기록 항목
+
+가능하면 다음을 로그에 기록한다.
+
+- `scenario_id`
+- `run_id`
+- `decision_id`
+- `task_id`
+- `resource_id`
+- `timestamp`
+
+테스트 성공 여부는 화면이 아니라 상태·메시지·로그로 확인할 수 있어야 한다.
+
+---
+
+# IT-01. 정상 임무 수행
+
+## 목적
+
+환경 상태에서 Task가 생성되고, 자원 선택 → Local 확인 → Safety → 실행 → 관측 → 환경 갱신까지 기본 폐루프가 이어지는지 확인한다.
+
+## 입력
+
+- 화재 또는 위험지역 발생
+- 사용 가능한 UAV 존재
+- UAV 상태 정상
+- Safety 조건 정상
+
+## 기대 흐름
+
+```text
+Environment State
+↓
+Task 생성
+↓
+Orchestrator 후보 평가
+↓
+UAV 선택
+↓
+LocalResponse = ACCEPT
+↓
+SafetyResponse = ALLOW
+↓
+실행
+↓
+Observation / Result
+↓
+Environment Update
+↓
+Task 완료
+```
+
+## 성공 조건
+
+- `ACCEPT` 이후에만 Safety가 호출된다.
+- Safety가 `ALLOW`한 경우에만 실행된다.
+- 실행 결과 또는 Observation이 반환된다.
+- Observation을 환경 모듈에 전달할 수 있다.
+- 주요 판단과 결과가 로그에 기록된다.
+
+---
+
+# IT-02. UAV 강풍 REJECT 후 재평가
+
+## 목적
+
+선택된 UAV가 강풍 때문에 임무를 수행할 수 없을 때 시스템 종료가 아니라 재평가로 이어지는지 확인한다.
+
+## 입력
+
+- UAV-A가 최초 후보
+- UAV-A가 `HIGH_WIND`로 임무 수행 불가
+- 다른 가용 자원 존재
+
+## 기대 흐름
+
+```text
+DEC_001
+Orchestrator → UAV-A 제안
+↓
+REJECT / HIGH_WIND
+↓
+Safety 호출 안 함
+
+DEC_002
+Orchestrator 재평가
+↓
+다른 후보 선택
+↓
+Local 수행 가능성 확인
+↓
+ACCEPT 시 Safety
+↓
+실행
+```
+
+## 성공 조건
+
+- `REJECT` 이후 Safety가 호출되지 않는다.
+- `HIGH_WIND` 사유가 기록된다.
+- 기존 Task를 유지한 채 다른 자원을 재평가할 수 있다.
+- 재평가 판단에는 새로운 `decision_id`를 부여한다.
+- 새 자원이 `ACCEPT`한 경우에만 Safety 검증 후 실행한다.
+- 재평가 결과가 로그에 기록된다.
+
+---
+
+## 3. 초기 통합 판정
+
+다음 두 흐름이 Mock 환경에서 동작하면 초기 통합 테스트를 통과한 것으로 본다.
+
+```text
+정상:
+환경 → 판단 → ACCEPT → Safety → 실행 → 관측 → 환경 갱신
+
+실패 대응:
+자원 선택 → REJECT → 재평가 → 다른 자원 선택 → 실행
+```
+
+이후 실제 환경·PX4·UGV 모듈을 순차적으로 연결한다.
+
+---
+
+## 4. 초기 범위에서 제외
+
+다음은 필요 시 대표 시나리오 구현 단계에서 추가한다.
+
+- COUNTER
+- 배터리 저하 및 임무 인계
+- Heartbeat / STALE / OFFLINE
+- 통신 복구
+- Retry
+- 중복/오래된 메시지 처리
+- 이기종 자원 대체
+- 환경 변화에 따른 부분/전체 재계획
