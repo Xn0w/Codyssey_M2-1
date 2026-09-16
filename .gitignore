@@ -1,21 +1,14 @@
-# macOS
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-
-# Python
 __pycache__/
 *.pyc
 *.pyo
 .venv/
 venv/
-
-# 로그 (실행 시 생성되는 결과물)
 logs/
 *.jsonl
-
-# IDE
 .vscode/
 .idea/
