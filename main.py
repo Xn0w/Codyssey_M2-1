@@ -39,15 +39,17 @@ def get_all_resources(timestamp: float) -> ResourcePool:
     )
 
 
-def _send_command(task_id, assignment, force_response=None, force_reason=None):
+def _send_command(task_id, decision_id, assignment, env_state, force_response=None, force_reason=None):
     if "uav" in assignment.resource_id:
-        return uav_connector.send_uav_command(task_id, assignment, force_response, force_reason)
+        # PX4/Gazebo가 풍속을 안 주므로, 환경모델 값을 UAV 판단 요청에 실어 보낸다
+        wind_ms = getattr(env_state, "wind_speed", None)
+        return uav_connector.send_uav_command(task_id, decision_id, assignment, wind_ms, force_response, force_reason)
     return ugv_connector.send_ugv_command(task_id, assignment, force_response, force_reason)
 
 
-def _get_observation(resource_id, timestamp, task_id, decision_id):
+def _get_observation(resource_id, timestamp, task_id, decision_id, assignment):
     if "uav" in resource_id:
-        return uav_connector.get_uav_observation(resource_id, timestamp, task_id, decision_id)
+        return uav_connector.get_uav_observation(resource_id, timestamp, task_id, decision_id, assignment)
     return ugv_connector.get_ugv_observation(resource_id, timestamp, task_id, decision_id)
 
 
@@ -80,7 +82,7 @@ def process_task(task, env_state, resource_pool, logger: EventLogger, timestamp:
         forced = forced_responses.get(assignment.resource_id)
         force_response, force_reason = forced if forced else (None, None)
 
-        local_response = _send_command(task.task_id, assignment, force_response, force_reason)
+        local_response = _send_command(task.task_id, decision.decision_id, assignment, env_state, force_response, force_reason)
         logger.log_event(
             "LOCAL_RESPONSE", timestamp,
             decision_id=decision.decision_id, task_id=task.task_id, resource_id=assignment.resource_id,
@@ -116,7 +118,7 @@ def process_task(task, env_state, resource_pool, logger: EventLogger, timestamp:
             task.state = "RUNNING"
             logger.log_event("EXECUTION", timestamp, decision_id=decision.decision_id, task_id=task.task_id, result="STARTED")
 
-            observation = _get_observation(assignment.resource_id, timestamp, task.task_id, decision.decision_id)
+            observation = _get_observation(assignment.resource_id, timestamp, task.task_id, decision.decision_id, assignment)
             logger.log_event(
                 "OBSERVATION", timestamp,
                 decision_id=decision.decision_id, task_id=task.task_id, resource_id=assignment.resource_id,

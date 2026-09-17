@@ -48,9 +48,23 @@ UAV_CONNECTION_MODE = "mock"
 UGV_CONNECTION_MODE = "mock"
 ORCHESTRATOR_CONNECTION_MODE = "mock"
 
-UAV_SERVER_URL = "TBD"   # 실제 PX4 연결 방식 확정 전까지 TBD
+UAV_SERVER_URL = "TBD"   # 구버전 — 아래 UAV_ENDPOINTS로 대체 예정, 하위호환용으로만 유지
 UGV_SERVER_URL = "TBD"
 ORCHESTRATOR_SERVER_URL = "TBD"
+
+# UAV는 "1대 = 프로세스 1개 = 포트 1개" 구조 (px4/uav-agent/README.md "UAV 여러 대 운용" 참고)
+# 한 URL로 통일할 수 없고, 드론별로 주소를 따로 관리해야 함
+# TODO: 김동현님이 실제 서버에 배포하면 아래 TBD를 실제 host:port로 교체
+UAV_ENDPOINTS = {
+    "A-uav1": "TBD",   # 예: "http://<host>:8000"
+    "A-uav2": "TBD",   # 예: "http://<host>:8001"
+    "B-uav1": "TBD",
+    "B-uav2": "TBD",
+}
+
+# UAV 판단에 필요한 풍속의 출처 — PX4/Gazebo가 풍속을 제공하지 않아(SHARE.md 4-3 확인됨),
+# 환경모델(EnvironmentState.wind_speed) 값을 요청에 실어서 보내야 함
+WIND_SOURCE = "environment_state"
 
 WEB_DEPLOYMENT_TARGET = "TBD"   # 최종 웹 배포 방식
 

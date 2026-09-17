@@ -124,6 +124,12 @@ RejectReason = Literal[
     "COMMUNICATION_FAILURE",
     "TIMEOUT",
     "REQUIRED_CAPABILITY_UNAVAILABLE",
+    # UAV 브랜치(김동현) 연동 과정에서 추가 합의된 사유 (px4/uav-agent/README.md 참고)
+    "FAILSAFE_ACTIVE",   # PX4 failsafe 작동 중
+    "BUSY",              # 다른 Task 수행 중
+    "WIND_UNKNOWN",       # 풍속 정보 없음 — 요청에 wind_ms 미포함
+    "DEADLINE_TIGHT",     # (COUNTER) 기한 초과하나 수행 가능
+    "MODERATE_WIND",      # (COUNTER) 풍속 주의
 ]
 
 
@@ -181,6 +187,9 @@ class Assignment:
     target_lat: float
     target_lon: float
     task_type: str = "OBSERVE"
+    # UAV는 goto(위도,경도,고도) 형태로 명령해야 해서 고도가 필수임 (px4/uav-agent 요청 반영)
+    # TBD: 실제 지형 고도(DEM)는 김은주님 환경모델 완성 후 반영, 그 전까지는 0.0(해수면)
+    target_alt_m: float = 0.0
 
 
 @dataclass
