@@ -72,6 +72,21 @@ details li{margin:2px 0}
 .label{position:absolute;font-size:12px;color:#E7EEEA;background:rgba(15,29,36,.7);padding:1px 6px;border-radius:4px;
   white-space:nowrap;pointer-events:none;transform:translate(-50%,-140%)}
 #msg{position:absolute;inset:0;display:grid;place-items:center;font-size:15px;color:var(--ink-2)}
+#demo{left:12px;bottom:calc(118px + env(safe-area-inset-bottom,0px));width:min(430px,calc(100vw - 24px));
+  max-height:calc(100vh - 330px);overflow:auto;display:none;font-size:12px}
+#demo h2{font-size:14px;margin:0 0 6px;font-weight:700}
+#demo .sc{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+#demo .sc button{font:inherit;text-align:left;padding:7px 10px;border-radius:8px;border:1px solid var(--line);
+  background:transparent;color:var(--ink);cursor:pointer}
+#demo .sc button:hover{border-color:var(--engine)} #demo .sc button:disabled{opacity:.5;cursor:wait}
+#demo .sc small{display:block;color:var(--ink-2)}
+#demo .ai{border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
+#demo .tag{display:inline-block;padding:0 6px;border-radius:99px;border:1px solid var(--line);margin-right:4px}
+#demo .tag.ok{color:#7FD99A;border-color:#7FD99A} #demo .tag.no{color:#FF8A7A;border-color:#FF8A7A}
+#demo .why{margin:6px 0;padding:8px 10px;border-left:3px solid var(--drone);background:rgba(114,214,232,.08);color:var(--ink)}
+#demo ol{margin:4px 0 4px 18px;padding:0} #demo .trail{color:var(--ink-2);margin:2px 0 6px 0}
+#demo .trail b{color:var(--ink);font-weight:500}
+#demo pre{white-space:pre-wrap;max-height:160px;overflow:auto;font-size:11px;background:rgba(0,0,0,.25);padding:6px;border-radius:6px}
 @media (max-width:720px){
   #t-kst{font-size:30px} #metrics{display:none} #head p{display:none} .ev span{display:none}
   #clock{width:auto}
@@ -118,6 +133,14 @@ details li{margin:2px 0}
   <div id="metrics"></div>
   <div id="resources"></div>
   <div id="live"></div>
+</section>
+
+<section id="demo" class="panel" aria-label="시연 시나리오와 AI 판단 기록">
+  <h2>시연 시나리오</h2>
+  <div class="trail" id="demo-pro">① 공통: 산불 신고 → 드론 정찰로 불 확인 …</div>
+  <p class="hint" style="margin:0 0 6px">② 하나를 고른다 (실행 한 번에 하나 — 다른 걸 보려면 트윈을 다시 시작)</p>
+  <div class="sc" id="demo-sc"></div>
+  <div class="ai" id="demo-ai" aria-live="polite"></div>
 </section>
 
 <section id="bottom" class="panel" aria-label="시간">
@@ -410,6 +433,9 @@ document.querySelectorAll('[data-mode]').forEach(b => b.onclick = async () => {
   document.querySelectorAll('[data-mode]').forEach(x => x.setAttribute('aria-pressed', x===b));
   $('#scenseg').style.display = $('#viewseg').style.display = $('#viewhint').style.display = state.mode === 'live' ? 'none' : '';
   scrub.disabled = state.mode === 'live'; play.disabled = state.mode === 'live';
+  play.style.display = $('#speed').style.display = state.mode === 'live' ? 'none' : '';
+  $('#demo').style.display = state.mode === 'live' ? 'block' : 'none';
+  if (state.mode === 'live') loadDemo();
   $('#modehint').textContent = state.mode === 'live'
     ? '환경 서버(CA)·UAV Agent·UGV 서버·총괄이 지금 보고하는 값을 1초마다 그대로 그린다. 시계는 twin_clock 이 진행한다.'
     : '기록된 시각과 미리 계산한 결과를 되감아 본다.';
@@ -498,7 +524,13 @@ function drawLive(){
     o.userData.cone.visible = !!u.task;
     el.textContent = `${u.id} · ${u.mode||'?'} · ${u.battery!=null?Math.round(u.battery)+'%':''}${u.task?' · 임무 중':''}`; }
   for (const g of L.ugv || []){ const {o, el} = liveObj(g.id, g.type); o.position.set(X(g.gx), Y(g.gx,g.gy,20), Z(g.gy)); o.visible = true;
-    el.textContent = `${g.id} · ${g.state}`; }
+    if (state.follow === g.id){   // 출동 차량 따라가기: 카메라와 목표점의 상대 위치를 유지한 채 차를 따라간다
+      const dx = camera.position.x - controls.target.x, dy = camera.position.y - controls.target.y, dz = camera.position.z - controls.target.z;
+      controls.target.copy(o.position); camera.position.set(o.position.x + dx, o.position.y + dy, o.position.z + dz); }
+    const ACT = {SUPPRESSING:' · 💧 진압 중', REFILLING:' · 물 보충 중', LOADING:' · 적재 중', UNLOADING:' · 하역 중'};
+    const work = ACT[g.activity] || (g.activity && g.activity !== 'IDLE' ? ' · '+g.activity : '');
+    const water = g.water_l != null ? ` · 물 ${Math.round(g.water_l)} L` : '';
+    el.textContent = `${g.id}${g.driver === 'px4' ? ' [Gazebo]' : ''} · ${g.state}${work}${water}`; }
   return {t, burned};
 }
 function draw(force){
@@ -644,6 +676,116 @@ function placeLabels(){
   put(windLabel, windArrow, 120);
   if (fireLabel._obj && fireLabel.style.display !== 'none') put(fireLabel, fireLabel._obj, fireLabel._dy);
 }
+
+// ── 시연 시나리오 + AI 판단 기록 (feat/demo-ground) ──────────────────────────
+const escH = v => String(v ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const STEP_KO = {TASK_RECEIVED:'접수', CANDIDATES_FILTERED:'후보 거르기', LOCAL_RESPONSE:'차량 자체 평가',
+  SAFETY_JUDGEMENT:'안전 검증', EXECUTION_SENT:'출동 명령', TASK_HOLD:'대기', OBSERVATION:'관측', TASK_COMPLETED:'완료',
+  ATTEMPT_RELEASED:'반납', EXECUTION_STATUS:'주행 상태', EXECUTION_PROGRESS:'진행', TASK_COMPLETE:'임무 종료'};
+const RES_KO = {ACK:'접수됨 → 출동', ARRIVED:'도착', RETURNING:'차량 대기 상태 확인 중', RELEASED:'예약 해제 (현장에 대기, 다음 임무 가능)', COMPLETED:'완료',
+  ROAD_STATUS:'도로 상황만 (화재 관측 아님)', DETECTED:'불 발견', NOT_DETECTED:'불 없음', MEASURED:'측정 완료'};
+const VEH_KO = {RUNNING:'🚒 출동 중', WORKING:'작업 중', READY:'대기', UNAVAILABLE:'사용 불가'};
+function vehicleNow(rid){
+  const L = state.live || {};
+  const g = (L.ugv || []).find(x => x.id === rid);
+  if (g){ const act = g.activity === 'SUPPRESSING' ? '💧 진압 중' : g.activity === 'REFILLING' ? '물 보충 중' : (VEH_KO[g.state] || g.state);
+          return `${act}${g.water_l != null ? ' · 물 '+Math.round(g.water_l)+' L' : ''}`; }
+  const u = (L.uav || []).find(x => x.id === rid);
+  if (u) return u.task ? '✈ 비행 중 (임무)' : `대기 · ${u.flight_mode || ''}`;
+  return '';
+}
+let demoBusy = false, demoInfo = '';
+let demoReady = false;
+function showPrologue(p){
+  demoReady = !!(p && p.ok);
+  $('#demo-pro').innerHTML = demoReady
+    ? `① 공통 ✔ 산불 신고 → <b>${escH(p.resource_id || '드론')}</b> 정찰로 <b>${escH(p.cell_id)}</b> 불 확인`
+    : `① 공통: 산불 신고 → 드론 정찰 중… <span class="hint">${escH(p ? p.why || '' : '')}</span>`;
+  document.querySelectorAll('[data-demo]').forEach(b => b.disabled = !demoReady || demoBusy);
+}
+async function loadDemo(){
+  try {
+    const r = await fetch('/api/demo/scenarios'); if (!r.ok) throw 0; const d = await r.json();
+    $('#demo-sc').innerHTML = d.scenarios.map(x =>
+      `<button data-demo="${escH(x.id)}"><b>${escH(x.title)}</b><small>${escH(x.desc)}</small></button>`).join('');
+    document.querySelectorAll('[data-demo]').forEach(b => b.onclick = () => runDemo(b.dataset.demo));
+    showPrologue(d.prologue);
+  } catch (e) { $('#demo-sc').textContent = '시연 API 없음 (web/app.py 가 feat/demo-ground 버전인지 확인)'; }
+  refreshAI();
+}
+setInterval(async () => {
+  if (state.mode !== 'live' || demoBusy) return;
+  try { const r = await fetch('/api/demo/scenarios'); if (r.ok) showPrologue((await r.json()).prologue); } catch (e) {}
+}, 3000);
+async function runDemo(id){
+  if (demoBusy) return; demoBusy = true;
+  document.querySelectorAll('[data-demo]').forEach(b => b.disabled = true);
+  demoInfo = '총괄에 임무 접수 → 배정 요청 중 (묶음이면 AI 호출, 최대 30초)…'; refreshAI();
+  try {
+    const r = await fetch('/api/demo/run/' + id, {method: 'POST'}); const d = await r.json();
+    demoInfo = r.ok ? `접수 완료 · 배정 ${d.dispatch_s}초` : `실패: ${escH(JSON.stringify(d.detail || d))}`;
+  } catch (e) { demoInfo = '실패: 관제판 서버 연결 안 됨'; }
+  demoBusy = false; document.querySelectorAll('[data-demo]').forEach(b => b.disabled = !demoReady); refreshAI();
+}
+async function refreshAI(){
+  let d; try { const r = await fetch('/api/demo/ai'); if (!r.ok) throw 0; d = await r.json(); } catch (e) { return; }
+  const L = d.llm || {}, run = d.run, lp = L.last_plan;
+  const ready = !L.not_ready_reason;
+  let h = `<div><span class="tag ${ready?'ok':'no'}">AI ${ready?'연결됨':'꺼짐 · '+escH(L.not_ready_reason||'?')}</span>`
+        + `<span class="tag">${escH(L.provider||'')} ${escH(L.model||'')}</span><span class="tag">호출 ${L.calls_used||0}회</span></div>`;
+  if (demoInfo) h += `<p class="hint">${demoInfo}</p>`;
+  const live = state.live || {};
+  const onGround = new Set((live.ugv || []).map(g => g.id));
+  const movers = run ? [...new Set([...Object.values(run.results || {}).map(x => x.resource_id),
+    ...Object.values(d.trail || {}).flat().filter(e => e.type === 'EXECUTION_SENT').map(e => e.resource)])].filter(id => id && onGround.has(id)) : [];
+  if (movers.length) h += `<div class="seg" style="margin-top:6px">${movers.map(id =>
+    `<button data-follow="${escH(id)}" aria-pressed="${state.follow===id}">${escH(id)} 따라가기</button>`).join('')}
+    <button data-follow="" aria-pressed="${!state.follow}">고정</button></div>`;
+  if (run){
+    const cell = Object.fromEntries(run.tasks.map(t => [t.task_id, t]));
+    const name = tid => cell[tid] ? `${cell[tid].label || cell[tid].resource_type} · 근거 칸 ${cell[tid].cell_id}` : tid;
+    h += `<h2 style="margin-top:8px">AI 판단 — ${escH(run.title)}</h2>`;
+    h += `<div class="trail">위험도: ${run.tasks.map(t => `<b>${escH(t.cell_id)}</b> ${t.risk_score}`).join(' · ')}`
+       + (run.similar_pair ? ' → 차이 0.1 이내라 <b>규칙만으로 순서를 정하지 않고 AI에게 묻는다</b>' : '') + `</div>`;
+    const g = d.run_group || (run.groups || [])[0];
+    if (g && g.llm && g.llm.status === 'OK'){
+      h += `<div>먼저 보낼 순서 (AI 추천, 검증 통과)</div><ol>${g.llm.order.map(t => `<li>${escH(name(t))}</li>`).join('')}</ol>`;
+      h += `<div class="why">${escH(g.llm.rationale)}</div><div class="trail">근거로 인용한 ID: ${escH((g.llm.input_refs||[]).join(', '))} · ${escH(g.llm.model)}</div>`;
+    } else if (g && g.llm){
+      h += `<div class="why">AI 결과 사용 안 함 (${escH(g.llm.status)}: ${escH(JSON.stringify(g.llm.reason))}) → 규칙 순서로 출동</div>`;
+    } else {
+      h += `<div class="trail">묶음이 생기지 않아 AI를 부르지 않음 (위험도 차이가 크면 규칙으로 바로 정함)</div>`;
+    }
+    for (const t of run.tasks){
+      const tr = (d.trail || {})[t.task_id] || [];
+      const sent = [...((d.trail || {})[t.task_id] || [])].reverse().find(e => e.type === 'EXECUTION_SENT' && e.resource);
+      const rid = ((run.results || {})[t.task_id] || {}).resource_id || (sent && sent.resource);
+      const now = rid ? vehicleNow(rid) : '';
+      h += `<div class="trail"><b>${escH(name(t.task_id))}</b> ${escH(t.task_id)}`
+         + (rid ? `<br>배정 <b>${escH(rid)}</b>${now ? ' — 지금: <b>'+escH(now)+'</b>' : ''}` : '<br>배정 대기 (자원 없음/사용 중)') + '<br>'
+         + tr.map(e => `${escH(STEP_KO[e.type]||e.type)} <b>${escH(RES_KO[e.result]||e.result||'')}</b>${e.note?' — '+escH(e.note):''}`).join('<br>') + `</div>`;
+    }
+  }
+  if (lp && (lp.input || lp.raw_output)){
+    h += `<details><summary>AI에 보낸 입력 / 받은 출력 (원문)</summary>`
+       + `<div class="trail">${escH(lp.status)} · ${escH(lp.provider)} ${escH(lp.model)} · 응답 ${lp.latency_s ?? '?'}초</div>`
+       + (lp.error ? `<div class="why">오류: ${escH(lp.error)}</div>` : '')
+       + `<div class="trail"><b>① 시스템 지시 (systemInstruction)</b></div><pre>${escH(lp.instructions || '')}</pre>`
+       + `<div class="trail"><b>② 보낸 사실 (입력)</b></div><pre>${escH(JSON.stringify(lp.input, null, 1))}</pre>`
+       + `<div class="trail"><b>③ 강제한 출력 형식 (JSON 스키마)</b></div><pre>${escH(JSON.stringify(lp.output_schema, null, 1))}</pre>`
+       + `<div class="trail"><b>④ 받은 출력</b></div><pre>${escH(JSON.stringify(lp.raw_output || lp.violations || lp.error, null, 1))}</pre></details>`;
+  }
+  const keepOpen = $('#demo-ai details') && $('#demo-ai details').open;
+  $('#demo-ai').innerHTML = h;
+  if (keepOpen && $('#demo-ai details')) $('#demo-ai details').open = true;
+  document.querySelectorAll('[data-follow]').forEach(b => b.onclick = () => {
+    state.follow = b.dataset.follow || null;
+    if (state.follow){ const cur = (state.live && state.live.ugv || []).find(g => g.id === state.follow);
+      if (cur){ controls.target.set(X(cur.gx), Y(cur.gx,cur.gy,20), Z(cur.gy));
+        camera.position.set(X(cur.gx) + 900, Y(cur.gx,cur.gy,20) + 1300, Z(cur.gy) + 1100); } }
+    refreshAI(); });
+}
+setInterval(() => { if (state.mode === 'live' && !demoBusy) refreshAI(); }, 3000);
 
 setInterval(async () => {
   if (state.mode !== 'live') return;

@@ -206,6 +206,15 @@ async def get_state(resource_id: str):
     return _state(_agent(resource_id))
 
 
+def _refill_node(agent: GroundResourceAgent) -> str | None:
+    """물이 거의 없는 소방차가 거점 밖에 있으면 거점 노드 (먼저 물을 채우러 간다). 아니면 None."""
+    r, eq = agent.resource, agent.resource.equipment
+    if (r.resource_type == "FIRE_ENGINE" and eq is not None and eq.water_capacity_l
+            and eq.water_l < eq.water_capacity_l * config.REFILL_BELOW_FRAC and r.current_node != r.home_node):
+        return r.home_node
+    return None
+
+
 def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str | None,
             cargo=None, via_node: str | None = None) -> dict:
     """목적지 도로 노드를 고르고 갈 수 있는지 판단한다. evaluate·execute 가 같은 규칙을 쓴다.
@@ -236,8 +245,20 @@ def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str 
         except KeyError:
             raise HTTPException(404, f"경유 노드 {via_node} 없음")
 
+    refill = _refill_node(agent) if cargo is None and via_node is None else None
+
     def judge(node_id: str) -> dict:
         """agent.evaluate 와 같은 형식. 짐이 있으면 경유지·싣기 시간을 넣는다."""
+        if refill is not None:                  # 물 보충: 지금 → 거점(채우기) → 목적지
+            first = agent.evaluate(refill)
+            if first["response"] != "ACCEPT":
+                return first
+            second = fleet.graph.find_route(refill, node_id, agent.max_speed_mps)
+            if not second.reachable:
+                return {"resource_id": rid, "response": "REJECT", "blocked_road_id": second.blocked_road_id,
+                        "reason": "ROAD_BLOCKED" if second.blocked_road_id else "TARGET_UNREACHABLE"}
+            return {"resource_id": rid, "response": "ACCEPT", "eta_s": first["eta_s"] + config.REFILL_S + second.eta_s,
+                    "path": first["path"] + second.path[1:]}
         if via_node is None:
             res = agent.evaluate(node_id)
             if res["response"] == "ACCEPT" and cargo is not None:
@@ -276,9 +297,11 @@ def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str 
         tn = TargetNode(node_id=node.node_id, lat=node.lat, lon=node.lon, snap_m=round(snap_m, 1))
         result = judge(node.node_id)
         if result["response"] == "ACCEPT":
-            return dict(verdict="ACCEPT", eta_sec=round(result["eta_s"]), reason=None,
-                        detail=None if first_reject is None else f"가장 가까운 노드는 도달 불가, {snap_m:.0f} m 지점으로 접근",
-                        target_node=tn, path=result["path"])
+            detail = None if first_reject is None else f"가장 가까운 노드는 도달 불가, {snap_m:.0f} m 지점으로 접근"
+            if refill is not None:
+                detail = f"물 부족 — 거점 {refill} 에서 보충 후 출동" + (f"; {detail}" if detail else "")
+            return dict(verdict="ACCEPT", eta_sec=round(result["eta_s"]), reason=None, detail=detail,
+                        target_node=tn, path=result["path"], refill_via=refill)
         if result["reason"] == "BUSY":
             return reject("BUSY", f"수행 중 task {_task_of.get(rid)}")
         if result.get("fault"):                 # UNAVAILABLE — 주행 중 이상, /stop 으로 해제
@@ -298,6 +321,7 @@ async def evaluate(resource_id: str, req: EvaluateRequest):
     """수행 가능성 판단. 차를 움직이지 않는다. 목적지 선정 규칙은 _decide 참고."""
     agent = _agent(resource_id)
     d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node)
+    d.pop("refill_via", None)
     _report("UGV_EVALUATED", agent, req.task_id, decision_id=req.decision_id, verdict=d["verdict"],
             eta_sec=d["eta_sec"], reason=d["reason"], detail=d["detail"],
             target_node=None if d["target_node"] is None else d["target_node"].node_id)
@@ -388,7 +412,9 @@ def _check_run(agent: GroundResourceAgent, w: dict, now: float) -> str | None:
 # 마지막 DRIVE 도착 = task COMPLETED (계약 그대로). 그 뒤 작업(진압·짐 내리기)은 _work 가 따로 돈다 —
 # 그동안 차는 state=WORKING 이라 총괄이 반납하지 않는다.
 
-def _stages(target_node: str, via_node: str | None, cargo) -> list[tuple[str, str | None]]:
+def _stages(target_node: str, via_node: str | None, cargo, refill_via: str | None = None) -> list[tuple[str, str | None]]:
+    if refill_via:
+        return [("DRIVE", refill_via), ("REFILL", None), ("DRIVE", target_node)]
     if cargo is None:
         return [("DRIVE", target_node)]
     if via_node:
@@ -485,11 +511,32 @@ async def _load(task_id: str, agent: GroundResourceAgent, stage: str) -> None:
     _save()
 
 
+async def _refill(task_id: str, agent: GroundResourceAgent, stage: str) -> None:
+    """거점에서 물 채우기 (REFILL_S 시뮬레이션 초). 그동안 state=WORKING."""
+    t, r = _tasks[task_id], agent.resource
+    eq, now = r.equipment, clock.now()
+    r.state = "WORKING"
+    eq.begin("REFILLING", task_id, now, now + config.REFILL_S)
+    t["status"] = "IN_PROGRESS"
+    t["progress"] = {"phase": "REFILLING", "stage": stage, "until_sim_s": round(now + config.REFILL_S, 1)}
+    _save()
+    _siren(agent, False)
+    try:
+        await _sim_sleep_until(now + config.REFILL_S)
+    finally:
+        added = eq.refill()
+        eq.end(clock.now(), "DONE", water_l=eq.water_l)
+        if r.state == "WORKING":
+            r.state = "READY"
+    _report("UGV_REFILLED", agent, task_id, water_l=eq.water_l, added_l=round(added, 1), en_route=True)
+    _save()
+
+
 async def _run_task(task_id: str, agent: GroundResourceAgent, stages: list, eta_sec: float | None = None) -> None:
     """단계를 차례로 수행한다. 마지막 DRIVE 도착 → COMPLETED + 도착 뒤 작업 시작. 실패면 FAILED."""
     rid = agent.resource.resource_id
     t = _tasks[task_id]
-    target_node = stages[-1][1]
+    target_node = next(n for k, n in reversed(stages) if k == "DRIVE")
     dlog = DriveLog(_STATE_DIR, task_id, agent, clock) if DRIVE_LOG_ENABLED else None
     if dlog:
         rel = os.path.relpath(dlog.path)
@@ -499,6 +546,9 @@ async def _run_task(task_id: str, agent: GroundResourceAgent, stages: list, eta_
             stage = f"{i + 1}/{len(stages)}"
             if kind == "LOAD":
                 await _load(task_id, agent, stage)
+                continue
+            if kind == "REFILL":
+                await _refill(task_id, agent, stage)
                 continue
             if i > 0:                          # 첫 주행은 execute 가 이미 시작했다
                 if not await agent.execute(node):
@@ -630,6 +680,33 @@ async def _work(agent: GroundResourceAgent, activity: str, task_id: str | None, 
     _works.pop(rid, None)
     _report("UGV_WORK_ENDED", agent, task_id, **rec)
     _resource_changed(agent, f"WORK_{result}")
+    if activity == "SUPPRESSING" and result == "EMPTY" and config.AUTO_RTB_REFILL:
+        asyncio.create_task(_return_to_refill(agent))
+
+
+async def _return_to_refill(agent: GroundResourceAgent) -> None:
+    """물이 바닥난 소방차가 스스로 거점으로 돌아가 물을 채운다 (총괄 임무 아님, 내부 task RTB-*).
+    그동안 차는 RUNNING/WORKING 이라 총괄 평가에서 BUSY 로 빠지고, 다 채우면 READY 로 돌아온다."""
+    r, eq = agent.resource, agent.resource.equipment
+    rid = r.resource_id
+    if eq is None or not eq.water_capacity_l or _task_of.get(rid):
+        return
+    if r.current_node == r.home_node:
+        added = eq.refill()
+        _report("UGV_REFILLED", agent, None, water_l=eq.water_l, added_l=round(added, 1))
+        return
+    tid = f"RTB-{rid}-{int(clock.now())}"
+    STORE.register(tid, {"resource_id": rid, "internal": "RETURN_TO_REFILL"},
+                   {"task_id": tid, "resource_id": rid, "status": "STARTED", "target_node": r.home_node,
+                    "progress": None, "observation": None, "internal": "RETURN_TO_REFILL"}, {})
+    if not await agent.execute(r.home_node):
+        _tasks[tid].update(status="FAILED", error="RETURN_TO_REFILL: 거점 경로 출발 불가")
+        _report("UGV_RETURN_TO_REFILL_FAILED", agent, tid, home=r.home_node)
+        _save()
+        return
+    _task_of[rid] = tid
+    _report("UGV_RETURN_TO_REFILL", agent, tid, home=r.home_node, water_l=eq.water_l)
+    _watchers[tid] = asyncio.create_task(_run_task(tid, agent, [("DRIVE", r.home_node), ("REFILL", None)]))
 
 
 async def _cancel_work(agent: GroundResourceAgent) -> bool:
@@ -673,7 +750,7 @@ async def execute(resource_id: str, req: ExecuteRequest):
     node_id = d["target_node"].node_id
     url = f"/ugv/{resource_id}/task/{req.task_id}"
     cargo = None if req.cargo is None else {"name": req.cargo.name, "kg": req.cargo.kg, "via_node": req.via_node}
-    stages = _stages(node_id, req.via_node, req.cargo)
+    stages = _stages(node_id, req.via_node, req.cargo, d.pop("refill_via", None))
     if len(d["path"]) == 1 and cargo is None:     # 이미 목적지 노드에 서 있다 — 움직이지 않고 바로 완료
         r = agent.resource
         resp = ExecuteResponse(task_id=req.task_id, resource_id=resource_id, status="STARTED", tracking_url=url,

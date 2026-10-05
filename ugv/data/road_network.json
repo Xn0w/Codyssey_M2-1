@@ -24,19 +24,23 @@
    "lon": 128.3176,
    "source_node": "495727",
    "snap_m": 17.8
+  },
+  "F": {
+   "name": "전진 배치(시연 가정)",
+   "lat": 38.031198,
+   "lon": 128.130822,
+   "source_node": "494957",
+   "snap_m": 0.0
   }
  },
  "world": {
-  "sdf": "ugv/gazebo/kangwon_ugv2.sdf",
-  "name": "kangwon_ugv2",
+  "sdf": "uav/gazebo/kangwon.sdf",
+  "name": "kangwon",
   "datum": [
    38.0112,
    128.122643,
    172.1
-  ],
-  "road_width_m": 10.0,
-  "max_grade": 0.08,
-  "shoulder_m": 4.0
+  ]
  },
  "spawn": {
   "A-ugv1": {
@@ -59,6 +63,13 @@
    "z": 90.9,
    "yaw": -0.753,
    "node": "B"
+  },
+  "F-fire1": {
+   "x": 718.1,
+   "y": 2219.7,
+   "z": 48.8,
+   "yaw": -1.848,
+   "node": "F"
   }
  },
  "nodes": [
@@ -819,10 +830,10 @@
    "name": "설악로"
   },
   {
-   "node_id": "494957",
+   "node_id": "F",
    "lat": 38.031198,
    "lon": 128.130822,
-   "name": "설악로"
+   "name": "전진 배치(시연 가정)"
   },
   {
    "node_id": "494958",
@@ -10174,7 +10185,7 @@
   {
    "road_id": "682501420",
    "node_a": "494948",
-   "node_b": "494957",
+   "node_b": "F",
    "name": "설악로",
    "distance_m": 71.7,
    "speed_kmh": 60,
@@ -10514,7 +10525,7 @@
   },
   {
    "road_id": "682501418",
-   "node_a": "494957",
+   "node_a": "F",
    "node_b": "494958",
    "name": "설악로",
    "distance_m": 21.0,
@@ -10568,7 +10579,7 @@
   },
   {
    "road_id": "682501434",
-   "node_a": "494957",
+   "node_a": "F",
    "node_b": "494960",
    "name": "설악로",
    "distance_m": 27.1,

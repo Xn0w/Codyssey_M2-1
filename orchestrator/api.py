@@ -37,7 +37,7 @@ from .engine import Orchestrator, TaskRejected
 from .env_adapter import FixtureEnv
 from .ledger import ACTIVE, Ledger, RequestConflict, RunNotActive
 from .knowledge import InjectedAnalysis, KmaAsosReplay
-from .llm import LlmPlanner
+from .llm import LlmPlanner, SYSTEM as LLM_SYSTEM_PROMPT, OUTPUT_SCHEMA as LLM_OUTPUT_SCHEMA
 from .resources import UavClient, UgvClient
 
 
@@ -178,7 +178,10 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
             req = orch.llm_request()
             if req:
                 orch.llm_store(req, orch.llm_call(req))
-            return orch.dispatch_pending(allow_llm_call=False)
+            # 시연 브랜치: 이번 회차에 LLM 을 아직 안 불렀는데 그사이 새 임무가 들어와 묶음이 생겼으면
+            # (llm_request 와 배정 사이 경합) 그 자리에서 부른다. 이미 부른 회차는 그대로 — 입력이 바뀐
+            # 옛 추천은 쓰지 않는다(STALE)는 원래 규칙을 지킨다.
+            return orch.dispatch_pending(allow_llm_call=req is None)
 
     @app.on_event("startup")
     def _recover_on_start():
@@ -334,6 +337,40 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
     def dispatch_pending():
         return dispatch_all()
 
+    def _last_llm_plan():
+        """가장 최근 LLM 호출 기록 (시연 화면용). 입력 사실과 원문 출력도 같이 — 키는 기록되지 않는다."""
+        e = next((e for e in reversed(orch.ledger.events(run_id=ACTIVE))
+                  if e["event_type"] == "LLM_PLAN"), None)
+        if not e:
+            return None
+        d = e.get("detail") or {}
+        return {"seq": e.get("seq"), "event_type": e["event_type"], "status": e.get("result"),
+                "reason": e.get("reason"), "sim_time_s": e.get("sim_time_s"), "wall": e.get("wall_time"),
+                "model": d.get("model"), "provider": d.get("provider"), "latency_s": d.get("latency_s"),
+                "input": d.get("input"), "raw_output": d.get("raw_output"), "violations": d.get("violations"),
+                "error": d.get("error"), "attempts": d.get("attempts"),
+                "instructions": LLM_SYSTEM_PROMPT, "output_schema": LLM_OUTPUT_SCHEMA}
+
+    @app.get("/priority/group_of/{task_id}")
+    def priority_group_of(task_id: str):
+        """이 임무가 들어갔던 가장 최근 선택 묶음과 그때의 AI 결정 (시연 화면용). 없으면 group=None."""
+        for e in reversed(orch.ledger.events(run_id=ACTIVE)):
+            if e["event_type"] != "PRIORITY_ORDER":
+                continue
+            for g in (e.get("detail") or {}).get("groups", []):
+                if task_id in g.get("task_ids", []):
+                    return {"seq": e.get("seq"), "group": g}
+        return {"seq": None, "group": None}
+
+    @app.get("/view/risk_cells")
+    def view_risk_cells():
+        """총괄이 '아는 세계'로 분석한 위험 칸 (우선순위 근거와 같은 값). 시연 시나리오가 칸을 고를 때 쓴다."""
+        snap = orch.view()
+        return {"run_id": snap.run_id, "state_version": snap.state_version, "analysis_source": snap.analysis_source,
+                "risk_cells": [{k: c.get(k) for k in ("cell_id", "lat", "lon", "ground_amsl_m", "risk_score",
+                                                      "human_exposure", "building_type", "fire_state")}
+                               for c in snap.risk_cells]}
+
     @app.get("/priority/board")
     def priority_board():
         """관제 화면용: 최근 우선순위 판단의 선택 묶음과 각 Task 의 현재 상태·근거"""
@@ -385,7 +422,9 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
                     "threats": [{**c, "monitor_task_id": premon_tasks.get(f"AUTO-PREMON:{snap.run_id}:{c['key']}")}
                                 for c in orch.preemptive_candidates(snap)]}
         return {"mode": orch.priority_mode, "modes": list(config.PRIORITY_MODES), "results": results,
-                "llm": {"model": config.LLM_MODEL, "not_ready_reason": llm_state}, "forecast": forecast,
+                "llm": {"provider": config.LLM_PROVIDER, "model": config.LLM_MODEL, "not_ready_reason": llm_state,
+                        "calls_used": orch.llm.calls if orch.llm else 0,
+                        "last_plan": _last_llm_plan()}, "forecast": forecast,
                 "known": known,
                 "similar_delta": config.PRIORITY_SIMILAR_RISK_DELTA, "decided_seq": (last or {}).get("seq"),
                 "auto_order": [row(t) for t in detail.get("auto_order", [])], "groups": groups,

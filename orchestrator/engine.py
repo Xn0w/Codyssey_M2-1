@@ -1586,7 +1586,7 @@ class Orchestrator:
             "kind": "ENV_SENSE",
             "target": {"lat": c["lat"], "lon": c["lon"], "ground_amsl_m": c.get("ground_amsl_m"),
                        "cell_id": c["cell_id"]},
-            "requirements": {"resource_types": ["UAV", "UGV", "FIRE_ENGINE"], "sensor": "WEATHER",
+            "requirements": {"resource_types": list(config.ENV_SENSE_RESOURCE_TYPES), "sensor": "WEATHER",
                              "needs_env_ack": True}})
         return t.task_id if new else None
 

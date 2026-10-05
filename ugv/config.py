@@ -19,8 +19,25 @@ RESOURCES = [
     {"resource_id": "B-ugv1",  "resource_type": "UGV",
      "base": "B", "home_node": "B", "px4_instance": 2, "px4_model": "r1_rover", "max_speed_mps": 2.0},
 ]
+# 시연(feat/demo-ground): 화점 330 m 앞 전진 배치 소방차 (거점 F = 설악로 노드 494957, 가정).
+# Gazebo 로 1분 안에 도착하는 차. UGV_FORWARD_ENGINE=1 일 때만 자원에 들어간다 (스폰 자세는 늘 기록해 둔다).
+FORWARD_ENGINE = {"resource_id": "F-fire1", "resource_type": "FIRE_ENGINE",
+                  "base": "F", "home_node": "F", "px4_instance": 4, "px4_model": "r1_rover", "max_speed_mps": 2.0}
+if os.getenv("UGV_FORWARD_ENGINE") == "1" or os.getenv("UGV_BUILD_ALL_SPAWNS") == "1":
+    RESOURCES.append(dict(FORWARD_ENGINE))
 for _r in RESOURCES:
     _r["px4_port"] = 14540 + _r["px4_instance"]
+
+# 시연(sim 전용, feat/demo-ground): 실제 출동 속도 상한. 소방차 60 km/h, 순찰 UGV 30 km/h.
+# 도로 제한속도가 더 낮으면 그 값을 쓴다. Gazebo(PX4) 주행에는 켜지 말 것 — 로버가 2 m/s 이상 못 낸다.
+if os.getenv("UGV_DEMO_REAL_SPEED") == "1":
+    _DEMO_MAX = {"FIRE_ENGINE": float(os.getenv("UGV_DEMO_FIRE_KMH", "60")) / 3.6,
+                 "UGV": float(os.getenv("UGV_DEMO_UGV_KMH", "30")) / 3.6}
+    _on_px4 = set(os.getenv("UGV_PX4_RESOURCES", "").split(",")) if os.getenv("UGV_DRIVER", "sim") == "px4" else set()
+    for _r in RESOURCES:
+        if _r["resource_id"] in _on_px4:      # Gazebo 차는 로버 속도 그대로 (2 m/s)
+            continue
+        _r["max_speed_mps"] = round(_DEMO_MAX.get(_r["resource_type"], _r["max_speed_mps"]), 2)
 
 # 장비 (ugv/equipment.py) — 잠정값
 #   소방차: 물탱크·방수량. 도착하면 자동으로 진압(SUPPRESSING) — 물이 바닥나거나 /suppress stop 까지.
@@ -33,6 +50,11 @@ EQUIPMENT = {
 }
 LOAD_S = float(os.getenv("UGV_LOAD_S", "60"))       # 짐 싣기 (시뮬레이션 초)
 UNLOAD_S = float(os.getenv("UGV_UNLOAD_S", "60"))   # 짐 내리기
+# 소방차 물 보충: 남은 물이 이 비율 밑이면 다음 출동은 거점을 거쳐 물을 채우고 간다 (REFILL_S 동안 채움)
+REFILL_BELOW_FRAC = float(os.getenv("UGV_REFILL_BELOW_FRAC", "0.1"))
+REFILL_S = float(os.getenv("UGV_REFILL_S", "300"))
+# 물이 바닥나면(EMPTY) 소방차가 스스로 거점으로 돌아가 물을 채운다 (총괄 임무가 아닌 차량 자체 행동)
+AUTO_RTB_REFILL = os.getenv("UGV_AUTO_RTB_REFILL", "1") != "0"
 AUTO_SUPPRESS = os.getenv("UGV_AUTO_SUPPRESS", "1") != "0"   # 소방차 도착 즉시 진압 시작
 
 # PX4 연결

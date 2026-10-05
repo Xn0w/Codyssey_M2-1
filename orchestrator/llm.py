@@ -179,8 +179,11 @@ class LlmPlanner:
 
     def _get_client(self):
         if self._client is None:
-            from openai import OpenAI
-            self._client = OpenAI()
+            if config.LLM_PROVIDER == "gemini":
+                self._client = GeminiResponses(os.getenv(config.LLM_API_KEY_ENV))
+            else:
+                from openai import OpenAI
+                self._client = OpenAI()
         return self._client
 
     def propose(self, snapshot, plan: dict, tasks_by_id: dict) -> dict:
@@ -225,3 +228,77 @@ class LlmPlanner:
                 "orders": {g["group_index"]: g["order"] for g in out["groups"]},
                 "rationales": {g["group_index"]: g["rationale"] for g in out["groups"]},
                 "input_refs": {g["group_index"]: g["input_refs"] for g in out["groups"]}}
+
+
+# ---------------------------------------------------------------------------
+# Gemini 어댑터 (시연 브랜치). OpenAI Responses API 의 responses.create(...).output_text 모양만 흉내 낸다.
+# LlmPlanner 의 입력·검증·기록은 그대로 쓰고, 전송만 Gemini generateContent 로 바꾼다.
+# ---------------------------------------------------------------------------
+GEMINI_URL = os.getenv("ORCH_GEMINI_URL",
+                       "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent")
+
+
+class _GeminiResponse:
+    def __init__(self, text: str):
+        self.output_text = text
+
+
+class GeminiResponses:
+    """client.responses.create(model, instructions, input, text={format:{schema}}, timeout) → .output_text"""
+
+    def __init__(self, api_key: Optional[str], http=None):
+        self._key = api_key
+        self._http = http          # 시험에서 가짜 POST 함수를 끼운다: http(url, headers, json, timeout) → (status, dict)
+        self.responses = self
+
+    def _post(self, url, body, timeout):
+        if self._http is not None:
+            return self._http(url, {"x-goog-api-key": "***"}, body, timeout)
+        import httpx
+        r = httpx.post(url, headers={"x-goog-api-key": self._key or ""}, json=body, timeout=timeout)
+        try:
+            data = r.json()
+        except ValueError:
+            data = {"error": {"message": r.text[:300]}}
+        return r.status_code, data
+
+    def _post_retry(self, url, body, timeout):
+        """503(과부하)·429(한도)·500 은 잠깐 쉬고 다시 (최대 GEMINI_RETRIES 회). 전체 시간은 timeout 안에서."""
+        t0, tries = time.monotonic(), int(os.getenv("ORCH_GEMINI_RETRIES", "3"))
+        for i in range(tries + 1):
+            left = timeout - (time.monotonic() - t0)
+            status, data = self._post(url, body, max(1.0, left))
+            if status not in (429, 500, 503) or i == tries:
+                return status, data
+            wait = min(2.0 * (i + 1), max(0.0, timeout - (time.monotonic() - t0) - 2.0))
+            if wait <= 0:
+                return status, data
+            time.sleep(wait)
+        return status, data
+
+    def create(self, model, instructions, input, text=None, timeout=30, temperature=None, **_):
+        schema = ((text or {}).get("format") or {}).get("schema")
+        gen = {"responseMimeType": "application/json"}
+        if schema:
+            gen["responseJsonSchema"] = schema
+        if temperature is not None:
+            gen["temperature"] = temperature
+        body = {"systemInstruction": {"parts": [{"text": instructions}]},
+                "contents": [{"role": "user", "parts": [{"text": input}]}],
+                "generationConfig": gen}
+        url = GEMINI_URL.format(model=model)
+        status, data = self._post_retry(url, body, timeout)
+        if status == 400 and schema:
+            # 스키마 기능을 지원하지 않는 모델이면 JSON 출력만 요구한다 (형식은 validate() 가 다시 검사)
+            body["generationConfig"].pop("responseJsonSchema", None)
+            body["contents"][0]["parts"][0]["text"] = (
+                input + "\n\n출력 JSON 스키마:\n" + json.dumps(schema, ensure_ascii=False))
+            status, data = self._post_retry(url, body, timeout)
+        if status != 200:
+            msg = (data.get("error") or {}).get("message", "") if isinstance(data, dict) else ""
+            raise RuntimeError(f"GEMINI_HTTP_{status}: {msg[:200]}")
+        try:
+            parts = data["candidates"][0]["content"]["parts"]
+        except (KeyError, IndexError, TypeError):
+            raise RuntimeError(f"GEMINI_NO_CANDIDATE: {str(data.get('promptFeedback') or data)[:200]}")
+        return _GeminiResponse("".join(p.get("text", "") for p in parts))

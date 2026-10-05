@@ -179,6 +179,8 @@ WEATHER_SENSOR_PROFILE = {
 }
 # 불 발견 시 측정 임무 자동 생성: 불난 칸 + 바람이 향하는 쪽 위험 칸 (사용자 결정)
 AUTO_ENV_SENSE_ENABLED = True
+# 자동 기상 측정 임무가 허용하는 자원 (시연: 소방차를 기상 측정에 빼앗기지 않게 ORCH_ENV_SENSE_TYPES=UAV,UGV)
+ENV_SENSE_RESOURCE_TYPES = tuple(t for t in os.getenv("ORCH_ENV_SENSE_TYPES", "UAV,UGV,FIRE_ENGINE").split(",") if t)
 # Local 에 보낼 observation_type. 기상 센서는 Local 에 없어 이동 가능성만 평가받는다 (값 None = 보내지 않음)
 LOCAL_OBSERVATION_TYPE = {"THERMAL": "THERMAL", "RGB": "RGB", "WEATHER": None}
 
@@ -255,9 +257,11 @@ KMA_ASOS_STATIONS = Path(os.getenv("ORCH_KMA_ASOS_STATIONS", str(ROOT / "data/we
 # ---------------------------------------------------------------------------
 # LLM (요청서 §9: 모델·timeout·호출/비용 한도는 설정값. 임의 기본값 금지)
 # ---------------------------------------------------------------------------
-LLM_PROVIDER = "openai"
-LLM_MODEL = os.getenv("ORCH_LLM_MODEL", "gpt-5.6-luna")   # 사용자 결정 2026-09-30
-LLM_API_KEY_ENV = "OPENAI_API_KEY"                         # 키 값은 코드·로그에 남기지 않는다
+# 시연 브랜치(feat/demo-ground): ORCH_LLM_PROVIDER=gemini 이면 Gemini API 를 같은 인터페이스로 쓴다
+LLM_PROVIDER = os.getenv("ORCH_LLM_PROVIDER", "openai").lower()
+LLM_MODEL = os.getenv("ORCH_LLM_MODEL", "gemini-3.8-flash" if LLM_PROVIDER == "gemini"
+                      else "gpt-5.6-luna")                   # 사용자 결정 2026-09-30 (openai)
+LLM_API_KEY_ENV = "GEMINI_API_KEY" if LLM_PROVIDER == "gemini" else "OPENAI_API_KEY"   # 키 값은 코드·로그에 남기지 않는다
 LLM_TIMEOUT_S = float(os.getenv("ORCH_LLM_TIMEOUT_S", "30"))     # 사용자 결정 2026-09-30 (실제 초)
 LLM_MAX_CALLS_PER_RUN = int(os.getenv("ORCH_LLM_MAX_CALLS", "50"))  # 사용자 결정 2026-09-30 (서버 1회 실행당)
 LLM_TEMPERATURE = None           # TBD — 모델이 지원하는 경우에만 전달

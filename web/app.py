@@ -441,13 +441,175 @@ async def twin_state():
                 continue
             gx, gy = _ll_to_grid(p["lat"], p["lon"])
             out["ugv"].append({"id": u["resource_id"], "type": u.get("resource_type"), "gx": gx, "gy": gy,
-                               "state": u.get("state"), "task": u.get("current_task_id"), "driver": u.get("driver")})
+                               "state": u.get("state"), "task": u.get("current_task_id"), "driver": u.get("driver"),
+                               "activity": u.get("activity"), "water_l": (u.get("equipment") or {}).get("water_l"),
+                               "pump_on": (u.get("equipment") or {}).get("pump_on")})
         tasks = await get("orchestrator", f"{TWIN_ORCH_URL}/tasks")
         if tasks is not None:
             rows = tasks if isinstance(tasks, list) else tasks.get("tasks", [])
             out["tasks"] = [{"id": t.get("task_id"), "kind": t.get("kind"), "status": t.get("purpose_status"),
                              "cell": (t.get("target") or {}).get("cell_id"), "hold": t.get("hold_reason")}
                             for t in rows][-12:]
+    return out
+
+
+# ---------------------------------------------------------------------------
+# 시연 시나리오 (feat/demo-ground)
+#   공통(자동): 산불 신고 → 드론이 신고 지점을 정찰해 불을 확인 (총괄 자동 정찰 임무)
+#   그다음 둘 중 하나를 고른다
+#     engine1  소방차 1대: 화점 330 m 앞 전진 배치 소방차(F-fire1, Gazebo 가능)가 1분 안에 도착·방수
+#     engine2  소방차 2대: F-fire1 + 인제119 소방차(A-fire1, sim) 지원. 먼저 온 차가 물이 떨어지면
+#              거점으로 물 채우러 가고, 그사이 지원 차가 도착해 이어서 방수한다. 두 임무는 비슷한 위험이라
+#              총괄이 AI 에 순서를 묻는다
+#   진화 효과(불이 꺼지는 것)는 환경 계약(ENV-07) 미완 — 물은 쏘지만 불은 환경 모델대로 탄다.
+# ---------------------------------------------------------------------------
+FIRE_ROAD_NODE = {"lat": 38.028288, "lon": 128.130269, "node_id": "494955"}   # 남전약수터 화점 앞 설악로
+DEMO_SCENARIOS = [
+    {"id": "engine1", "title": "소방차 1대 출동",
+     "desc": "전진 배치 소방차(F-fire1)가 화점까지 약 330 m 를 달려 방수. 물 3000 L 가 떨어지면 거점으로 돌아가 채운다.",
+     "tasks": [{"label": "화점 진압", "area": "A"}]},
+    {"id": "engine2", "title": "소방차 2대 출동 (전진 배치 + 인제119 지원)",
+     "desc": "두 대가 같은 화점으로. 가까운 차가 먼저 방수하고 물이 떨어지면 채우러 가고, 그사이 인제119 차가 도착해 이어서 방수. 출동 순서는 AI가 정한다.",
+     "tasks": [{"label": "화점 진압", "area": "A"}, {"label": "지원 진압", "area": "B"}]},
+]
+_DEMO_RUNS = []          # 최근 실행 (화면 기록용)
+
+
+def _pick_demo_cells(snap: dict, delta: float = 0.1, min_gap_m: float = 150.0):
+    """비슷한 위험(차이 ≤ delta)·같은 인명 분류의 서로 떨어진 두 칸. 없으면 위험 상위 두 칸."""
+    cells = [c for c in snap.get("risk_cells", []) if isinstance(c.get("risk_score"), (int, float))
+             and c.get("lat") is not None]
+    cells.sort(key=lambda c: -c["risk_score"])
+    for i, a in enumerate(cells):
+        for b in cells[i + 1:]:
+            if (abs(a["risk_score"] - b["risk_score"]) <= delta and a.get("human_exposure") == b.get("human_exposure")
+                    and distance_m((a["lat"], a["lon"]), (b["lat"], b["lon"])) >= min_gap_m):
+                return a, b, True
+    return (cells[0], cells[1], False) if len(cells) >= 2 else (None, None, False)
+
+
+async def _prologue(cx) -> dict:
+    """공통 단계: 총괄이 '불 확인(CONFIRMED)' 한 칸과 확인한 자원"""
+    try:
+        b = (await cx.get(f"{TWIN_ORCH_URL}/priority/board")).json()
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "why": f"총괄 연결 실패: {type(e).__name__}"}
+    fires = [f for f in (b.get("known") or {}).get("fires", []) if f.get("status") == "CONFIRMED"]
+    if not fires:
+        return {"ok": False, "why": "아직 불 확인 전 — 신고 지점으로 드론이 정찰 중입니다 (시작 후 1분 안팎)"}
+    f = fires[0]
+    return {"ok": True, "cell_id": f["cell_id"], "resource_id": f.get("resource_id"),
+            "sim_time_s": f.get("sim_time_s"), "source": f.get("source")}
+
+
+@app.get("/api/demo/scenarios")
+async def demo_scenarios():
+    async with httpx.AsyncClient(timeout=5.0) as cx:
+        pro = await _prologue(cx)
+    return {"prologue": pro, "scenarios": [{k: v for k, v in sc.items() if k != "tasks"} for sc in DEMO_SCENARIOS],
+            "runs": _DEMO_RUNS[-5:]}
+
+
+@app.post("/api/demo/run/{sid}")
+async def demo_run(sid: str):
+    sc = next((x for x in DEMO_SCENARIOS if x["id"] == sid), None)
+    if sc is None:
+        raise HTTPException(404, "없는 시나리오")
+    async with httpx.AsyncClient(timeout=60.0) as cx:
+        pro = await _prologue(cx)
+        if not pro["ok"]:
+            raise HTTPException(409, pro["why"])
+        try:
+            snap = (await cx.get(f"{TWIN_ORCH_URL}/view/risk_cells")).json()   # 총괄이 아는 위험 칸 (우선순위 근거)
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(503, f"총괄 연결 실패: {type(e).__name__}")
+        a, b, similar = _pick_demo_cells(snap)
+        area = {"A": a, "B": b}
+        stamp = time.strftime("%H%M%S")
+        posted = []
+        for i, spec in enumerate(sc["tasks"]):
+            c = area.get(spec["area"])
+            cells = [c["cell_id"]] if c else [pro["cell_id"]]        # 우선순위 근거: 화점 주변 위험 칸
+            body = {"request_id": f"DEMO-{sid}-{i}-{stamp}-{uuid.uuid4().hex[:4]}",
+                    "incident_id": "INC-DEMO", "kind": "GROUND_SUPPORT",
+                    "target": {"lat": FIRE_ROAD_NODE["lat"], "lon": FIRE_ROAD_NODE["lon"], "cell_id": pro["cell_id"]},
+                    "requirements": {"resource_types": ["FIRE_ENGINE"], "sensor": None},
+                    "area_cell_ids": cells, "dispatch": False}
+            r = await cx.post(f"{TWIN_ORCH_URL}/tasks", json=body)
+            if r.status_code >= 300:
+                raise HTTPException(r.status_code, {"step": "POST /tasks", "detail": r.json()})
+            t = r.json()["task"]
+            posted.append({"task_id": t["task_id"], "cell_id": cells[0], "risk_score": c["risk_score"] if c else None,
+                           "resource_type": "FIRE_ENGINE", "label": spec["label"]})
+        t0 = time.monotonic()
+        d = (await cx.post(f"{TWIN_ORCH_URL}/dispatch_pending")).json()   # 묶음이면 여기서(또는 배경 배정기가) AI 호출
+        took = round(time.monotonic() - t0, 2)
+    run = {"scenario": sid, "title": sc["title"], "wall": time.time(), "prologue": pro,
+           "similar_pair": similar and len(posted) > 1, "tasks": posted, "dispatch_s": took,
+           "groups": [{"task_ids": g["task_ids"], "kinds": g.get("kinds"), "status": g.get("status"),
+                       "llm": g.get("llm")} for g in d.get("groups", [])],
+           "results": {tid: {k: (d.get("results", {}).get(tid) or {}).get(k) for k in ("status", "resource_id", "reason")}
+                       for tid in (p["task_id"] for p in posted)}}
+    _DEMO_RUNS.append(run)
+    return run
+
+
+_TRAIL_TYPES = ("CANDIDATES_FILTERED", "LOCAL_RESPONSE", "SAFETY_JUDGEMENT", "EXECUTION", "OBSERVATION",
+                "TASK_COMPLETED", "PURPOSE_STATUS", "HOLD")
+
+
+def _trail_note(e: dict) -> str:
+    """판단 단계 한 줄 요약 (화면용)"""
+    d, t = e.get("detail") or {}, e.get("event_type")
+    if t == "CANDIDATES_FILTERED":
+        ok = ", ".join(c.get("resource_id", "?") if isinstance(c, dict) else
+                       (f"{c[0]} 직선 {round(c[1] / 1000, 1)} km" if isinstance(c, (list, tuple)) and len(c) > 1
+                        and isinstance(c[1], (int, float)) else str(c)) for c in d.get("candidates", []))
+        ex = ", ".join(f"{k}:{v}" for k, v in (d.get("excluded") or {}).items())
+        return f"후보 [{ok or '없음'}]  제외 [{ex or '없음'}]"
+    if t == "LOCAL_RESPONSE":
+        node = ((d.get("constraints") or {}).get("target_node") or {})
+        eta = d.get("eta_sec_duration")
+        return (f"ETA {round(eta / 60)}분 " if isinstance(eta, (int, float)) else "") + \
+               (f"도로 노드 {node.get('node_id')} (스냅 {node.get('snap_m')} m)" if node else "")
+    if t == "SAFETY_JUDGEMENT":
+        return f"검사 {len(d.get('checked') or [])}항목"
+    return ""
+
+
+@app.get("/api/demo/ai")
+async def demo_ai():
+    """AI 판단 기록: 총괄의 LLM 상태·최근 호출(입력·출력)·묶음 결정 + 최근 시연 임무의 판단 단계"""
+    out = {"llm": None, "groups": [], "trail": {}, "run": _DEMO_RUNS[-1] if _DEMO_RUNS else None}
+    async with httpx.AsyncClient(timeout=5.0) as cx:
+        try:
+            b = (await cx.get(f"{TWIN_ORCH_URL}/priority/board")).json()
+        except Exception as e:  # noqa: BLE001
+            out["error"] = f"총괄 연결 실패: {type(e).__name__}"
+            return out
+        out["llm"] = b.get("llm")
+        out["mode"] = b.get("mode")
+        out["groups"] = [{"task_ids": g["task_ids"], "kinds": g.get("kinds"), "status": g.get("status"),
+                          "llm": g.get("llm"),
+                          "tasks": [{k: t.get(k) for k in ("task_id", "cell_id", "risk_score", "distance_m",
+                                                         "purpose_status", "resource_id")} for t in g.get("tasks", [])]}
+                         for g in b.get("groups", [])]
+        run_tasks = (out["run"] or {}).get("tasks", [])
+        if run_tasks:      # 배경 배정기가 먼저 묶음을 처리했어도 그 결정을 찾아 보여 준다
+            try:
+                out["run_group"] = (await cx.get(f"{TWIN_ORCH_URL}/priority/group_of/{run_tasks[0]['task_id']}")).json().get("group")
+            except Exception:  # noqa: BLE001
+                out["run_group"] = None
+        for p in run_tasks:
+            try:
+                evs = (await cx.get(f"{TWIN_ORCH_URL}/tasks/{p['task_id']}/events")).json()
+            except Exception:  # noqa: BLE001
+                continue
+            rows = evs if isinstance(evs, list) else evs.get("events", [])
+            out["trail"][p["task_id"]] = [{"type": e.get("event_type"), "result": e.get("result"),
+                                           "reason": e.get("reason"), "resource": e.get("resource_id"),
+                                           "note": _trail_note(e)}
+                                          for e in rows if e.get("event_type") != "PURPOSE_TRANSITION"][-12:]
     return out
 
 
