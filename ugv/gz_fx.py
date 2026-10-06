@@ -66,8 +66,23 @@ class GzFx:
             log.warning("gz %s 실패: %s", args[:3], e)
 
     def _emit(self, rid: str, what: str, on: bool) -> None:
-        self._run("topic", "-t", f"/ugv/fx/{rid}/{what}", "-m", "gz.msgs.ParticleEmitter",
-                  "-p", f"emitting: {{data: {'true' if on else 'false'}}}")
+        # gz topic -p 는 한 번 보내고 끝난다 — Gazebo 가 바쁠 때(배속) 상대를 찾기 전에 끝나 메시지를 잃는 일이 있다.
+        # 켜고 끄는 상태 메시지라 여러 번 보내도 결과는 같으므로 0·2·5초에 세 번 보낸다.
+        args = ("topic", "-t", f"/ugv/fx/{rid}/{what}", "-m", "gz.msgs.ParticleEmitter",
+                "-p", f"emitting: {{data: {'true' if on else 'false'}}}")
+        if not self.enabled:
+            return
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        for delay in (0.0, 2.0, 5.0):
+            loop.create_task(self._later(delay, args))
+
+    async def _later(self, delay: float, args) -> None:
+        if delay:
+            await asyncio.sleep(delay)
+        await self._exec(args)
 
     # --- 차량 -------------------------------------------------------------------
     def siren(self, rid: str, on: bool) -> None:

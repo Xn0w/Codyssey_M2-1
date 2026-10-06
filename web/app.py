@@ -581,6 +581,9 @@ async def _demo_autostart():
                     _DEMO_AUTO["status"] = f"FAILED: {e.detail}"
                     if e.status_code == 409:     # 임무를 올리기 전(불 확인 단계) 실패 → 다시 시도
                         continue
+                except Exception as e:  # noqa: BLE001 — 통신 오류 등으로 자동 시작이 조용히 죽지 않게 (화면에 이유를 남긴다)
+                    _DEMO_AUTO["status"] = f"FAILED: {type(e).__name__}: {e}"
+                    print(f"[autostart] {type(e).__name__}: {e}", flush=True)
                 return
         _DEMO_AUTO["status"] = "TIMEOUT"
     asyncio.get_event_loop().create_task(go())
@@ -688,7 +691,11 @@ async def demo_run(sid: str):
                                "resource_type": "UAV/UGV", "label": f"열화상 순찰 {i + 1}"})
 
         t0 = time.monotonic()
-        d = (await cx.post(f"{TWIN_ORCH_URL}/dispatch_pending")).json()
+        rd = await cx.post(f"{TWIN_ORCH_URL}/dispatch_pending")
+        try:                     # 총괄이 가끔 500(장부 읽기 경합)을 낸다 — 임무는 이미 접수됐고 배정 작업자가 이어서 보낸다
+            d = rd.json() if rd.status_code < 300 else {"error": f"HTTP {rd.status_code}"}
+        except ValueError:
+            d = {"error": "응답이 JSON 아님"}
         took = round(time.monotonic() - t0, 2)
     for tid, res in (d.get("results") or {}).items():
         results.setdefault(tid, res)
