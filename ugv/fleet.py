@@ -20,7 +20,7 @@ class GroundFleet:
         self.agents: dict[str, GroundResourceAgent] = {}
 
         for cfg in config.RESOURCES:
-            node = self.graph.node(cfg["home_node"])
+            node = self.graph.node(config.START_NODES.get(cfg["resource_id"], cfg["home_node"]))
             resource = GroundResource(
                 resource_id=cfg["resource_id"],
                 resource_type=cfg["resource_type"],
@@ -28,7 +28,7 @@ class GroundFleet:
                 home_node=cfg["home_node"],
                 lat=node.lat,
                 lon=node.lon,
-                current_node=cfg["home_node"],
+                current_node=node.node_id,
                 equipment=Equipment.for_type(config.EQUIPMENT.get(cfg["resource_type"], {})),
             )
             driver = self._make_driver(cfg, node, use_px4)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """웹 관제판: 강원 지형 + 산불 CA + 드론 실시간 + 화재 출동."""
-import os, uuid, time
+import os, uuid, time, json
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
@@ -444,6 +444,12 @@ async def twin_state():
                                "state": u.get("state"), "task": u.get("current_task_id"), "driver": u.get("driver"),
                                "activity": u.get("activity"), "water_l": (u.get("equipment") or {}).get("water_l"),
                                "pump_on": (u.get("equipment") or {}).get("pump_on")})
+            if u.get("current_task_id") and u.get("state") == "RUNNING":     # 주행 중이면 남은 거리·시간 (시뮬레이션 초)
+                tk = await get(f"ugv:{u['resource_id']}:task",
+                               f"{TWIN_UGV_URL}/ugv/{u['resource_id']}/task/{u['current_task_id']}")
+                pg = (tk or {}).get("progress") or {}
+                out["ugv"][-1].update(eta_s=pg.get("eta_remaining_sec"), remaining_m=pg.get("remaining_m"),
+                                      leg=pg.get("stage"), rtb=str(u["current_task_id"]).startswith("RTB-"))
         tasks = await get("orchestrator", f"{TWIN_ORCH_URL}/tasks")
         if tasks is not None:
             rows = tasks if isinstance(tasks, list) else tasks.get("tasks", [])
@@ -454,38 +460,29 @@ async def twin_state():
 
 
 # ---------------------------------------------------------------------------
-# 시연 시나리오 (feat/demo-ground)
-#   공통(자동): 산불 신고 → 드론이 신고 지점을 정찰해 불을 확인 (총괄 자동 정찰 임무)
-#   그다음 둘 중 하나를 고른다
-#     engine1  소방차 1대: 화점 330 m 앞 전진 배치 소방차(F-fire1, Gazebo 가능)가 1분 안에 도착·방수
-#     engine2  소방차 2대: F-fire1 + 인제119 소방차(A-fire1, sim) 지원. 먼저 온 차가 물이 떨어지면
-#              거점으로 물 채우러 가고, 그사이 지원 차가 도착해 이어서 방수한다. 두 임무는 비슷한 위험이라
-#              총괄이 AI 에 순서를 묻는다
-#   진화 효과(불이 꺼지는 것)는 환경 계약(ENV-07) 미완 — 물은 쏘지만 불은 환경 모델대로 탄다.
+# 시연 시나리오 (feat/demo-ground) — tools/demo_twin.sh 가 시나리오마다 트윈을 처음(14:45)부터 다시 띄운다
+#   (선택 전)  아무 출동 없이 불만 번진다 (ORCH_AUTO_RECON=0)
+#   공통      불 확인 → 총괄이 ① 화점 초기 진압 ② 보호선 2곳(남전1리 마을회관·인제휴게소) 출동을 받아 차량을 고른다.
+#             가장 가까운 소방차(F-fire1, Gazebo 가능)가 화점에 가서 방수 — 물 3000 L 가 떨어지면 멈추고 거점으로 보충.
+#             방수는 표시(퍼포먼스)일 뿐 불을 끄지 않는다 (환경 진화 효과 ENV-07 미완).
+#   hq      인제119 본부 소방차(A-fire1)가 보호선으로. 드론은 B(현장 근처 이착륙)처럼 정찰. UGV 는 멀어서 안 쓴다
+#   patrol  A-fire1 이 인근 순찰 중(설악로)이라 보호선에 빨리 도착. 드론은 B′(원통 기지) — 배터리 여유가 없어
+#           정찰을 못 받으면 총괄이 UGV(열화상)로 대신 보낸다. UGV 여러 대가 드론 없이 순찰을 메우는지 보는 실험
+#   시나리오별 환경(드론 이륙 위치·차량 시작 위치·UGV 대수)은 demo_twin.sh 가 정한다.
 # ---------------------------------------------------------------------------
 FIRE_ROAD_NODE = {"lat": 38.028288, "lon": 128.130269, "node_id": "494955"}   # 남전약수터 화점 앞 설악로
+PROTECT_SITES = ("NAMJEON1_HALL", "INJE_REST_AREA")                           # scenario.json sites (사람 있는 시설)
 DEMO_SCENARIOS = [
-    {"id": "engine1", "title": "소방차 1대 출동",
-     "desc": "전진 배치 소방차(F-fire1)가 화점까지 약 330 m 를 달려 방수. 물 3000 L 가 떨어지면 거점으로 돌아가 채운다.",
-     "tasks": [{"label": "화점 진압", "area": "A"}]},
-    {"id": "engine2", "title": "소방차 2대 출동 (전진 배치 + 인제119 지원)",
-     "desc": "두 대가 같은 화점으로. 가까운 차가 먼저 방수하고 물이 떨어지면 채우러 가고, 그사이 인제119 차가 도착해 이어서 방수. 출동 순서는 AI가 정한다.",
-     "tasks": [{"label": "화점 진압", "area": "A"}, {"label": "지원 진압", "area": "B"}]},
+    {"id": "hq", "title": "① 본부 출동 (드론 전진 배치)",
+     "desc": "불 확인 → 가장 가까운 소방차가 화점 초기 진압(방수), 인제119 본부 소방차가 보호선으로. 드론은 현장 근처에서 이착륙(B).",
+     "patrol": False},
+    {"id": "patrol", "title": "② 인근 순찰차 출동 (드론 원통 기지 · UGV 대체)",
+     "desc": "소방차가 인근 순찰 중이라 보호선에 빨리 도착. 드론은 원통 기지(B′)라 정찰을 못 받으면 총괄이 UGV 열화상으로 대신 보낸다.",
+     "patrol": True},
 ]
 _DEMO_RUNS = []          # 최근 실행 (화면 기록용)
-
-
-def _pick_demo_cells(snap: dict, delta: float = 0.1, min_gap_m: float = 150.0):
-    """비슷한 위험(차이 ≤ delta)·같은 인명 분류의 서로 떨어진 두 칸. 없으면 위험 상위 두 칸."""
-    cells = [c for c in snap.get("risk_cells", []) if isinstance(c.get("risk_score"), (int, float))
-             and c.get("lat") is not None]
-    cells.sort(key=lambda c: -c["risk_score"])
-    for i, a in enumerate(cells):
-        for b in cells[i + 1:]:
-            if (abs(a["risk_score"] - b["risk_score"]) <= delta and a.get("human_exposure") == b.get("human_exposure")
-                    and distance_m((a["lat"], a["lon"]), (b["lat"], b["lon"])) >= min_gap_m):
-                return a, b, True
-    return (cells[0], cells[1], False) if len(cells) >= 2 else (None, None, False)
+_DEMO_BOOT = uuid.uuid4().hex[:8]          # 이 웹 서버 기동 id — 화면이 '다시 시작됐는지' 알아보는 데 쓴다
+_DEMO_AUTO = {"sid": os.getenv("DEMO_AUTOSTART") or None, "status": None}
 
 
 async def _prologue(cx) -> dict:
@@ -496,7 +493,9 @@ async def _prologue(cx) -> dict:
         return {"ok": False, "why": f"총괄 연결 실패: {type(e).__name__}"}
     fires = [f for f in (b.get("known") or {}).get("fires", []) if f.get("status") == "CONFIRMED"]
     if not fires:
-        return {"ok": False, "why": "아직 불 확인 전 — 신고 지점으로 드론이 정찰 중입니다 (시작 후 1분 안팎)"}
+        if os.getenv("DEMO_SUPERVISED") == "1" and not _DEMO_AUTO["sid"]:
+            return {"ok": False, "why": "출동 없이 불만 번지는 중 — 시나리오를 고르면 14:45 신고부터 다시 시작합니다"}
+        return {"ok": False, "why": "아직 불 확인 전 — 신고 지점으로 정찰 중입니다 (시작 후 1~2분)"}
     f = fires[0]
     return {"ok": True, "cell_id": f["cell_id"], "resource_id": f.get("resource_id"),
             "sim_time_s": f.get("sim_time_s"), "source": f.get("source")}
@@ -507,7 +506,72 @@ async def demo_scenarios():
     async with httpx.AsyncClient(timeout=5.0) as cx:
         pro = await _prologue(cx)
     return {"prologue": pro, "scenarios": [{k: v for k, v in sc.items() if k != "tasks"} for sc in DEMO_SCENARIOS],
-            "runs": _DEMO_RUNS[-5:]}
+            "runs": _DEMO_RUNS[-5:], "boot": _DEMO_BOOT, "supervised": os.getenv("DEMO_SUPERVISED") == "1",
+            "autostart": _DEMO_AUTO}
+
+
+@app.post("/api/demo/start/{sid}")
+async def demo_start(sid: str):
+    """시나리오를 처음부터: tools/demo_twin.sh 아래에서 돌면 트윈 전체를 다시 띄우고 불 확인 뒤 자동 실행한다.
+    감시 스크립트 없이(run_twin.sh 직접) 돌면 지금 상태에 그대로 실행한다."""
+    if not any(x["id"] == sid for x in DEMO_SCENARIOS):
+        raise HTTPException(404, "없는 시나리오")
+    flag = os.getenv("DEMO_RESTART_FLAG")
+    if os.getenv("DEMO_SUPERVISED") == "1" and flag:
+        with open(flag, "w", encoding="utf-8") as f:
+            f.write(sid)
+        return {"restarting": True, "boot": _DEMO_BOOT}
+    return {"restarting": False, "run": await demo_run(sid)}
+
+
+@app.on_event("startup")
+async def _demo_autostart():
+    """DEMO_AUTOSTART 시나리오: 불이 확인되면(공통 단계 끝) 바로 실행"""
+    sid = _DEMO_AUTO["sid"]
+    if not sid:
+        return
+    import asyncio
+
+    async def go():
+        _DEMO_AUTO["status"] = "WAITING_FIRE_CONFIRMED"
+        for _ in range(300):
+            await asyncio.sleep(2)
+            async with httpx.AsyncClient(timeout=5.0) as cx:
+                pro = await _prologue(cx)
+            if pro.get("ok"):
+                try:
+                    await demo_run(sid)
+                    _DEMO_AUTO["status"] = "STARTED"
+                except HTTPException as e:
+                    _DEMO_AUTO["status"] = f"FAILED: {e.detail}"
+                return
+        _DEMO_AUTO["status"] = "TIMEOUT"
+    asyncio.get_event_loop().create_task(go())
+
+
+_MAP_CELLS: list = []
+
+
+async def _site_cells(cx) -> dict:
+    """보호 시설 → 가장 가까운 트윈 칸 (twin_ground_dispatch.py 와 같은 규칙: 공개 좌표 → 최근접 칸)"""
+    global _MAP_CELLS
+    if not _MAP_CELLS:
+        _MAP_CELLS = (await cx.get(f"{TWIN_ENV_URL}/map_cells")).json()["cells"]
+    scn = json.load(open(os.path.join(os.path.dirname(__file__), "static", "inje2019", "scenario.json"), encoding="utf-8"))
+    out = {}
+    for s_ in scn.get("sites", []):
+        if s_["site_id"] in PROTECT_SITES:
+            k = math.cos(math.radians(s_["lat"]))
+            c = min(_MAP_CELLS, key=lambda c: (c["lat"] - s_["lat"]) ** 2 + ((c["lon"] - s_["lon"]) * k) ** 2)
+            out[s_["site_id"]] = {"name": s_["name"], "cell": c}
+    return out
+
+
+async def _post_task(cx, body: dict) -> dict:
+    r = await cx.post(f"{TWIN_ORCH_URL}/tasks", json=body)
+    if r.status_code >= 300:
+        raise HTTPException(r.status_code, {"step": "POST /tasks", "detail": r.json()})
+    return r.json()
 
 
 @app.post("/api/demo/run/{sid}")
@@ -515,41 +579,77 @@ async def demo_run(sid: str):
     sc = next((x for x in DEMO_SCENARIOS if x["id"] == sid), None)
     if sc is None:
         raise HTTPException(404, "없는 시나리오")
+    stamp = f"{time.strftime('%H%M%S')}-{uuid.uuid4().hex[:4]}"
+    posted, results = [], {}
     async with httpx.AsyncClient(timeout=60.0) as cx:
         pro = await _prologue(cx)
         if not pro["ok"]:
             raise HTTPException(409, pro["why"])
-        try:
-            snap = (await cx.get(f"{TWIN_ORCH_URL}/view/risk_cells")).json()   # 총괄이 아는 위험 칸 (우선순위 근거)
-        except Exception as e:  # noqa: BLE001
-            raise HTTPException(503, f"총괄 연결 실패: {type(e).__name__}")
-        a, b, similar = _pick_demo_cells(snap)
-        area = {"A": a, "B": b}
-        stamp = time.strftime("%H%M%S")
-        posted = []
-        for i, spec in enumerate(sc["tasks"]):
-            c = area.get(spec["area"])
-            cells = [c["cell_id"]] if c else [pro["cell_id"]]        # 우선순위 근거: 화점 주변 위험 칸
-            body = {"request_id": f"DEMO-{sid}-{i}-{stamp}-{uuid.uuid4().hex[:4]}",
-                    "incident_id": "INC-DEMO", "kind": "GROUND_SUPPORT",
-                    "target": {"lat": FIRE_ROAD_NODE["lat"], "lon": FIRE_ROAD_NODE["lon"], "cell_id": pro["cell_id"]},
-                    "requirements": {"resource_types": ["FIRE_ENGINE"], "sensor": None},
-                    "area_cell_ids": cells, "dispatch": False}
-            r = await cx.post(f"{TWIN_ORCH_URL}/tasks", json=body)
-            if r.status_code >= 300:
-                raise HTTPException(r.status_code, {"step": "POST /tasks", "detail": r.json()})
-            t = r.json()["task"]
-            posted.append({"task_id": t["task_id"], "cell_id": cells[0], "risk_score": c["risk_score"] if c else None,
-                           "resource_type": "FIRE_ENGINE", "label": spec["label"]})
+        risk = (await cx.get(f"{TWIN_ORCH_URL}/view/risk_cells")).json().get("risk_cells", [])
+        risk = [c for c in risk if isinstance(c.get("risk_score"), (int, float)) and c.get("lat") is not None]
+        sites = await _site_cells(cx)
+
+        # ① 화점 초기 진압 — 바로 배정 (가장 가까운 소방차가 받는다)
+        r = await _post_task(cx, {
+            "request_id": f"DEMO-{sid}-SCENE-{stamp}", "incident_id": "INC-DEMO", "kind": "GROUND_SUPPORT",
+            "target": {"lat": FIRE_ROAD_NODE["lat"], "lon": FIRE_ROAD_NODE["lon"], "cell_id": pro["cell_id"]},
+            "requirements": {"resource_types": ["FIRE_ENGINE"], "sensor": None},
+            "area_cell_ids": [pro["cell_id"]], "dispatch": True})
+        posted.append({"task_id": r["task"]["task_id"], "cell_id": pro["cell_id"], "risk_score": None,
+                       "resource_type": "FIRE_ENGINE", "label": "화점 초기 진압"})
+        results[r["task"]["task_id"]] = r.get("dispatch") or {}
+
+        # ② 보호선 2곳 — 같이 접수하고 한 번에 배정 (둘 다 사람 있는 시설 → 비슷하면 총괄이 AI 에 순서를 묻는다)
+        #    우선순위 근거: 시설 칸 + 그 시설에 가장 가까운 위험 칸 (불이 시설 쪽으로 오는 위험)
+        for sid_ in PROTECT_SITES:
+            if sid_ not in sites:
+                continue
+            c = sites[sid_]["cell"]
+            near = min(risk, key=lambda x: distance_m((x["lat"], x["lon"]), (c["lat"], c["lon"]))) if risk else None
+            cells = [c["cell_id"]] + ([near["cell_id"]] if near else [])
+            r = await _post_task(cx, {
+                "request_id": f"DEMO-{sid}-{sid_}-{stamp}", "incident_id": "INC-DEMO", "kind": "GROUND_SUPPORT",
+                "target": {k: c.get(k) for k in ("lat", "lon", "ground_amsl_m", "cell_id")},
+                "requirements": {"resource_types": ["FIRE_ENGINE"], "sensor": None},
+                "area_cell_ids": cells, "dispatch": False})
+            posted.append({"task_id": r["task"]["task_id"], "cell_id": c["cell_id"],
+                           "risk_score": near["risk_score"] if near else None,
+                           "resource_type": "FIRE_ENGINE", "label": f"보호선 · {sites[sid_]['name']}"})
+
+        # ③ (patrol) 화선 열화상 순찰. 먼저 드론(원통 기지)에 요청 → 배터리 여유가 없으면 드론이 스스로 거절(LOW_BATTERY)
+        #    나머지 순찰 2곳은 드론·UGV 모두 허용 → 총괄이 더 가까운 UGV 를 보낸다 (드론 없이 UGV 여러 대가 메우는지)
+        if sc["patrol"]:
+            road = [(n["lat"], n["lon"]) for n in NODES]
+            near_road = sorted(risk, key=lambda x: min(distance_m((x["lat"], x["lon"]), q) for q in road))[:3]
+            if near_road:
+                c = near_road[-1]
+                r = await _post_task(cx, {
+                    "request_id": f"DEMO-{sid}-UAVPATROL-{stamp}", "incident_id": "INC-DEMO", "kind": "RECON",
+                    "target": {k: c.get(k) for k in ("lat", "lon", "ground_amsl_m", "cell_id")},
+                    "requirements": {"resource_types": ["UAV"], "sensor": "THERMAL"},
+                    "area_cell_ids": [c["cell_id"]], "dispatch": False})
+                posted.append({"task_id": r["task"]["task_id"], "cell_id": c["cell_id"], "risk_score": c["risk_score"],
+                               "resource_type": "UAV", "label": "드론 열화상 순찰 (원통 기지)"})
+            for i, c in enumerate(near_road[:2]):
+                r = await _post_task(cx, {
+                    "request_id": f"DEMO-{sid}-PATROL{i}-{stamp}", "incident_id": "INC-DEMO", "kind": "RECON",
+                    "target": {k: c.get(k) for k in ("lat", "lon", "ground_amsl_m", "cell_id")},
+                    "requirements": {"resource_types": ["UAV", "UGV"], "sensor": "THERMAL"},
+                    "area_cell_ids": [c["cell_id"]], "dispatch": False})
+                posted.append({"task_id": r["task"]["task_id"], "cell_id": c["cell_id"], "risk_score": c["risk_score"],
+                               "resource_type": "UAV/UGV", "label": f"열화상 순찰 {i + 1}"})
+
         t0 = time.monotonic()
-        d = (await cx.post(f"{TWIN_ORCH_URL}/dispatch_pending")).json()   # 묶음이면 여기서(또는 배경 배정기가) AI 호출
+        d = (await cx.post(f"{TWIN_ORCH_URL}/dispatch_pending")).json()
         took = round(time.monotonic() - t0, 2)
+    for tid, res in (d.get("results") or {}).items():
+        results.setdefault(tid, res)
     run = {"scenario": sid, "title": sc["title"], "wall": time.time(), "prologue": pro,
-           "similar_pair": similar and len(posted) > 1, "tasks": posted, "dispatch_s": took,
+           "similar_pair": bool(d.get("groups")), "tasks": posted, "dispatch_s": took,
            "groups": [{"task_ids": g["task_ids"], "kinds": g.get("kinds"), "status": g.get("status"),
                        "llm": g.get("llm")} for g in d.get("groups", [])],
-           "results": {tid: {k: (d.get("results", {}).get(tid) or {}).get(k) for k in ("status", "resource_id", "reason")}
-                       for tid in (p["task_id"] for p in posted)}}
+           "results": {p["task_id"]: {k: (results.get(p["task_id"]) or {}).get(k) for k in ("status", "resource_id", "reason")}
+                       for p in posted}}
     _DEMO_RUNS.append(run)
     return run
 
@@ -595,11 +695,15 @@ async def demo_ai():
                                                          "purpose_status", "resource_id")} for t in g.get("tasks", [])]}
                          for g in b.get("groups", [])]
         run_tasks = (out["run"] or {}).get("tasks", [])
-        if run_tasks:      # 배경 배정기가 먼저 묶음을 처리했어도 그 결정을 찾아 보여 준다
+        out["run_group"] = None
+        for p_ in run_tasks:   # 배경 배정기가 먼저 묶음을 처리했어도 그 결정을 찾아 보여 준다 (묶음에 든 임무 아무거나)
             try:
-                out["run_group"] = (await cx.get(f"{TWIN_ORCH_URL}/priority/group_of/{run_tasks[0]['task_id']}")).json().get("group")
+                g = (await cx.get(f"{TWIN_ORCH_URL}/priority/group_of/{p_['task_id']}")).json().get("group")
             except Exception:  # noqa: BLE001
-                out["run_group"] = None
+                g = None
+            if g:
+                out["run_group"] = g
+                break
         for p in run_tasks:
             try:
                 evs = (await cx.get(f"{TWIN_ORCH_URL}/tasks/{p['task_id']}/events")).json()

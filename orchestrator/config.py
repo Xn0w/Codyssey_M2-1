@@ -235,7 +235,7 @@ ENV_ACK_SUPPORTED_SENSORS = ("THERMAL", "WEATHER")
 # ---------------------------------------------------------------------------
 # 신고 접수 시 최초 정찰 자동 생성 (사용자 결정 2026-09-30 D01)
 # ---------------------------------------------------------------------------
-AUTO_RECON_ON_REPORT = True
+AUTO_RECON_ON_REPORT = os.getenv("ORCH_AUTO_RECON", "1") == "1"   # 시연 대기 화면: 0 이면 신고가 와도 자동 정찰 안 함 (불만 번진다)
 # 신고 접수 시 자동 초기 정찰. ORCH_AUTO_RECON_GROUND=1 이면 UGV 도 후보 (기본은 드론만, 2026-10-05).
 # UGV 가 실제로 뽑히려면 ORCH_UGV_THERMAL=1 도 켜야 한다 (아니면 능력 부족으로 후보에서 빠진다)
 AUTO_RECON_REQUIREMENTS = {"resource_types": ["UAV", "UGV"] if os.getenv("ORCH_AUTO_RECON_GROUND", "0") == "1" else ["UAV"],

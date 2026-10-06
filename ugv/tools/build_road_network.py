@@ -269,10 +269,12 @@ def build():
     spawn = _spawn_poses(nodes_ll, roads)
 
     DST.parent.mkdir(parents=True, exist_ok=True)
+    world = {"sdf": "uav/gazebo/kangwon.sdf", "name": "kangwon", "datum": [DATUM_LAT, DATUM_LON, DATUM_ALT]}
+    if DST.exists():    # build_road_world.py 가 정해 둔 도로 월드(kangwon_ugv2 등)는 다시 만들어도 유지한다
+        world = json.loads(DST.read_text(encoding="utf-8")).get("world") or world
     DST.write_text(json.dumps(
         {"source": SRC.name, "speed_kmh": SPEED_KMH, "bases": bases,
-         "world": {"sdf": "uav/gazebo/kangwon.sdf", "name": "kangwon",
-                   "datum": [DATUM_LAT, DATUM_LON, DATUM_ALT]},
+         "world": world,
          "spawn": spawn, "nodes": out_nodes, "roads": roads},
         ensure_ascii=False, indent=1), encoding="utf-8")
 

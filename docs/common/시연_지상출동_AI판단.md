@@ -2,15 +2,17 @@
 
 > 미완성 부분을 숨기지 않는다: 소방차는 물을 쏘지만 **불이 꺼지지는 않는다** (환경 진화 효과 ENV-07 미완).
 
-## 1. 시나리오
+## 1. 시나리오 (LIVE, `tools/demo_twin.sh`)
 
 | 단계 | 내용 |
 |---|---|
-| ① 공통 (자동) | 트윈 시작 = 14:45 산불 신고. 총괄이 정찰 임무를 만들고 드론(A-uav1)이 날아가 **불 확인(13_101)**. 화면 패널에 "① 공통 ✔" 가 뜨면 다음 단계 버튼이 켜진다 |
-| ② 소방차 1대 | 화점 330 m 앞 설악로에 전진 배치된 소방차 **F-fire1** 이 출동 → 도착 → 방수 3000 L(30 L/s, 100초) → 물이 떨어지면 **스스로 거점 F 로 돌아가 물 보충**(300초) |
-| ② 소방차 2대 | F-fire1 + 인제119 소방차 **A-fire1**(약 5.3 km). 두 임무가 비슷한 위험이라 총괄이 **AI(Gemini)에 출동 순서를 묻고** 검증 뒤 따른다. F-fire1 이 먼저 방수하고 물이 떨어져 보충하러 간 사이 A-fire1 이 도착해 이어서 방수 |
+| 선택 전 | 출동 없이 **불만 번진다** (자동 정찰 끔, `ORCH_AUTO_RECON=0`) |
+| 버튼 | 누를 때마다 트윈 전체를 14:45 신고부터 다시 띄우고, 불이 확인되면 아래가 자동 실행된다 |
+| 공통 | 불 확인 → 총괄이 ① **화점 초기 진압** ② **보호선 2곳**(남전1리 마을회관·인제휴게소, 둘 다 사람 있는 시설) 출동 요청을 받아 차량을 고른다. 가장 가까운 소방차 **F-fire1**(Gazebo 가능)이 화점에서 방수(3000 L, 퍼포먼스 — 불은 안 꺼짐) → 물이 떨어지면 멈추고 거점으로 보충. 보호선 두 곳은 비슷한 위험이면 총괄이 **AI에 순서**를 묻고, 소방차가 모자라면 한 곳은 대기 |
+| ① 본부 출동 (`hq`) | 정찰: **드론 전진 배치(B)**. 보호선은 **인제119 본부** 소방차(A-fire1, 약 5 km). UGV 는 멀어서 쓰지 않는다 |
+| ② 인근 순찰차 출동 (`patrol`) | A-fire1 이 **인근 설악로 순찰 중**(노드 495015)이라 보호선에 빨리 도착. 드론은 **원통 기지(B′)** — 12 km 거리라 총괄이 더 가까운 **UGV 열화상**으로 첫 정찰을 보내고, 드론에 요청한 순찰은 드론이 **배터리 여유 부족(LOW_BATTERY)으로 스스로 거절**. 대신 UGV 3대(1대 + 추가 2대, sim)가 순찰을 메운다 — "드론 없이 UGV 여러 대가 기능하는가" 실험 |
 
-F-fire1 은 **Gazebo 차량**으로 띄울 수 있다 (화면 이름표에 `[Gazebo]`). A-fire1 은 sim 차량.
+재현(A/B/B′)은 미리 계산한 결과를 되감아 보는 화면이고 LIVE 와 별개다.
 
 ## 2. 실행
 
@@ -20,7 +22,7 @@ F-fire1 은 **Gazebo 차량**으로 띄울 수 있다 (화면 이름표에 `[Gaz
 
 ```bash
 ENV_FORECAST_HORIZON_S=14400 ORCH_ENV_SENSE_TYPES=UAV,UGV UGV_FORWARD_ENGINE=1 UGV_DEMO_REAL_SPEED=1 \
-TWIN_OPERATOR=0 TWIN_SPEED=10 UGV_TIME_SCALE=10 PY=$PWD/.venv/bin/python bash tools/run_twin.sh
+TWIN_OPERATOR=0 TWIN_SPEED=10 UGV_TIME_SCALE=10 PY=$PWD/.venv/bin/python bash tools/demo_twin.sh
 ```
 
 ### B. F-fire1 을 Gazebo 로 (WSL, Gazebo 와 같은 기계에서 전부)
@@ -32,14 +34,20 @@ UGV_FORWARD_ENGINE=1 GUI=1 SPEED=4 ./ugv/tools/px4-start.sh F-fire1
 # 터미널 2 — 트윈 (배속은 SPEED 와 같게 4. 실제 Gazebo 는 약 3.2배)
 ENV_FORECAST_HORIZON_S=14400 ORCH_ENV_SENSE_TYPES=UAV,UGV UGV_FORWARD_ENGINE=1 UGV_DEMO_REAL_SPEED=1 \
 UGV_DRIVER=px4 UGV_PX4_RESOURCES=F-fire1 \
-TWIN_OPERATOR=0 TWIN_SPEED=4 UGV_TIME_SCALE=4 PY=$PWD/.venv/bin/python bash tools/run_twin.sh
+TWIN_OPERATOR=0 TWIN_SPEED=4 UGV_TIME_SCALE=4 PY=$PWD/.venv/bin/python bash tools/demo_twin.sh
 ```
 
 - WSL 저장소도 `feat/demo-ground` 이어야 하고, `.env` 는 git 에 없으니 따로 복사한다.
 - Gazebo 차는 2 m/s → 330 m 를 약 1분(실제 시간)에 도착. `UGV_DEMO_REAL_SPEED` 는 Gazebo 차에는 적용되지 않는다.
 - A-fire1 이 F-fire1 방수 중에 먼저 도착하면 `UGV_DEMO_FIRE_KMH=40` 처럼 낮춰 "보충하러 간 사이 도착" 이 되게 맞춘다.
 
-브라우저 `http://localhost:8080/inje3d` → **실시간 연결 LIVE** → 왼쪽 아래 패널. 한 실행에 시나리오 하나 (다른 걸 보려면 재시작).
+브라우저 `http://localhost:8080/inje3d#live` → 왼쪽 아래 패널.
+
+**`tools/demo_twin.sh` 로 띄우면 시나리오 버튼 = 처음부터 다시.** 버튼을 누르면 트윈 전체(Gazebo 모드면 Gazebo/PX4 도)를
+새로 띄우고, 페이지가 LIVE 로 다시 열리고, 불이 확인되면 고른 시나리오가 자동 실행된다 (sim 약 15초, Gazebo 는 더).
+실행 중에 다른 버튼을 눌러도 같다. 새로고침은 화면만 다시 그린다 (다른 사람이 보는 중에 시뮬레이션이 리셋되지 않게).
+`run_twin.sh` 로 직접 띄우면 버튼은 지금 상태에 임무만 더한다.
+B(Gazebo) 에서 `demo_twin.sh` 를 쓰면 터미널 1(px4-start)은 필요 없다 — 스크립트가 Gazebo 를 같이 띄운다.
 
 | 변수 | 왜 |
 |---|---|
@@ -87,4 +95,5 @@ TWIN_OPERATOR=0 TWIN_SPEED=4 UGV_TIME_SCALE=4 PY=$PWD/.venv/bin/python bash tool
 | `ugv/server.py` | 물 부족 시 거점 경유 보충 후 출동, 물이 떨어지면 스스로 거점 복귀·보충 (`UGV_AUTO_RTB_REFILL`) |
 | `ugv/tools/build_road_network.py`, `ugv/data/road_network.json` | 거점 F(노드 494957 → `F`), F-fire1 스폰 자세 |
 | `tools/run_twin.sh` | `UGV_DRIVER` 를 밖에서 지정 가능 |
-| `web/app.py`, `web/static/inje2019/index.html` | 시연 패널(공통 단계 + 2개 시나리오), AI 판단 기록, 차량 상태·Gazebo 표시 |
+| `web/app.py`, `web/static/inje2019/index.html` | 시연 패널(공통 단계 + 2개 시나리오), AI 판단 기록, 차량 상태·Gazebo 표시, 버튼 = 재시작+자동 실행 |
+| `tools/demo_twin.sh` | run_twin.sh 감시: 버튼 누르면 트윈(+Gazebo) 전체 재기동, 불 확인 뒤 시나리오 자동 실행 |

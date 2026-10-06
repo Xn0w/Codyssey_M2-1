@@ -34,13 +34,16 @@
   }
  },
  "world": {
-  "sdf": "uav/gazebo/kangwon.sdf",
-  "name": "kangwon",
+  "sdf": "ugv/gazebo/kangwon_ugv2.sdf",
+  "name": "kangwon_ugv2",
   "datum": [
    38.0112,
    128.122643,
    172.1
-  ]
+  ],
+  "road_width_m": 10.0,
+  "max_grade": 0.08,
+  "shoulder_m": 4.0
  },
  "spawn": {
   "A-ugv1": {
@@ -67,7 +70,7 @@
   "F-fire1": {
    "x": 718.1,
    "y": 2219.7,
-   "z": 48.8,
+   "z": 48.59,
    "yaw": -1.848,
    "node": "F"
   }

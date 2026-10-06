@@ -374,10 +374,15 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
     @app.get("/priority/board")
     def priority_board():
         """관제 화면용: 최근 우선순위 판단의 선택 묶음과 각 Task 의 현재 상태·근거"""
-        last = next((e for e in reversed(orch.ledger.events(run_id=ACTIVE))
-                     if e["event_type"] == "PRIORITY_ORDER"), None)
-        detail = (last or {}).get("detail") or {}
-        evidence = detail.get("evidence", {})
+        orders = [e for e in reversed(orch.ledger.events(run_id=ACTIVE)) if e["event_type"] == "PRIORITY_ORDER"]
+        last = orders[0] if orders else None
+        # 시연 브랜치: 배정이 다시 돌 때마다(빈 판단) 화면의 묶음·순서가 사라지지 않게, 새 묶음·순서가 생길 때까지
+        # 가장 최근의 '내용 있는' 판단을 보여 준다
+        last_g = next((e for e in orders if ((e.get("detail") or {}).get("groups"))), last)
+        last_o = next((e for e in orders if ((e.get("detail") or {}).get("auto_order"))), last)
+        detail = (last_g or {}).get("detail") or {}
+        detail_o = (last_o or {}).get("detail") or {}
+        evidence = {**detail_o.get("evidence", {}), **detail.get("evidence", {})}
 
         def row(tid):
             t = orch.ledger.get_task(tid)
@@ -426,9 +431,9 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
                         "calls_used": orch.llm.calls if orch.llm else 0,
                         "last_plan": _last_llm_plan()}, "forecast": forecast,
                 "known": known,
-                "similar_delta": config.PRIORITY_SIMILAR_RISK_DELTA, "decided_seq": (last or {}).get("seq"),
-                "auto_order": [row(t) for t in detail.get("auto_order", [])], "groups": groups,
-                "criteria": detail.get("criteria"), "rule": detail.get("rule")}
+                "similar_delta": config.PRIORITY_SIMILAR_RISK_DELTA, "decided_seq": (last_g or {}).get("seq"),
+                "auto_order": [row(t) for t in detail_o.get("auto_order", [])], "groups": groups,
+                "criteria": detail_o.get("criteria"), "rule": detail_o.get("rule")}
 
     @app.post("/priority/mode")
     def priority_mode(body: ModeIn):

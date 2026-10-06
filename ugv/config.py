@@ -25,8 +25,16 @@ FORWARD_ENGINE = {"resource_id": "F-fire1", "resource_type": "FIRE_ENGINE",
                   "base": "F", "home_node": "F", "px4_instance": 4, "px4_model": "r1_rover", "max_speed_mps": 2.0}
 if os.getenv("UGV_FORWARD_ENGINE") == "1" or os.getenv("UGV_BUILD_ALL_SPAWNS") == "1":
     RESOURCES.append(dict(FORWARD_ENGINE))
+# 시연: 시뮬레이션 UGV 추가 (드론이 없을 때 UGV 여러 대가 순찰을 대신하는지 보는 실험). 인제119 거점, sim 전용
+for _i in range(int(os.getenv("UGV_EXTRA_UGVS", "0"))):
+    RESOURCES.append({"resource_id": f"A-ugv{_i + 2}", "resource_type": "UGV", "base": "A", "home_node": "A",
+                      "px4_instance": 20 + _i, "px4_model": "r1_rover", "max_speed_mps": 2.0})
 for _r in RESOURCES:
     _r["px4_port"] = 14540 + _r["px4_instance"]
+
+# 시연: 시작 위치를 거점이 아닌 도로 노드로 (예: 인근 순찰 중인 소방차). "A-fire1=495015,A-ugv2=494949"
+# 거점(home_node)은 그대로라 물 보충은 거점으로 간다. sim 차량만 (Gazebo 차는 스폰 자세가 따로 있다)
+START_NODES = dict(kv.split("=", 1) for kv in os.getenv("UGV_START_NODES", "").split(",") if "=" in kv)
 
 # 시연(sim 전용, feat/demo-ground): 실제 출동 속도 상한. 소방차 60 km/h, 순찰 UGV 30 km/h.
 # 도로 제한속도가 더 낮으면 그 값을 쓴다. Gazebo(PX4) 주행에는 켜지 말 것 — 로버가 2 m/s 이상 못 낸다.
