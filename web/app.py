@@ -568,7 +568,7 @@ async def _demo_autostart():
                         pass
             # 시연: 총괄이 시작 직후 가끔 첫 정찰을 내보내지 못하고 멈춘다(원인 조사 중) → 90초 안에 불 확인이
             # 안 되면 트윈 전체를 같은 시나리오로 다시 띄운다 (정상이면 10배속에서 20초 안에 확인된다)
-            if not pro.get("ok") and n == 45 and os.getenv("DEMO_SUPERVISED") == "1" and flag:
+            if not pro.get("ok") and n == 45 and os.getenv("DEMO_AUTO_RESTART") == "1" and os.getenv("DEMO_SUPERVISED") == "1" and flag:
                 _DEMO_AUTO["status"] = "RESTARTING_STUCK"
                 with open(flag, "w", encoding="utf-8") as f:
                     f.write(sid)
