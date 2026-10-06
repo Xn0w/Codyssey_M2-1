@@ -23,6 +23,9 @@ d = json.load(open("web/static/inje2019/scenario.json", encoding="utf-8"))["twin
 for k, v in d.items(): print(f'export {k}="{v}"')
 PYX
 )"
+# 시연: 재현(scenario.json)은 water mask 이전 CA 로 계산됐다. 지금 CA 에서 seed 9 는 첫 칸에서 꺼진다 →
+# 재현과 비슷하게 자라는 seed 로 바꿀 수 있게 한다 (19시 11칸·03:35 106칸 = seed 2, 재현 12·124칸)
+[[ -n "${TWIN_ENV_SEED:-}" ]] && export ENV_SEED="$TWIN_ENV_SEED"
 export ENV_STATE_DIR="$LOG/env" ENV_RESUME=0
 UAV_HOME_ENV=""
 if [[ $LAUNCH == forward && $MODE == mock ]]; then
@@ -52,7 +55,7 @@ for spec in "A-uav1 8000" "A-uav2 8001"; do set -- $spec
 start ugv      env UGV_DRIVER="${UGV_DRIVER:-sim}" UGV_STATE_DIR="$LOG/ugv" "$PY" -m uvicorn ugv.server:app --host 127.0.0.1 --port 8100 --log-level warning
 wait_http http://127.0.0.1:8300/health && wait_http http://127.0.0.1:8000/health && wait_http http://127.0.0.1:8100/ugv
 start orch     "$PY" -m orchestrator.api
-start web      "$PY" -m uvicorn web.app:app --host 0.0.0.0 --port 8080 --log-level warning
+start web      env WEB_ENV_URL="${WEB_ENV_URL:-http://127.0.0.1:8300}" "$PY" -m uvicorn web.app:app --host 0.0.0.0 --port 8080 --log-level warning
 wait_http http://127.0.0.1:8200/health && wait_http http://127.0.0.1:8080/inje3d
 start clock    "$PY" tools/twin_clock.py --speed "$SPEED"
 [[ "${TWIN_OPERATOR:-1}" == 1 ]] && start operator "$PY" tools/twin_operator.py     # 일몰 뒤 순찰 요청 (끄기: TWIN_OPERATOR=0)

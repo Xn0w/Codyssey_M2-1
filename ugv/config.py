@@ -64,6 +64,8 @@ REFILL_S = float(os.getenv("UGV_REFILL_S", "300"))
 # 물이 바닥나면(EMPTY) 소방차가 스스로 거점으로 돌아가 물을 채운다 (총괄 임무가 아닌 차량 자체 행동)
 AUTO_RTB_REFILL = os.getenv("UGV_AUTO_RTB_REFILL", "1") != "0"
 AUTO_SUPPRESS = os.getenv("UGV_AUTO_SUPPRESS", "1") != "0"   # 소방차 도착 즉시 진압 시작
+# 도착 즉시 진압을 이 자원들로만 한정 (쉼표 구분, 비우면 모든 소방차). 시연: 화점 차(F-fire1)만 방수, 방어선 차는 대기
+SUPPRESS_RESOURCES = {x.strip() for x in os.getenv("UGV_SUPPRESS_RESOURCES", "").split(",") if x.strip()}
 
 # PX4 연결
 # PX4 SITL 은 MAVLink 를 자기 호스트의 127.0.0.1 로만 보낸다. Gazebo/PX4 가 원격(WSL)이면

@@ -24,6 +24,7 @@ ingest_event(...)  외부 이벤트 접수: 검증 → 접수키 확정 → 반�
 다른 run 의 점유가 남아 있으면 run 을 바꾸지 않고 판단을 보류한다 (_ensure_run).
 """
 
+import os
 import dataclasses
 import math
 import time
@@ -736,12 +737,22 @@ class Orchestrator:
         """호출 결과를 입력 해시와 함께 보관한다. 적용은 dispatch_pending 이 그때의 입력으로 다시 확인하고 한다."""
         if prop["status"] in ("OK", "INVALID"):
             self._llm_memo = {req["key"]: prop}           # 최근 1건만 보관
+            # 시연 브랜치: 호출하는 동안(수 초) 근거 수치만 조금 바뀌어 해시가 달라져도 같은 run·같은 묶음이면 쓴다
+            self._llm_memo_groups = (req["snap"].run_id, [tuple(sorted(g["task_ids"])) for g in req["plan"]["groups"]],
+                                     prop)
         else:
             self._llm_once = {req["key"]: prop}           # 오류·사용 불가는 재사용하지 않고 이번 판단에만 알린다
         self.ledger.log("LLM_PLAN", sim_time_s=req["snap"].simulation_time_s, result=prop["status"],
                         reason=prop.get("reason") or (",".join(prop.get("violations", [])) or None),
                         detail={**{k: v for k, v in prop.items() if k not in ("orders", "rationales")},
                                 "input_hash": req["key"]})
+
+    def _same_groups_plan(self, snap, plan: dict) -> Optional[dict]:
+        """직전 OK 추천이 같은 run·같은 묶음 구성(task 집합, 순서)에 대한 것이면 그 추천."""
+        m = getattr(self, "_llm_memo_groups", None)
+        if os.getenv("ORCH_LLM_REUSE_SAME_GROUPS", "0") != "1" or not m or m[2].get("status") != "OK" or m[0] != snap.run_id:
+            return None
+        return m[2] if m[1] == [tuple(sorted(g["task_ids"])) for g in plan["groups"]] else None
 
     def _llm_recommend(self, snap, plan: dict, by_id: dict, allow_call: bool = True) -> bool:
         """선택 묶음이 있으면 LLM 에 순서를 제안받아 검증한다. 검증 통과 시 묶음에 추천을 붙이고,
@@ -758,6 +769,10 @@ class Orchestrator:
                 prop = {"status": "DISABLED", "reason": self.llm.status()}
                 self.ledger.log("LLM_PLAN", sim_time_s=snap.simulation_time_s, result="DISABLED",
                                 reason=prop["reason"], detail={"input_hash": key})
+            elif not allow_call and prop is None and self._same_groups_plan(snap, plan) is not None:
+                prop = self._same_groups_plan(snap, plan)
+                self.ledger.log("LLM_PLAN_REUSED", sim_time_s=snap.simulation_time_s, result=prop["status"],
+                                reason="SAME_GROUPS_INPUT_CHANGED", detail={"input_hash": key})
             elif not allow_call:
                 # 잠금 밖에서 받아 온 추천이 지금 입력(run·버전·묶음·근거)과 맞지 않거나 아직 없다 → 쓰지 않는다
                 self.ledger.log("LLM_PLAN_NOT_APPLIED", sim_time_s=snap.simulation_time_s, result="RULE_ORDER",

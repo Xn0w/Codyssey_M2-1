@@ -246,6 +246,9 @@ def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str 
             raise HTTPException(404, f"경유 노드 {via_node} 없음")
 
     refill = _refill_node(agent) if cargo is None and via_node is None else None
+    if refill is not None and _driver_kind(agent) == "px4" and os.getenv("UGV_RTB_PX4", "0") != "1":
+        # Gazebo 차는 물이 떨어지면 현장 대기 — 거점 왕복(좁은 도로 유턴) 출동은 받지 않는다
+        return reject("REQUIRED_CAPABILITY_UNAVAILABLE", "물 소진 — Gazebo 차량은 현장 대기 (UGV_RTB_PX4=1 이면 거점 보충 후 출동)")
 
     def judge(node_id: str) -> dict:
         """agent.evaluate 와 같은 형식. 짐이 있으면 경유지·싣기 시간을 넣는다."""
@@ -381,7 +384,11 @@ def _check_run(agent: GroundResourceAgent, w: dict, now: float) -> str | None:
     pos = (r.lat, r.lon)
 
     # 1) 멈춤 — STALL_MOVE_M 이상 움직이거나 웨이포인트를 넘기면 기준점을 새로 잡는다
-    if cur != w["mark_wp"] or distance_m(pos, w["mark_pos"]) >= config.STALL_MOVE_M:
+    #    마지막 웨이포인트에 닿은 차(cur >= total)는 도착해 서 있는 것이지 멈춘 것이 아니다.
+    total = agent.driver.progress()[1]
+    if total > 0 and cur >= total:
+        w.update(mark_t=now, mark_pos=pos, mark_wp=cur)
+    elif cur != w["mark_wp"] or distance_m(pos, w["mark_pos"]) >= config.STALL_MOVE_M:
         w.update(mark_t=now, mark_pos=pos, mark_wp=cur)
     elif now - w["mark_t"] > config.STALL_TIMEOUT_S:
         return (f"STALLED: {config.STALL_TIMEOUT_S:.0f}초간 이동 "
@@ -461,6 +468,11 @@ async def _drive_leg(task_id: str, agent: GroundResourceAgent, node: str, dlog, 
         if changed:                         # 파일 저장은 웨이포인트가 바뀔 때만 (남은 거리·시각은 매번 바뀐다)
             _save()
         if agent.resource.state == "READY" and agent.resource.current_node == node:
+            return True
+        if total > 0 and cur >= total and agent.resource.state not in ("RUNNING", "UNAVAILABLE"):
+            # 마지막 웨이포인트에 닿았는데 다른 경로로 READY 가 아닌 상태(WORKING 등)가 됐다 — 도착으로 본다.
+            # (이걸 놓치면 서 있는 차를 멈춤 감시가 STALLED 로 잡아 UNAVAILABLE 로 만든다)
+            agent.resource.current_node = node
             return True
         road = t["progress"].get("current_road_id")
         if road and road != last_road:          # 진행 보고는 도로가 바뀔 때마다 한 번
@@ -615,6 +627,7 @@ def _after_arrival(agent: GroundResourceAgent, task_id: str) -> None:
     if eq.cargo and eq.cargo.get("loaded"):
         _start_work(agent, "UNLOADING", task_id, until_s=clock.now() + config.UNLOAD_S)
     elif r.resource_type == "FIRE_ENGINE" and config.AUTO_SUPPRESS and r.current_node != r.home_node \
+            and (not config.SUPPRESS_RESOURCES or r.resource_id in config.SUPPRESS_RESOURCES) \
             and eq.can_suppress() is None:
         _start_work(agent, "SUPPRESSING", task_id)
     else:
@@ -690,6 +703,10 @@ async def _return_to_refill(agent: GroundResourceAgent) -> None:
     r, eq = agent.resource, agent.resource.equipment
     rid = r.resource_id
     if eq is None or not eq.water_capacity_l or _task_of.get(rid):
+        return
+    if _driver_kind(agent) == "px4" and os.getenv("UGV_RTB_PX4", "0") != "1":
+        # Gazebo 차는 물이 떨어지면 그 자리에 멈춘다 (좁은 도로 유턴·복귀 주행은 시연에서 실패 위험만 키운다)
+        _report("UGV_EMPTY_HOLD", agent, None, water_l=eq.water_l, note="Gazebo 차량: 물 소진 후 현장 대기")
         return
     if r.current_node == r.home_node:
         added = eq.refill()

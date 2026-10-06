@@ -433,6 +433,8 @@ async def twin_state():
                 out["uav"].append({"id": rid, "gx": gx, "gy": gy, "alt_m_amsl": p.get("alt_m_amsl"),
                                    "battery": (st.get("battery") or {}).get("percent"), "mode": (hl or {}).get("mode"),
                                    "flight_mode": st.get("flight_mode"), "task": st.get("current_task_id")})
+        ck = await get("ugv:clock", f"{TWIN_UGV_URL}/clock")     # 연속 시계 (환경은 한 스텝씩 건너뛴다)
+        out["clock_s"] = (ck or {}).get("sim_time_s")
         ug = await get("ugv", f"{TWIN_UGV_URL}/ugv")
         out["ugv"] = []
         for u in ug or []:
@@ -449,7 +451,9 @@ async def twin_state():
                                f"{TWIN_UGV_URL}/ugv/{u['resource_id']}/task/{u['current_task_id']}")
                 pg = (tk or {}).get("progress") or {}
                 out["ugv"][-1].update(eta_s=pg.get("eta_remaining_sec"), remaining_m=pg.get("remaining_m"),
-                                      leg=pg.get("stage"), rtb=str(u["current_task_id"]).startswith("RTB-"))
+                                      leg=pg.get("stage"), rtb=str(u["current_task_id"]).startswith("RTB-"),
+                                      # 물이 없어 거점을 거쳐 가는 출동의 첫 구간 (거점 → 보충 → 목적지)
+                                      via_refill=pg.get("stage") == "1/3" and not (tk or {}).get("cargo"))
         tasks = await get("orchestrator", f"{TWIN_ORCH_URL}/tasks")
         if tasks is not None:
             rows = tasks if isinstance(tasks, list) else tasks.get("tasks", [])
@@ -473,6 +477,9 @@ async def twin_state():
 FIRE_ROAD_NODE = {"lat": 38.028288, "lon": 128.130269, "node_id": "494955"}   # 남전약수터 화점 앞 설악로
 PROTECT_SITES = ("NAMJEON1_HALL", "INJE_REST_AREA")                           # scenario.json sites (사람 있는 시설)
 DEMO_SCENARIOS = [
+    {"id": "idle", "title": "⓪ 출동 없음 (불만 번짐)",
+     "desc": "신고·정찰·출동 없이 불만 번진다. 처음 띄웠을 때 기본 상태. 비교 기준(아무것도 안 했다면).",
+     "patrol": False, "idle": True},
     {"id": "hq", "title": "① 본부 출동 (드론 전진 배치)",
      "desc": "불 확인 → 가장 가까운 소방차가 화점 초기 진압(방수), 인제119 본부 소방차가 보호선으로. 드론은 현장 근처에서 이착륙(B).",
      "patrol": False},
@@ -483,14 +490,23 @@ DEMO_SCENARIOS = [
 _DEMO_RUNS = []          # 최근 실행 (화면 기록용)
 _DEMO_BOOT = uuid.uuid4().hex[:8]          # 이 웹 서버 기동 id — 화면이 '다시 시작됐는지' 알아보는 데 쓴다
 _DEMO_AUTO = {"sid": os.getenv("DEMO_AUTOSTART") or None, "status": None}
+# 지금 돌고 있는 시나리오 (demo_twin.sh 가 DEMO_CURRENT 로 알려 준다. 처음 띄우면 idle)
+_DEMO_CURRENT = os.getenv("DEMO_CURRENT") or (os.getenv("DEMO_AUTOSTART") or "idle")
 
 
 async def _prologue(cx) -> dict:
     """공통 단계: 총괄이 '불 확인(CONFIRMED)' 한 칸과 확인한 자원"""
-    try:
-        b = (await cx.get(f"{TWIN_ORCH_URL}/priority/board")).json()
-    except Exception as e:  # noqa: BLE001
-        return {"ok": False, "why": f"총괄 연결 실패: {type(e).__name__}"}
+    import asyncio
+    for i in range(3):                       # 총괄 board 일시 오류(500)는 잠깐 뒤 다시
+        try:
+            rb = await cx.get(f"{TWIN_ORCH_URL}/priority/board")
+            rb.raise_for_status()
+            b = rb.json()
+            break
+        except Exception as e:  # noqa: BLE001
+            if i == 2:
+                return {"ok": False, "why": f"총괄 연결 실패: {type(e).__name__}"}
+            await asyncio.sleep(0.5)
     fires = [f for f in (b.get("known") or {}).get("fires", []) if f.get("status") == "CONFIRMED"]
     if not fires:
         if os.getenv("DEMO_SUPERVISED") == "1" and not _DEMO_AUTO["sid"]:
@@ -507,7 +523,9 @@ async def demo_scenarios():
         pro = await _prologue(cx)
     return {"prologue": pro, "scenarios": [{k: v for k, v in sc.items() if k != "tasks"} for sc in DEMO_SCENARIOS],
             "runs": _DEMO_RUNS[-5:], "boot": _DEMO_BOOT, "supervised": os.getenv("DEMO_SUPERVISED") == "1",
-            "autostart": _DEMO_AUTO}
+            "autostart": _DEMO_AUTO,
+            "current": next(({"id": x["id"], "title": x["title"]} for x in DEMO_SCENARIOS if x["id"] == _DEMO_CURRENT),
+                            {"id": _DEMO_CURRENT, "title": _DEMO_CURRENT})}
 
 
 @app.post("/api/demo/start/{sid}")
@@ -521,6 +539,8 @@ async def demo_start(sid: str):
         with open(flag, "w", encoding="utf-8") as f:
             f.write(sid)
         return {"restarting": True, "boot": _DEMO_BOOT}
+    if sid == "idle":
+        return {"restarting": False, "run": None}
     return {"restarting": False, "run": await demo_run(sid)}
 
 
@@ -534,16 +554,33 @@ async def _demo_autostart():
 
     async def go():
         _DEMO_AUTO["status"] = "WAITING_FIRE_CONFIRMED"
-        for _ in range(300):
+        flag = os.getenv("DEMO_RESTART_FLAG")
+        for n in range(300):
             await asyncio.sleep(2)
             async with httpx.AsyncClient(timeout=5.0) as cx:
                 pro = await _prologue(cx)
+                # 첫 정찰이 접수만 되고 배정 작업자가 깨지 않는 경우가 있다 → 10초마다 배정을 한 번 부탁한다
+                # (이미 배정됐으면 아무 일도 안 한다)
+                if not pro.get("ok") and n % 5 == 4:
+                    try:
+                        await cx.post(f"{TWIN_ORCH_URL}/dispatch_pending", timeout=3.0)
+                    except Exception:  # noqa: BLE001
+                        pass
+            # 시연: 총괄이 시작 직후 가끔 첫 정찰을 내보내지 못하고 멈춘다(원인 조사 중) → 90초 안에 불 확인이
+            # 안 되면 트윈 전체를 같은 시나리오로 다시 띄운다 (정상이면 10배속에서 20초 안에 확인된다)
+            if not pro.get("ok") and n == 45 and os.getenv("DEMO_SUPERVISED") == "1" and flag:
+                _DEMO_AUTO["status"] = "RESTARTING_STUCK"
+                with open(flag, "w", encoding="utf-8") as f:
+                    f.write(sid)
+                return
             if pro.get("ok"):
                 try:
                     await demo_run(sid)
                     _DEMO_AUTO["status"] = "STARTED"
                 except HTTPException as e:
                     _DEMO_AUTO["status"] = f"FAILED: {e.detail}"
+                    if e.status_code == 409:     # 임무를 올리기 전(불 확인 단계) 실패 → 다시 시도
+                        continue
                 return
         _DEMO_AUTO["status"] = "TIMEOUT"
     asyncio.get_event_loop().create_task(go())
@@ -577,7 +614,7 @@ async def _post_task(cx, body: dict) -> dict:
 @app.post("/api/demo/run/{sid}")
 async def demo_run(sid: str):
     sc = next((x for x in DEMO_SCENARIOS if x["id"] == sid), None)
-    if sc is None:
+    if sc is None or sc.get("idle"):
         raise HTTPException(404, "없는 시나리오")
     stamp = f"{time.strftime('%H%M%S')}-{uuid.uuid4().hex[:4]}"
     posted, results = [], {}
@@ -616,6 +653,17 @@ async def demo_run(sid: str):
                            "risk_score": near["risk_score"] if near else None,
                            "resource_type": "FIRE_ENGINE", "label": f"보호선 · {sites[sid_]['name']}"})
 
+        # ③ (hq) 드론 전진 배치(B): 화선 주변 열화상 순찰 2곳을 드론에 — 현장 근처에서 이착륙하니 바로 받는다
+        if not sc["patrol"]:
+            for i, c in enumerate(sorted(risk, key=lambda x: -x["risk_score"])[:2]):
+                r = await _post_task(cx, {
+                    "request_id": f"DEMO-{sid}-UAVPATROL{i}-{stamp}", "incident_id": "INC-DEMO", "kind": "RECON",
+                    "target": {k: c.get(k) for k in ("lat", "lon", "ground_amsl_m", "cell_id")},
+                    "requirements": {"resource_types": ["UAV"], "sensor": "THERMAL"},
+                    "area_cell_ids": [c["cell_id"]], "dispatch": False})
+                posted.append({"task_id": r["task"]["task_id"], "cell_id": c["cell_id"], "risk_score": c["risk_score"],
+                               "resource_type": "UAV", "label": f"드론 열화상 순찰 {i + 1}"})
+
         # ③ (patrol) 화선 열화상 순찰. 먼저 드론(원통 기지)에 요청 → 배터리 여유가 없으면 드론이 스스로 거절(LOW_BATTERY)
         #    나머지 순찰 2곳은 드론·UGV 모두 허용 → 총괄이 더 가까운 UGV 를 보낸다 (드론 없이 UGV 여러 대가 메우는지)
         if sc["patrol"]:
@@ -651,7 +699,104 @@ async def demo_run(sid: str):
            "results": {p["task_id"]: {k: (results.get(p["task_id"]) or {}).get(k) for k in ("status", "resource_id", "reason")}
                        for p in posted}}
     _DEMO_RUNS.append(run)
+    _start_patrol(sid, sc)
     return run
+
+
+# --- 상황실 순찰 요청 반복 (재현 B 의 '매 스텝 화선 재관측'을 LIVE 에서) ------------------------
+# 드론 2대가 쉬지 않고 돈다: 스텝마다 위험 칸 2곳(묶음 → AI 순서), 그 사이엔 화선 둘레를 한 칸씩. 총괄은 평소 절차
+# (우선순위 → 묶음이면 AI 순서 → 차량 평가 → Safety) 그대로 배정한다. 직전 순찰이 아직 안 끝났으면 쌓지 않는다.
+PATROL_PER_STEP = int(os.getenv("DEMO_PATROL_PER_STEP", "2"))      # 동시에 도는 순찰 수 (드론 대수)
+PATROL_RECENT = int(os.getenv("DEMO_PATROL_RECENT", "6"))          # 최근 본 칸 몇 개를 건너뛸지
+PATROL_RING_M = float(os.getenv("DEMO_PATROL_RING_M", "600"))     # 스텝 사이 둘레 순찰 반경
+_PATROL = {"task": None, "rounds": 0}
+_DONE = ("COMPLETED", "FAILED", "CANCELLED", "ABANDONED", "UNKNOWN")
+
+
+def _start_patrol(sid: str, sc: dict) -> None:
+    import asyncio
+    if PATROL_PER_STEP <= 0 or _PATROL["task"] is not None:
+        return
+    _PATROL["task"] = asyncio.get_event_loop().create_task(_patrol_loop(sid, sc))
+
+
+async def _patrol_loop(sid: str, sc: dict) -> None:
+    """드론이 쉬지 않게 순찰을 이어 붙인다.
+    - 환경이 한 스텝 나갈 때: 순찰 PATROL_PER_STEP 건을 한꺼번에 요청 (묶음 → 총괄이 AI 에 순서를 묻는다)
+    - 그 사이: 끝난 순찰이 있으면 바로 다음 칸 1건을 요청 (단독이라 AI 없이 규칙으로 바로 배정)
+    다음 칸 = 위험도 높은 순, 최근에 본 칸은 잠시 건너뛴다 (화선 둘레를 돌아가며 본다)."""
+    import asyncio
+    run0 = _DEMO_RUNS[-1] if _DEMO_RUNS else {}
+    seen = [t["cell_id"] for t in run0.get("tasks", []) if "UAV" in (t.get("resource_type") or "")]
+    last_step, mine, n = None, [], 0
+    types = ["UAV", "UGV"] if sc["patrol"] else ["UAV"]
+
+    ring_i = [0]
+
+    def pick(risk, k):
+        recent = set(seen[-PATROL_RECENT:])
+        cand = [c for c in risk if c["cell_id"] not in recent] or risk
+        return cand[:k]
+
+    def ring(risk):
+        """화선 둘레 순찰점: 위험 칸 상위 10개의 중심에서 PATROL_RING_M 떨어진 8방향을 차례로 돈다"""
+        if not risk or not _MAP_CELLS:
+            return None
+        top = risk[:10]
+        clat = sum(c["lat"] for c in top) / len(top); clon = sum(c["lon"] for c in top) / len(top)
+        ang = math.radians(45 * (ring_i[0] % 8)); ring_i[0] += 3          # 3칸씩 건너뛰어 맞은편으로 오간다
+        lat = clat + PATROL_RING_M * math.cos(ang) / 111_320
+        lon = clon + PATROL_RING_M * math.sin(ang) / (111_320 * math.cos(math.radians(clat)))
+        k = math.cos(math.radians(lat))
+        return min(_MAP_CELLS, key=lambda m: (m["lat"] - lat) ** 2 + ((m["lon"] - lon) * k) ** 2)
+
+    while True:
+        await asyncio.sleep(3)
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as cx:
+                step = (await cx.get(f"{TWIN_ENV_URL}/snapshot")).json().get("step_count")
+                new_step = last_step is not None and step != last_step
+                last_step = step
+                open_ = []
+                for tid in mine:
+                    st = (await cx.get(f"{TWIN_ORCH_URL}/tasks/{tid}")).json().get("purpose_status")
+                    if st not in _DONE:
+                        open_.append(tid)
+                mine = open_
+                free = PATROL_PER_STEP - len(mine)
+                if free <= 0:
+                    continue
+                risk = (await cx.get(f"{TWIN_ORCH_URL}/view/risk_cells")).json().get("risk_cells", [])
+                risk = [c for c in risk if isinstance(c.get("risk_score"), (int, float)) and c.get("lat") is not None]
+                risk.sort(key=lambda x: -x["risk_score"])
+                if new_step:                     # 새 스텝: 위험 칸 묶음 (AI 가 순서를 정한다)
+                    cells = pick(risk, free)
+                else:                            # 그 사이: 화선 둘레를 한 칸씩 (단독 → 규칙으로 바로 배정, AI 없음)
+                    rc = ring(risk)
+                    cells = [{**rc, "risk_score": None}] if rc else []
+                if not cells:
+                    continue
+                n += 1
+                _PATROL["rounds"] = n
+                run = _DEMO_RUNS[-1] if _DEMO_RUNS else None
+                for i, c in enumerate(cells):
+                    r = await _post_task(cx, {
+                        "request_id": f"DEMO-{sid}-PAT{n}-{i}-{time.strftime('%H%M%S')}", "incident_id": "INC-DEMO",
+                        "kind": "RECON", "target": {kk: c.get(kk) for kk in ("lat", "lon", "ground_amsl_m", "cell_id")},
+                        "requirements": {"resource_types": types, "sensor": "THERMAL"},
+                        "area_cell_ids": [c["cell_id"]], "dispatch": not new_step})
+                    tid = r["task"]["task_id"]
+                    mine.append(tid)
+                    seen.append(c["cell_id"])
+                    _PATROL["last"] = {"n": n, "cell_id": c["cell_id"], "step": step}
+                    if run is not None and new_step:     # 화면 기록은 스텝마다의 묶음만 (둘레 순찰은 횟수만 센다)
+                        run["tasks"].append({"task_id": tid, "cell_id": c["cell_id"], "risk_score": c["risk_score"],
+                                             "resource_type": "/".join(types),
+                                             "label": f"순찰 {n} (스텝 {step}{' · 새 스텝' if new_step else ''})"})
+                if new_step:
+                    await cx.post(f"{TWIN_ORCH_URL}/dispatch_pending")
+        except Exception as e:  # noqa: BLE001 — 순찰 반복은 멈추지 않는다
+            print(f"[patrol] {type(e).__name__}: {e}", flush=True)
 
 
 _TRAIL_TYPES = ("CANDIDATES_FILTERED", "LOCAL_RESPONSE", "SAFETY_JUDGEMENT", "EXECUTION", "OBSERVATION",
@@ -677,16 +822,26 @@ def _trail_note(e: dict) -> str:
     return ""
 
 
+_LAST_BOARD = None          # 직전에 받은 총괄 board (일시 오류 때 재사용)
+
+
 @app.get("/api/demo/ai")
 async def demo_ai():
     """AI 판단 기록: 총괄의 LLM 상태·최근 호출(입력·출력)·묶음 결정 + 최근 시연 임무의 판단 단계"""
-    out = {"llm": None, "groups": [], "trail": {}, "run": _DEMO_RUNS[-1] if _DEMO_RUNS else None}
+    out = {"llm": None, "groups": [], "trail": {}, "run": _DEMO_RUNS[-1] if _DEMO_RUNS else None,
+           "patrol": {"rounds": _PATROL["rounds"], "last": _PATROL.get("last")}}
     async with httpx.AsyncClient(timeout=5.0) as cx:
+        global _LAST_BOARD
         try:
-            b = (await cx.get(f"{TWIN_ORCH_URL}/priority/board")).json()
+            rb = await cx.get(f"{TWIN_ORCH_URL}/priority/board")
+            rb.raise_for_status()
+            b = _LAST_BOARD = rb.json()
         except Exception as e:  # noqa: BLE001
-            out["error"] = f"총괄 연결 실패: {type(e).__name__}"
-            return out
+            # 총괄 /priority/board 가 가끔 500 (기상 지식 조회 경합) → 화면이 깜빡이지 않게 직전 값을 쓴다
+            if _LAST_BOARD is None:
+                out["error"] = f"총괄 연결 실패: {type(e).__name__}"
+                return out
+            b, out["board_cached"] = _LAST_BOARD, True
         out["llm"] = b.get("llm")
         out["mode"] = b.get("mode")
         out["groups"] = [{"task_ids": g["task_ids"], "kinds": g.get("kinds"), "status": g.get("status"),

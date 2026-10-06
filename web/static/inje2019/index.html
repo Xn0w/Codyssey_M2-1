@@ -92,6 +92,8 @@ details li{margin:2px 0}
   #clock{width:auto}
 }
 @media (prefers-reduced-motion: reduce){ #play{transition:none} }
+#demo-now{margin:4px 0 8px;padding:8px 10px;border-radius:8px;background:var(--fire,#E2313F);color:#fff;font-size:14px}
+#demo-sc button[aria-pressed="true"]{outline:2px solid var(--fire,#E2313F);outline-offset:1px}
 </style>
 </head>
 <body>
@@ -137,6 +139,7 @@ details li{margin:2px 0}
 
 <section id="demo" class="panel" aria-label="시연 시나리오와 AI 판단 기록">
   <h2>시연 시나리오</h2>
+  <div class="now" id="demo-now"></div>
   <div class="trail" id="demo-pro">①</div>
   <p class="hint" style="margin:0 0 6px">② 하나를 고른다 — 누를 때마다 처음(14:45 신고)부터 다시 시작한다 (demo_twin.sh 로 띄웠을 때)</p>
   <div class="sc" id="demo-sc"></div>
@@ -504,7 +507,9 @@ function liveObj(id, kind){
   if (!liveObjs[id]){
     const o = kind === 'uav' ? drone() : truck(kind === 'FIRE_ENGINE' ? 0xE2313F : 0xE9B44C, kind === 'FIRE_ENGINE' ? 120 : 90);
     const el = Object.assign(document.createElement('div'), {className:'label'}); labels.appendChild(el);
-    liveObjs[id] = {o, el}; marks.push({obj:o, el, dy:200});
+    // 같은 자리(전진 이착륙장 등)에 겹치는 드론끼리 이름표가 가리지 않게 드론마다 높이를 달리한다
+    const nU = kind === 'uav' ? Object.values(liveObjs).filter(x => x.kind === 'uav').length : 0;
+    liveObjs[id] = {o, el, kind, nU}; marks.push({obj:o, el, dy: 200 + 70 * nU});
   }
   return liveObjs[id];
 }
@@ -512,11 +517,13 @@ function liveObj(id, kind){
 function etaText(g){
   if (g.eta_s == null) return '';
   const m = Math.max(0, Math.round(g.eta_s / 60)), km = g.remaining_m != null ? ` ${(g.remaining_m/1000).toFixed(1)} km` : '';
-  return ` · ${g.rtb ? '거점까지' : '도착까지'} ${m < 1 ? '1분 미만' : m + '분'}${km}`;
+  return ` · ${g.rtb || g.via_refill ? '거점까지' : '도착까지'} ${m < 1 ? '1분 미만' : m + '분'}${km}`;
 }
 function drawLive(){
   const L = state.live; if (!L) return;
-  const t = L.env ? L.env.simulation_time_s : 0; state.t = Math.min(t, T_END);
+  // 시계: 환경은 한 스텝(35분)씩 건너뛰므로, 차량 서버의 연속 시계가 그 스텝 안에 있으면 그걸로 흐르게 보여 준다
+  const te = L.env ? L.env.simulation_time_s : 0, tc = L.clock_s;
+  const t = (tc != null && tc >= te && tc < te + 2 * TICK) ? tc : te; state.t = Math.min(t, T_END);
   scrub.value = Math.round(state.t/T_END*1000);
   [solid, ghost, glow, fcMesh].forEach(m => { for (let n=0;n<m.count;n++) m.setMatrixAt(n, ZERO); m.instanceMatrix.needsUpdate = true; });
   [uav, uav2, engine, ugv].forEach(o => o.visible = false); uavLabel.style.display = 'none';
@@ -526,8 +533,8 @@ function drawLive(){
     burned.add(gy*COLS+gx); M.makeTranslation(X(gx), Y(gx,gy,5), Z(gy)); liveMesh.setMatrixAt(n, M);
     liveMesh.setColorAt(n, st === 1 ? C_BURN : C_CHAR); });
   liveMesh.instanceMatrix.needsUpdate = true; liveMesh.instanceColor.needsUpdate = true;
-  for (const u of L.uav || []){ if (u.gx == null) continue; const {o, el} = liveObj(u.id, 'uav');
-    o.position.set(X(u.gx), (u.alt_m_amsl != null ? u.alt_m_amsl*EX : Y(u.gx,u.gy,90)), Z(u.gy)); o.visible = true;
+  for (const u of L.uav || []){ if (u.gx == null) continue; const {o, el, nU} = liveObj(u.id, 'uav');
+    o.position.set(X(u.gx + 0.6 * nU), (u.alt_m_amsl != null ? u.alt_m_amsl*EX : Y(u.gx,u.gy,90)), Z(u.gy)); o.visible = true;
     o.userData.cone.visible = !!u.task;
     el.textContent = `${u.id} · ${u.mode||'?'} · ${u.battery!=null?Math.round(u.battery)+'%':''}${u.task?' · 임무 중':''}`; }
   for (const g of L.ugv || []){ const {o, el} = liveObj(g.id, g.type); o.position.set(X(g.gx), Y(g.gx,g.gy,20), Z(g.gy)); o.visible = true;
@@ -537,7 +544,8 @@ function drawLive(){
     const ACT = {SUPPRESSING:' · 💧 진압 중', REFILLING:' · 물 보충 중', LOADING:' · 적재 중', UNLOADING:' · 하역 중'};
     const work = ACT[g.activity] || (g.activity && g.activity !== 'IDLE' ? ' · '+g.activity : '');
     const water = g.water_l != null ? ` · 물 ${Math.round(g.water_l)} L` : '';
-    el.textContent = `${g.id}${g.driver === 'px4' ? ' [Gazebo]' : ''} · ${g.state}${work}${etaText(g)}${water}`; }
+    const why = g.rtb ? ' · 물 보충하러 복귀' : g.via_refill ? ' · 물 보충 후 출동' : '';
+    el.textContent = `${g.id}${g.driver === 'px4' ? ' [Gazebo]' : ''} · ${g.state}${work}${why}${etaText(g)}${water}`; }
   return {t, burned};
 }
 function draw(force){
@@ -671,7 +679,7 @@ function draw(force){
     $('#t-sub').textContent = `2019.${f.date} · LIVE · 시나리오: ${demoTitle || '공통(신고→정찰)만'} · ${L.env ? L.env.run_id : '환경 서버 없음'}`;
     $('#t-sky').textContent = night ? '밤' : '낮';
     $('#metrics').innerHTML = `<div class="m"><div class="h">CA 소실 면적 (환경 서버)</div><div class="v" style="grid-column:2/4">${((liveInfo?liveInfo.burned.size:0)*CELL*CELL/1e4).toFixed(1)} ha</div><div class="bar"></div></div>` + scarHTML(liveInfo ? liveInfo.burned : new Set());
-    const src = Object.entries(L.sources||{}).filter(([k]) => !k.endsWith(':health') && !k.endsWith(':task'))
+    const src = Object.entries(L.sources||{}).filter(([k]) => !k.endsWith(':health') && !k.endsWith(':task') && !k.endsWith(':clock'))
       .map(([k,v]) => `<span class="${v==='OK'?'ok':'down'}">${k} ${v==='OK'?'●':'○'}</span>`).join(' ');
     const tasks = (L.tasks||[]).map(x => `${x.kind||''} ${x.cell||''} <b>${x.status||''}</b>${x.hold?' ('+x.hold+')':''}`).join('<br>');
     $('#live').innerHTML = `<b>연결</b> ${src}${tasks ? '<br><b>총괄 임무</b><br>'+tasks : ''}`;
@@ -710,20 +718,27 @@ const STEP_KO = {TASK_RECEIVED:'접수', CANDIDATES_FILTERED:'후보 거르기',
 const RES_KO = {ACK:'접수됨 → 출동', ARRIVED:'도착', RETURNING:'차량 대기 상태 확인 중', RELEASED:'예약 해제 (현장에 대기, 다음 임무 가능)', COMPLETED:'완료',
   ROAD_STATUS:'도로 상황만 (화재 관측 아님)', DETECTED:'불 발견', NOT_DETECTED:'불 없음', MEASURED:'측정 완료'};
 const REASON_KO = {LOW_BATTERY: '배터리 여유 부족 — 왕복 불가', NO_FEASIBLE_CANDIDATE: '보낼 수 있는 자원 없음 · 비면 자동 재배정',
-  TARGET_UNREACHABLE: '도로로 닿을 수 없음', BUSY: '다른 임무 수행 중', ROAD_BLOCKED: '도로 차단', HIGH_WIND: '강풍'};
+  TARGET_UNREACHABLE: '도로로 닿을 수 없음', REQUIRED_CAPABILITY_UNAVAILABLE: '장비 조건 미충족 (물 소진 등)', BUSY: '다른 임무 수행 중', ROAD_BLOCKED: '도로 차단', HIGH_WIND: '강풍'};
 const VEH_KO = {RUNNING:'🚒 출동 중', WORKING:'작업 중', READY:'대기', UNAVAILABLE:'사용 불가'};
 function vehicleNow(rid){
   const L = state.live || {};
   const g = (L.ugv || []).find(x => x.id === rid);
   if (g){ const act = g.activity === 'SUPPRESSING' ? '💧 진압 중' : g.activity === 'REFILLING' ? '물 보충 중'
-                    : (g.rtb ? '🚒 물 보충하러 복귀 중' : (VEH_KO[g.state] || g.state));
+                    : (g.rtb ? '🚒 물 보충하러 복귀 중' : g.via_refill ? '🚒 거점에서 물 보충 후 출동 예정' : (VEH_KO[g.state] || g.state));
           return `${act}${etaText(g)}${g.water_l != null ? ' · 물 '+Math.round(g.water_l)+' L' : ''}`; }
   const u = (L.uav || []).find(x => x.id === rid);
   if (u) return u.task ? '✈ 비행 중 (임무)' : `대기 · ${u.flight_mode || ''}`;
   return '';
 }
 let demoBusy = false, demoInfo = '', demoTitle = '';
-let demoReady = false, demoSupervised = false, demoAuto = null;
+let demoReady = false, demoSupervised = false, demoAuto = null, demoCurrent = null;
+function showCurrent(){
+  // 지금 돌고 있는 시나리오를 패널 맨 위와 버튼 표시로 알려 준다
+  const c = demoCurrent || {id: 'idle', title: '⓪ 출동 없음 (불만 번짐)'};
+  $('#demo-now').innerHTML = `▶ 지금 실행 중: <b>${escH(c.title)}</b>`;
+  document.querySelectorAll('[data-demo]').forEach(b => b.setAttribute('aria-pressed', b.dataset.demo === c.id));
+  if (!demoTitle || c.id === 'idle') demoTitle = c.title;
+}
 function showPrologue(p){
   demoReady = !!(p && p.ok);
   $('#demo-pro').innerHTML = demoReady
@@ -741,14 +756,14 @@ async function loadDemo(){
     $('#demo-sc').innerHTML = d.scenarios.map(x =>
       `<button data-demo="${escH(x.id)}"><b>${escH(x.title)}</b><small>${escH(x.desc)}</small></button>`).join('');
     document.querySelectorAll('[data-demo]').forEach(b => b.onclick = () => runDemo(b.dataset.demo));
-    demoSupervised = !!d.supervised; demoAuto = d.autostart;
-    showPrologue(d.prologue);
+    demoSupervised = !!d.supervised; demoAuto = d.autostart; demoCurrent = d.current || null;
+    showPrologue(d.prologue); showCurrent();
   } catch (e) { $('#demo-sc').textContent = '시연 API 없음 (web/app.py 가 feat/demo-ground 버전인지 확인)'; }
   refreshAI();
 }
 setInterval(async () => {
   if (state.mode !== 'live' || demoBusy) return;
-  try { const r = await fetch('/api/demo/scenarios'); if (r.ok){ const d = await r.json(); demoAuto = d.autostart; showPrologue(d.prologue); } } catch (e) {}
+  try { const r = await fetch('/api/demo/scenarios'); if (r.ok){ const d = await r.json(); demoAuto = d.autostart; demoCurrent = d.current || demoCurrent; showPrologue(d.prologue); showCurrent(); } } catch (e) {}
 }, 3000);
 async function runDemo(id){
   if (demoBusy) return; demoBusy = true;
@@ -778,11 +793,12 @@ async function waitRestart(oldBoot){
 async function refreshAI(){
   let d; try { const r = await fetch('/api/demo/ai'); if (!r.ok) throw 0; d = await r.json(); } catch (e) { return; }
   const L = d.llm || {}, run = d.run, lp = L.last_plan;
-  demoTitle = run ? run.title : (demoAuto && demoAuto.sid ? demoAuto.sid + ' (불 확인 대기)' : '');
+  demoTitle = run ? run.title : (demoAuto && demoAuto.sid ? demoAuto.sid + ' (불 확인 대기)' : (demoCurrent ? demoCurrent.title : ''));
   const ready = !L.not_ready_reason;
   let h = `<div><span class="tag ${ready?'ok':'no'}">AI ${ready?'연결됨':'꺼짐 · '+escH(L.not_ready_reason||'?')}</span>`
         + `<span class="tag">${escH(L.provider||'')} ${escH(L.model||'')}</span><span class="tag">호출 ${L.calls_used||0}회</span></div>`;
   if (demoInfo) h += `<p class="hint">${demoInfo}</p>`;
+  if (d.patrol && d.patrol.rounds) h += `<p class="hint">🛰 드론 순찰 ${d.patrol.rounds}회 요청 · 최근 칸 ${escH((d.patrol.last||{}).cell_id||'')} — 스텝마다 위험 칸 묶음(AI 순서), 그 사이엔 화선 둘레 600 m</p>`;
   const live = state.live || {};
   const onGround = new Set((live.ugv || []).map(g => g.id));
   const movers = run ? [...new Set([...Object.values(run.results || {}).map(x => x.resource_id),

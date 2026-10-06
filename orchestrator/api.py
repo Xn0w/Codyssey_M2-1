@@ -21,6 +21,11 @@ orchestrator/api.py
 - 환경은 팀 READ 계약 전까지 fixture 다 (/health 의 env.contract_complete 로 표시).
 """
 
+import faulthandler, signal as _signal
+try:   # 시연 진단: kill -USR1 <pid> 로 모든 스레드 스택을 로그에 남긴다
+    faulthandler.register(_signal.SIGUSR1, all_threads=True)
+except (AttributeError, ValueError):
+    pass
 import json
 import os
 import threading
