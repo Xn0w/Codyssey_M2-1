@@ -148,6 +148,8 @@ def orch_summary():
         "mode": board.get("mode"),
         "llm_ready": not (board.get("llm") or {}).get("not_ready_reason"),
         "fires": len(known.get("fires") or []),
+        # 전장의 안개: 총괄이 신고·정찰로 알게 된 불 칸 (진짜 불 위치가 아님)
+        "fire_cells": [{"cell_id": f.get("cell_id"), "status": f.get("status")} for f in (known.get("fires") or [])],
         "groups": len(board.get("groups") or []),
         "tasks": tasks,
     })
@@ -183,6 +185,29 @@ def cell(lat: float, lon: float):
         return {"col": int((x-gb.GRID_LEFT)/gb.GRID_RES), "row": int((gb.GRID_TOP-y)/gb.GRID_RES)}
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/api/ugv_live")
+def ugv_live():
+    """전장의 안개용: 트윈(환경 서버 모드)이면 UGV 서버가 보고하는 실제 차량 위치를 칸으로 돌려준다.
+    자원 목록·경로 미리보기는 바꾸지 않는다. 트윈이 아니거나 UGV 서버가 없으면 빈 목록."""
+    if not config.WEB_ENV_URL:
+        return {"live": False, "units": []}
+    url = os.environ.get("TWIN_UGV_URL", config.UGV_SERVER_URL)
+    try:
+        rows = httpx.get(f"{url}/ugv", timeout=2).json()
+    except Exception:  # noqa: BLE001
+        return {"live": False, "units": []}
+    units = []
+    for u in rows:
+        p = u.get("position") or {}
+        if p.get("lat") is None:
+            continue
+        c = cell(p["lat"], p["lon"])
+        if "col" in c:
+            units.append({"id": u.get("resource_id"), "type": u.get("resource_type"), "state": u.get("state"),
+                          "col": c["col"], "row": c["row"]})
+    return {"live": True, "units": units}
+
 
 @app.get("/api/ugv")
 def ugv(col: int = 60, row: int = 70):
@@ -496,13 +521,13 @@ small{color:#6f8a96}
  <div class=map>
    <img id=terrain src=/api/preview>
    <canvas id=ov></canvas>
-   <small>빨강=연소중 · 주황=위험 · 청록=드론 · 파랑선=비행궤적 · 노랑=출동 타깃</small>
+   <small>빨강=연소중 · 주황=위험 · 청록=드론 · 파랑선=비행궤적 · 노랑=출동 타깃 · <b>안개</b>: 밝음=지금 보는 곳, 흐림=본 적 있는 곳(마지막 모습), 어두움=아직 모르는 곳 · ⚠노랑 링=신고(확인 전) · 🔥빨강 링=총괄이 확인한 불 · ◆=관제 화면 발견 표시</small>
  </div>
  <div class=panel>
    <h3>출동</h3>
    <div class=modes><span id=mExt class=badge>진화 시연: 확인 중</span><span id=mUav class=badge>드론 서버: 확인 중</span><span id=mDisp class=badge>출동 경로: 확인 중</span><span id=mClock class=badge>산불 시계: 확인 중</span></div>
    <div class=row>col <input id=col type=number value=60> row <input id=row type=number value=70>
-     <button id=fly>🔥 출동</button><button id=clr>궤적 지우기</button><button id=auto style="background:#0C8E7E">자동 시작</button></div>
+     <button id=fly>🔥 출동</button><button id=clr>궤적 지우기</button><button id=auto style="background:#0C8E7E">자동 시작</button><button id=fog style="background:#2b3a4d">🌫 안개 켜짐</button></div>
    <h3>산불(CA)</h3>
    <div class=kv><b>연소 셀</b><span id=nfire>-</span></div>
    <div class=kv><b>바람</b><span id=wind>-</span></div>
@@ -514,6 +539,8 @@ small{color:#6f8a96}
    <div class=kv><b>타깃거리</b><span id=dist>-</span></div>
    <h3>지상자원(UGV)</h3><div class=kv><b>상태</b><span id=ugvinfo>-</span></div>
    <h3>자원 목록</h3><div id=fleet style="font-size:12px"></div>
+   <h3>발견 기록 <small style="color:#8fa3ae;font-weight:400">(안개 속에서 드론·차량 시야에 처음 들어온 불 · 관제 화면 기록)</small></h3>
+   <div id=finds style="font-size:12px;max-height:180px;overflow:auto"><div style="color:#8fa3ae">아직 발견한 불이 없습니다.</div></div>
    <div class=log id=log>대기…</div>
    <h3>총괄 판단 <small>(읽기 전용 · 상세는 <a id=orchLink href="#" target=_blank>/board</a>)</small></h3>
    <div class=modes><span id=mOrch class=badge>총괄 서버: 확인 중</span><span id=mEnv class=badge>환경: -</span></div>
@@ -549,9 +576,117 @@ function pathPointAt(rt,u){
 function hav(a,b,c,d){const R=6371000,r=Math.PI/180;
  const dp=(c-a)*r,dl=(d-b)*r,A=Math.sin(dp/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(dl/2)**2;
  return 2*R*Math.asin(Math.sqrt(A));}
+// ── 전장의 안개 (스타크래프트·LoL 미니맵처럼) ─────────────────────────────
+// 칸마다 0=아직 모름(어두움) 1=본 적 있음(흐림, 마지막으로 본 불만 표시) 2=지금 보는 중(밝음, 지금 불 표시).
+// 시야는 드론·지상 차량 위치에서 나온다. 진짜 불(환경 서버)은 시야 안에서만 보인다.
+const VIS_R={drone:18,UGV:9,FIRE_ENGINE:9};         // 시야 반경(칸, 1칸=90 m) — drone=드론(UAV), UGV=무인 지상 차량, FIRE_ENGINE=소방차
+const ROAD_R=3;                                       // 차량이 지나온 길을 밝히는 폭(반경, 칸)
+const FADE_MS=8000;                                   // 시야를 벗어난 뒤 밝음 → 회색으로 흐려지는 시간
+const A_DARK=205,A_GRAY=180;                          // 안개 진하기: 모름 / 본 적 있음 (0=완전히 밝음)
+let ugvLive=null;                                     // 트윈: UGV 서버의 실제 차량 위치 (안개 계산용)
+let vehTrail={};                                      // 차량별 지나온 칸 (트윈 실제 위치 기준)
+let vehPrev={};                                       // 차량별 직전 위치 (지나간 구간만 한 번 밝힘)
+let fogOn=true,fogRun=null,knownFires=[];
+let seen=new Uint8Array(COLS*ROWS);                   // 칸별 0=모름 1=본 적 있음 2=지금 보는 중
+let seenAt=new Float64Array(COLS*ROWS);               // 칸별 마지막으로 본 시각(ms) — 잔상 계산용
+let lastFire=new Set(),lastRisk=new Set();            // 흐린 곳에 남겨 둘 '마지막으로 본' 불·위험 칸
+// 발견 기록: 불 칸이 처음 시야에 들어온 순간을 남긴다. 가까운 칸(5칸 이내)은 같은 발견으로 묶는다
+let finds=[],foundCells=new Set(),viewers=[],simT=null;
+const FIND_GROUP_R=5,PING_MS=3000;
+const fogC=document.createElement('canvas');fogC.width=COLS;fogC.height=ROWS;
+function fogReset(){seen=new Uint8Array(COLS*ROWS);seenAt=new Float64Array(COLS*ROWS);lastFire=new Set();lastRisk=new Set();
+ vehTrail={};vehPrev={};finds=[];foundCells=new Set();renderFinds();updateFog();}
+function reveal(c,r,R,vis){c=Math.round(c);r=Math.round(r);
+ for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){if(dx*dx+dy*dy>R*R+R)continue;
+   const x=c+dx,y=r+dy;if(x>=0&&y>=0&&x<COLS&&y<ROWS)vis.add(y*COLS+x);}}
+function revealLine(a,b,R,vis){const n=Math.max(1,Math.ceil(Math.hypot(b.col-a.col,b.row-a.row)));
+ for(let k=0;k<=n;k++)reveal(a.col+(b.col-a.col)*k/n,a.row+(b.row-a.row)*k/n,R,vis);}
+// 차량: 지금 위치는 원형 시야, 직전 위치 → 지금 위치 구간은 도로 폭으로 한 번 밝힘 (이후 잔상으로 흐려짐)
+function vehicleSight(id,type,p,vis){reveal(p.col,p.row,VIS_R[type]||6,vis);
+ viewers.push({by:(type==='FIRE_ENGINE'?'🚒 ':'🚙 ')+id,col:p.col,row:p.row,R:VIS_R[type]||6});
+ const q=vehPrev[id];if(q&&(q.col!==p.col||q.row!==p.row))revealLine(q,p,ROAD_R,vis);vehPrev[id]={col:p.col,row:p.row};}
+function updateFog(){const vis=new Set(),now=performance.now();viewers=[];
+ if(drone){reveal(drone.col,drone.row,VIS_R.drone,vis);viewers.push({by:'🛩 드론',col:drone.col,row:drone.row,R:VIS_R.drone});}
+ if(trail.length>1){const a=trail[trail.length-2],b=trail[trail.length-1];revealLine(a,b,VIS_R.drone,vis);}  // 드론도 막 지나온 구간
+ const U=window.__ugv;
+ if(ugvLive&&ugvLive.live){
+   // 트윈: UGV 서버의 실제 위치로 밝힌다
+   ugvLive.units.forEach(u=>{const t=vehTrail[u.id]||(vehTrail[u.id]=[]);const p={col:u.col,row:u.row};
+     const last=t[t.length-1];if(!last||last.col!==p.col||last.row!==p.row)t.push(p);
+     vehicleSight(u.id,u.type,p,vis);});
+ }else if(U){
+   // 트윈이 아닐 때: 관제판 화면의 차량 이동(경로 미리보기)을 따라 밝힌다 — 시험대 표시
+   (U.units||[]).forEach(u=>{const p=(U._pos||{})[u.id]||(u.col!=null?{col:u.col,row:u.row}:null);
+     if(p)vehicleSight(u.id,u.type,p,vis);});
+ }
+ for(let i=0;i<seen.length;i++)if(seen[i]===2)seen[i]=1;                  // 지금 안 보이면 '본 적 있음'으로
+ vis.forEach(i=>{seen[i]=2;seenAt[i]=now;});
+ const fs=new Set(fire.map(c=>c.y*COLS+c.x)),rs=new Set(risk.map(c=>c.y*COLS+c.x));
+ vis.forEach(i=>{fs.has(i)?lastFire.add(i):lastFire.delete(i);rs.has(i)?lastRisk.add(i):lastRisk.delete(i);});
+ // 처음 보는 불 칸 → 발견 기록
+ let added=false;
+ vis.forEach(i=>{if(!fs.has(i)||foundCells.has(i))return;foundCells.add(i);
+   const c=i%COLS,r=(i/COLS)|0;
+   const f=finds.find(f=>Math.hypot(f.col-c,f.row-r)<=FIND_GROUP_R);
+   if(f){f.cells++;return;}
+   let by='-',bd=1e9;viewers.forEach(v=>{const d=Math.hypot(v.col-c,v.row-r);if(d<=v.R+1&&d<bd){bd=d;by=v.by;}});
+   finds.push({n:finds.length+1,col:c,row:r,cells:1,t:now,by,when:findTime()});added=true;});
+ if(added||finds.length)renderFinds();
+ if(added){const f=finds[finds.length-1];$('log').textContent='🔥 화재 발견 #'+f.n+' — '+f.when+' · 칸 '+f.col+'_'+f.row+' 일대 · '+f.by;}
+ paintFog(now);}
+// 안개 그리기: 지금 보는 곳 0 → 벗어나면 FADE_MS 동안 서서히 회색(A_GRAY)으로 → 본 적 없는 곳 A_DARK
+function paintFog(now){const g=fogC.getContext('2d'),im=g.createImageData(COLS,ROWS),d=im.data;
+ for(let i=0;i<seen.length;i++){const k=i*4;d[k]=6;d[k+1]=10;d[k+2]=18;
+   if(seen[i]===0){d[k+3]=A_DARK;continue;}
+   if(seen[i]===2){d[k+3]=0;continue;}
+   const f=Math.min(1,(now-seenAt[i])/FADE_MS);d[k+3]=Math.round(A_GRAY*(1-(1-f)*(1-f)));}   // 처음엔 빨리, 뒤로 갈수록 천천히 어두워짐
+ g.putImageData(im,0,0);}
+function findTime(){if(simT!=null){const m=14*60+45+Math.floor(simT/60);   // 트윈: 시나리오 시각 (14:45 시작)
+   return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0')+' (시뮬)';}
+ return new Date().toLocaleTimeString('ko-KR',{hour12:false});}
+let _findsHtml='';
+function renderFinds(){const h=finds.length?finds.slice().reverse().map(f=>
+   '<div style="padding:4px 0;border-bottom:1px solid #22303d"><b style="color:#ff6a4a">🔥 발견 #'+f.n+'</b> '+f.when
+   +' · 칸 '+f.col+'_'+f.row+' 일대 · '+f.by+' · <span style="color:#ffb26b">'+f.cells+'칸</span></div>').join('')
+   :'<div style="color:#8fa3ae">아직 발견한 불이 없습니다.</div>';
+ if(h!==_findsHtml){_findsHtml=h;$('finds').innerHTML=h;}}
+// 지도 표시: 발견 순간 퍼지는 링(3초) + 남는 마름모
+function drawFinds(g){const now=performance.now();
+ finds.forEach(f=>{const[x,y]=P(f.col,f.row),age=now-f.t;
+   if(age<PING_MS){const k=age/PING_MS;g.strokeStyle='rgba(255,90,60,'+(1-k)+')';g.lineWidth=3;
+     g.beginPath();g.arc(x,y,12+k*45,0,7);g.stroke();g.beginPath();g.arc(x,y,6+k*25,0,7);g.stroke();}
+   g.fillStyle='#ff5a3c';g.strokeStyle='#fff';g.lineWidth=1.5;
+   g.beginPath();g.moveTo(x,y-9);g.lineTo(x+7,y);g.lineTo(x,y+9);g.lineTo(x-7,y);g.closePath();g.fill();g.stroke();
+   g.font='bold 11px sans-serif';g.textAlign='left';g.fillStyle='#fff';g.fillText('발견 #'+f.n,x+10,y-6);});}
+function cellOf(id){const m=/^(\\d+)_(\\d+)$/.exec(id||'');return m?{col:+m[1],row:+m[2]}:null;}
+function drawKnown(g){const t=performance.now()/400;
+ knownFires.forEach(f=>{const st=String(f.status||'');if(st!=='REPORTED'&&!st.startsWith('CONFIRMED'))return;  // 신고·확인만 (불 없음 관측은 표시 안 함)
+   const c=cellOf(f.cell_id);if(!c)return;const[x,y]=P(c.col,c.row);
+   const conf=st.startsWith('CONFIRMED'),pul=conf?0:Math.sin(t)*2;
+   g.strokeStyle=conf?'#ff4d2e':'#ffd23a';g.lineWidth=2.5;g.beginPath();g.arc(x,y,10+pul,0,7);g.stroke();
+   g.font='bold 12px sans-serif';g.textAlign='center';g.fillStyle=conf?'#ff4d2e':'#ffd23a';
+   g.fillText(conf?'🔥':'⚠',x,y-14);});}
 function draw(){const g=ov.getContext('2d');g.clearRect(0,0,ov.width,ov.height);
+ if(fogOn){
+   // 흐린 곳: 마지막으로 본 모습만 / 밝은 곳: 지금 모습
+   lastRisk.forEach(i=>{if(seen[i]!==1)return;const[x,y]=P(i%COLS,(i/COLS)|0);g.fillStyle='rgba(224,140,40,.3)';g.fillRect(x-2,y-2,4,4);});
+   lastFire.forEach(i=>{if(seen[i]!==1)return;const[x,y]=P(i%COLS,(i/COLS)|0);g.fillStyle='rgba(224,60,40,.45)';g.beginPath();g.arc(x,y,3.5,0,7);g.fill();});
+   risk.forEach(c=>{if(seen[c.y*COLS+c.x]!==2)return;const[x,y]=P(c.x,c.y);g.fillStyle='rgba(224,140,40,.5)';g.fillRect(x-2,y-2,4,4);});
+   fire.forEach(c=>{if(seen[c.y*COLS+c.x]!==2)return;const[x,y]=P(c.x,c.y);g.fillStyle='rgba(255,70,40,.95)';g.beginPath();g.arc(x,y,3.8,0,7);g.fill();});
+   g.imageSmoothingEnabled=true;g.drawImage(fogC,0,0,ov.width,ov.height);  // 칸 단위 안개를 부드럽게 늘려 덮는다
+   drawKnown(g);drawFinds(g);
+   // 트윈: 실제로 움직인 차량, 그리고 관제판 자원 목록에 없는 차량(예: B 거점 B-ugv1)은 실제 위치에 표시
+   const shown=new Set(((window.__ugv||{}).units||[]).map(u=>u.id));
+   if(ugvLive&&ugvLive.live)ugvLive.units.forEach(u=>{const idle=u.state==='READY'&&(vehTrail[u.id]||[]).length<2;
+     if(idle&&shown.has(u.id))return;
+     const[x,y]=P(u.col,u.row),fe=u.type==='FIRE_ENGINE';
+     g.strokeStyle=fe?'#ff3b30':'#e8912a';g.lineWidth=3;g.beginPath();g.arc(x,y,8,0,7);g.stroke();
+     g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='left';g.fillText((fe?'🚒 ':'🚙 ')+u.id+(idle?' (대기)':' (실제)'),x+11,y+4);});
+ }else{
  risk.forEach(c=>{const[x,y]=P(c.x,c.y);g.fillStyle='rgba(224,140,40,.5)';g.fillRect(x-2,y-2,4,4);});
  fire.forEach(c=>{const[x,y]=P(c.x,c.y);g.fillStyle='rgba(224,60,40,.9)';g.beginPath();g.arc(x,y,3.5,0,7);g.fill();});
+ drawFinds(g);
+ }
  if(tgt){const[x,y]=P(tgt.col,tgt.row);g.strokeStyle='#ffd23a';g.lineWidth=3;g.beginPath();g.arc(x,y,9,0,7);g.stroke();
    g.fillStyle='#ffd23a';g.beginPath();g.arc(x,y,3,0,7);g.fill();}
  if(trail.length>1){g.strokeStyle='#4aa3ff';g.lineWidth=2.5;g.beginPath();
@@ -583,7 +718,7 @@ function draw(){const g=ov.getContext('2d');g.clearRect(0,0,ov.width,ov.height);
      g.beginPath();g.moveTo(x,y);g.lineTo(tx,ty);g.stroke();g.setLineDash([]);}
    g.fillStyle='#00d1b2';g.beginPath();g.arc(x,y,7,0,7);g.fill();
    g.strokeStyle='rgba(0,209,178,.5)';g.lineWidth=4;g.beginPath();g.arc(x,y,12,0,7);g.stroke();}}
-async function tickEnv(){try{const e=await(await fetch('/api/env')).json();fire=e.fire;risk=e.risk;
+async function tickEnv(){try{const e=await(await fetch('/api/env')).json();fire=e.fire;risk=e.risk;simT=(e.source==='ENV_SERVER'&&e.simulation_time_s!=null)?e.simulation_time_s:null;updateFog();
  $('nfire').textContent=fire.length;$('wind').textContent=(e.wind_speed==null?'-':e.wind_speed+' m/s '+e.spread)+(e.source==='ENV_SERVER'&&e.simulation_time_s!=null?' · 시뮬 '+Math.round(e.simulation_time_s/60)+'분':'');draw();}catch(e){}}
 let lastLL=null;
 async function tickState(){try{const s=await(await fetch('/api/state')).json();const p=s.position||{};
@@ -594,7 +729,7 @@ async function tickState(){try{const s=await(await fetch('/api/state')).json();c
      // 궤적: 위치가 유의미하게 바뀌면 점 추가
      const last=trail[trail.length-1];
      if(!last||Math.abs(last.col-g.col)+Math.abs(last.row-g.row)>=1){trail.push({col:g.col,row:g.row});if(trail.length>400)trail.shift();}
-     draw();}
+     updateFog();draw();}
    if(tgt&&tgt.lat!=null){$('dist').textContent=Math.round(hav(p.lat,p.lon,tgt.lat,tgt.lon))+' m';}
  }}catch(e){}}
 async function tickUgv(){try{const col=+$('col').value,row=+$('row').value;
@@ -671,6 +806,8 @@ async function tickOrch(){try{const o=await(await fetch('/api/orch')).json();
  const b=$('mOrch'); b.title=o.url;
  if(!o.connected){b.textContent='총괄 서버: 연결 안 됨';b.className='badge bad';$('mEnv').textContent='환경: -';$('orchMeta').textContent='-';$('orchTasks').innerHTML='';return;}
  b.textContent='총괄 서버: 연결됨';b.className='badge';
+ knownFires=o.fire_cells||[];
+ if(o.run_id&&o.run_id!==fogRun){if(fogRun)fogReset();fogRun=o.run_id;}
  const e=$('mEnv'); e.textContent=o.env_shared?'환경: 팀 공유':'환경: 시험용 ('+(o.env_class||'-')+')'; e.className='badge'+(o.env_shared?'':' on');
  $('orchMeta').textContent='판단 모드 '+(O_MODE[o.mode]||o.mode||'-')+' · 아는 불 '+o.fires+'곳 · 임무 '+o.tasks.length+'건'+(o.groups?' · 사람 선택 묶음 '+o.groups:'')+(o.llm_ready?'':' · AI 미사용(규칙)');
  $('orchTasks').innerHTML=o.tasks.length?o.tasks.map((t,i)=>{const p=O_PURPOSE[t.purpose_status]||[t.purpose_status||'-','wait'];
@@ -697,4 +834,9 @@ $('fly').onclick=async()=>{const col=+$('col').value,row=+$('row').value;
  else{$('log').textContent='⛔ '+(r.verdict||'')+' '+(r.reason||'');}
  draw();};
 $('clr').onclick=()=>{trail=[];draw();};
+$('fog').onclick=()=>{fogOn=!fogOn;$('fog').textContent=fogOn?'🌫 안개 켜짐':'🌫 안개 꺼짐';draw();};
+async function tickUgvLive(){try{ugvLive=await(await fetch('/api/ugv_live')).json();}catch(e){ugvLive=null;}}
+setInterval(tickUgvLive,1000);setTimeout(tickUgvLive,700);
+setInterval(()=>{if(fogOn){updateFog();draw();}},500);
+setInterval(()=>{if(fogOn){paintFog(performance.now());draw();}else if(finds.some(f=>performance.now()-f.t<PING_MS))draw();},200);   // 잔상·발견 링 애니메이션
 </script><script src="/static/auto.js"></script></body></html>"""
