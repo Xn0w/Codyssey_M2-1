@@ -169,12 +169,16 @@ GUI 는 배속을 깎으므로 측정할 때는 끈다 (`GUI=1` 은 눈으로 �
 
 ## 장비·작업 — 진압(소방차), 짐(UGV), 경광등 (`ugv/equipment.py`)
 
+> **진압(방수)은 봉인 상태다 (2026-10-08 발표 범위 결정).** 이번 발표는 진화를 다루지 않고, 소방차는 이동·환경 센서 자원으로만 쓴다.
+> 기본값으로 도착 즉시 진압이 일어나지 않고 `POST /suppress {"action":"start"}` 는 409 를 돌려준다. 물은 항상 가득 찬 상태로 남는다.
+> 코드는 남겨 두었으며 `UGV_SUPPRESSION=1` 로 켜면 아래 표의 진압 동작이 그대로 돌아온다.
+
 task 는 지금 계약 그대로 **도착하면 COMPLETED** 다. 그 뒤 작업 동안 차는 `state: "WORKING"` 이라 READY 가 아니고,
 총괄은 READY 를 확인한 뒤에만 반납하므로(`orchestrator/engine.py _maybe_release`) 점유가 유지된다. 총괄 코드는 그대로.
 
 | 무엇 | 언제 | 끝 | 보이는 곳 |
 |---|---|---|---|
-| 진압 SUPPRESSING (소방차) | 도착하면 자동 (`UGV_AUTO_SUPPRESS=1`, 거점 노드 제외) | 물이 바닥(EMPTY) · `POST /ugv/{id}/suppress {"action":"stop"}`(STOPPED) · `/stop` | task `work`, 상태 `equipment.water_l` |
+| 진압 SUPPRESSING (소방차, **봉인**) | `UGV_SUPPRESSION=1` 일 때만 — 도착하면 자동 (`UGV_AUTO_SUPPRESS=1`, 거점 노드 제외) | 물이 바닥(EMPTY) · `POST /ugv/{id}/suppress {"action":"stop"}`(STOPPED) · `/stop` | task `work`, 상태 `equipment.water_l` |
 | 짐 싣기 LOADING (UGV) | execute 에 `cargo` — `via_node` 가 있으면 거기 가서, 없으면 출발 전 | `UGV_LOAD_S` (60 시뮬레이션 초) | task `progress.phase=LOADING`, `stage` |
 | 짐 내리기 UNLOADING | 짐을 싣고 목적지 도착 | `UGV_UNLOAD_S` (60초) | task `work`, `cargo.unloaded_sim_s` |
 | 물 채우기 | 거점(home_node) 도착 | 즉시 | 보고 `UGV_REFILLED` |

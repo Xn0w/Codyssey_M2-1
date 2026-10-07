@@ -733,7 +733,7 @@ async def stop(resource_id: str):
 
 @app.post("/ugv/{resource_id}/suppress")
 async def suppress(resource_id: str, req: SuppressRequest):
-    """진압 제어 (소방차). 도착하면 자동으로 시작하므로(UGV_AUTO_SUPPRESS) 보통은 stop 만 쓴다.
+    """진압 제어 (소방차). [봉인: UGV_SUPPRESSION=1 일 때만 start 가능] 켜져 있으면 도착 즉시 시작하므로 보통은 stop 만 쓴다.
       stop  : 진압을 멈추고 READY (기록 status=STOPPED). 차는 그 자리에 선다
       start : 지금 자리에서 진압 시작 — READY 이고 수행 중 task 가 없고 물이 남아 있을 때만
     """
@@ -744,6 +744,8 @@ async def suppress(resource_id: str, req: SuppressRequest):
             raise HTTPException(409, f"{resource_id} 는 진압 중이 아니다 (activity={None if eq is None else eq.activity})")
         await _cancel_work(agent)
         return {"resource_id": resource_id, "state": agent.resource.state, "equipment": eq.to_dict()}
+    if not config.SUPPRESSION_ENABLED:
+        raise HTTPException(409, "진압 불가: 진압 기능 봉인 (발표 범위 외, UGV_SUPPRESSION=1 이면 사용)")
     why = "장비 없음" if eq is None else eq.can_suppress()
     if why:
         raise HTTPException(409, f"진압 불가: {why}")

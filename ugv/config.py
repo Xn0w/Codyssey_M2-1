@@ -23,7 +23,7 @@ for _r in RESOURCES:
     _r["px4_port"] = 14540 + _r["px4_instance"]
 
 # 장비 (ugv/equipment.py) — 잠정값
-#   소방차: 물탱크·방수량. 도착하면 자동으로 진압(SUPPRESSING) — 물이 바닥나거나 /suppress stop 까지.
+#   소방차: 물탱크·방수량. [봉인 — UGV_SUPPRESSION=1 일 때만] 도착하면 자동으로 진압(SUPPRESSING) — 물이 바닥나거나 /suppress stop 까지.
 #     3,000 L 탱크 + 분당 1,800 L(30 L/s) 방수는 중형 펌프차 수준 → 100 초. 거점 노드에 도착하면 다시 채운다.
 #   UGV: 적재 한도. execute 의 cargo(이름, kg) + via_node(싣는 곳) → 싣기(LOADING)·내리기(UNLOADING) 자동.
 #   경광등(siren)은 소방차가 출동·진압 중일 때 켠다 (Gazebo 표시: ugv/gz_fx.py).
@@ -33,7 +33,11 @@ EQUIPMENT = {
 }
 LOAD_S = float(os.getenv("UGV_LOAD_S", "60"))       # 짐 싣기 (시뮬레이션 초)
 UNLOAD_S = float(os.getenv("UGV_UNLOAD_S", "60"))   # 짐 내리기
-AUTO_SUPPRESS = os.getenv("UGV_AUTO_SUPPRESS", "1") != "0"   # 소방차 도착 즉시 진압 시작
+# 진압(방수) 봉인 (2026-10-08 발표 범위 결정): 이번 발표는 진화를 다루지 않는다 — 소방차는 이동·환경 센서 자원으로만 쓴다.
+# 코드는 남겨 두고 기본으로 끈다. 켜면(UGV_SUPPRESSION=1) 예전처럼 도착 즉시 진압·/suppress start 가 동작한다.
+# 환경에 진화 효과(ENV-07)가 없으므로 켜도 물만 줄 뿐 화재는 바뀌지 않는다.
+SUPPRESSION_ENABLED = os.getenv("UGV_SUPPRESSION", "0") == "1"
+AUTO_SUPPRESS = SUPPRESSION_ENABLED and os.getenv("UGV_AUTO_SUPPRESS", "1") != "0"   # 소방차 도착 즉시 진압 시작
 
 # PX4 연결
 # PX4 SITL 은 MAVLink 를 자기 호스트의 127.0.0.1 로만 보낸다. Gazebo/PX4 가 원격(WSL)이면
