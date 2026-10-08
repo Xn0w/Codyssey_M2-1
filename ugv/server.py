@@ -121,7 +121,8 @@ async def _refresh_loop() -> None:
 async def lifespan(app: FastAPI):
     global fleet, roads, clock, scenario, reporter, history
     clock = SimClock(config.TIME_SCALE, config.SECONDS_PER_ENV_STEP)
-    history = History(_STATE_DIR, clock, enabled=os.getenv("UGV_HISTORY", "1") != "0",
+    history = History(os.getenv("UGV_HISTORY_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".state", "history")),
+                      clock, enabled=os.getenv("UGV_HISTORY", "1") != "0",
                       keep=int(os.getenv("UGV_HISTORY_KEEP", "30")))
     reporter = Reporter(config.REPORT_URL, clock)
     await reporter.start()
@@ -592,7 +593,8 @@ async def _run_task(task_id: str, agent: GroundResourceAgent, stages: list, eta_
             dlog.sample(t.get("progress") or {}, force=True)
             t["timing"] = dlog.close(eta_sec)
         _save()
-        _task_of[rid] = None
+        if _task_of.get(rid) == task_id:      # 정지 직후 새 임무가 들어왔으면 그 연결은 지우지 않는다
+            _task_of[rid] = None
         _watchers.pop(task_id, None)
 
 
@@ -750,7 +752,8 @@ async def execute(resource_id: str, req: ExecuteRequest):
                            target_node=d["target_node"], eta_sec=d["eta_sec"])
     STORE.register(req.task_id, body, {"task_id": req.task_id, "resource_id": resource_id, "status": "STARTED",
                                        "target_node": node_id, "progress": None, "observation": None,
-                                       "cargo": cargo},
+                                       "cargo": cargo, "started_sim_s": round(clock.now(), 1),
+                                       "eta_sec": d["eta_sec"]},
                    resp.model_dump())
     _task_of[resource_id] = req.task_id
     if stages[0][0] == "DRIVE":
@@ -1022,8 +1025,204 @@ async def view_dispatch(req: ViewDispatch):
                        resource_type=req.resource_type, request_id=rid, orch_http=status,
                        purpose_status=task.get("purpose_status"), hold_reason=task.get("hold_reason"),
                        dispatch=disp.get("status") if isinstance(disp, dict) else disp,
+                       attempt_id=disp.get("attempt_id") if isinstance(disp, dict) else None,
+                       assigned=disp.get("resource_id") if isinstance(disp, dict) else None,
                        error=(out or {}).get("error") or (None if status in (200, 202) else (out or {}).get("detail")))
     return {"orch_http": status, "request": body, "response": out}
+
+
+@app.get("/graph/edges")
+async def graph_edges():
+    """도로(간선) 전체 — 양 끝 노드·이름·길이. 상황판 그래프 보기가 교차로 사이를 한 간선으로 묶는 데 쓴다."""
+    return [{"road_id": rid, "a": r.node_a, "b": r.node_b, "name": r.name or "", "distance_m": round(r.distance_m)}
+            for rid, r in fleet.graph._roads.items()]
+
+
+# --- 상황판: 차량 상태 요약 · 직접 명령 · 지형 ---------------------------------
+
+_orch_cache: dict = {"t": 0.0, "tasks": {}, "attempt_task": {}}
+
+
+async def _orch_purposes(attempt_ids) -> dict:
+    """총괄 실행시도 ID → 임무 요약 (작전 이유 표시용). 시도→임무는 /attempts/{id} 로 한 번만 묻고 기억,
+    임무 목록(/tasks)은 3초 캐시. 총괄이 없거나 느리면 빈 값 (상황판은 그대로 뜬다)."""
+    import httpx
+    ids = [a for a in attempt_ids if a and a.startswith("ATT-")]
+    if not ids:
+        return {}
+    base = config.ORCH_URL.rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=1.5) as cx:
+            for a in ids:
+                if a not in _orch_cache["attempt_task"]:
+                    r = await cx.get(f"{base}/attempts/{a}")
+                    if r.status_code == 200:
+                        _orch_cache["attempt_task"][a] = r.json().get("task_id")
+            now = time.monotonic()
+            if now - _orch_cache["t"] > 3.0:
+                rows = (await cx.get(f"{base}/tasks")).json()
+                _orch_cache["tasks"] = {t.get("task_id"): t for t in (rows if isinstance(rows, list) else [])}
+                _orch_cache["t"] = now
+    except Exception:          # noqa: BLE001 — 총괄이 없어도 상황판은 뜬다
+        pass
+    out = {}
+    for a in ids:
+        tid = _orch_cache["attempt_task"].get(a)
+        t = _orch_cache["tasks"].get(tid) if tid else None
+        if tid:
+            out[a] = {"orch_task_id": tid, "kind": (t or {}).get("kind"), "incident_id": (t or {}).get("incident_id"),
+                      "request": (t or {}).get("request_key"), "purpose_status": (t or {}).get("purpose_status")}
+    return out
+
+
+def _purpose_text(task_id: str | None, info: dict | None) -> str | None:
+    if not task_id:
+        return None
+    if task_id.startswith("VIEW-CMD-"):
+        return "상황판 직접 명령 (운영자)"
+    if not info:
+        return "총괄 임무" if task_id.startswith("ATT-") else None
+    req = info.get("request") or ""
+    src = ("상황판 출동 요청" if req.startswith("UGV-VIEW") else "자동 초기 정찰" if req.startswith("AUTO-RECON")
+           else "야간 순찰" if "PATROL" in req else "관제판 출동" if req.startswith("WEB-") else "총괄 임무")
+    return f"{src} · {info.get('kind') or ''} · 총괄 {info.get('orch_task_id')}"
+
+
+@app.get("/view/vehicles")
+async def view_vehicles():
+    """상황판 차량 목록: 상태 + 지금 임무(목적지·단계·남은 시간·작전 이유) + 지금 자리(노드 또는 도로 A→B)."""
+    purposes = await _orch_purposes([_task_of.get(rid) for rid in fleet.agents])
+    out = []
+    for rid, agent in fleet.agents.items():
+        agent.refresh()
+        r = agent.resource
+        tid = _task_of.get(rid)
+        t = _tasks.get(tid) if tid else None
+        place = {"at_node": r.current_node}
+        task = None
+        if t is not None:
+            prog = t.get("progress") or {}
+            if agent.plan is not None and r.state == "RUNNING":
+                cur = next((l for l in _route_legs(agent) if l["state"] == "CURRENT"), None)
+                if cur:
+                    place = {"road_id": cur["road_id"], "road_name": cur["name"], "from": cur["from"], "to": cur["to"]}
+            tgt = t.get("target_node") or (agent.plan.target_node if agent.plan else None)
+            started = t.get("started_sim_s")
+            task = {"task_id": tid, "status": t.get("status"), "phase": prog.get("phase"),
+                    "target_node": tgt, "target_name": _node_name(tgt),
+                    "eta_remaining_s": prog.get("eta_remaining_sec"), "remaining_m": prog.get("remaining_m"),
+                    "started_sim_s": started, "reroutes": len(t.get("reroutes") or []),
+                    "purpose": _purpose_text(tid, purposes.get(tid))}
+        out.append({"resource_id": rid, "resource_type": r.resource_type, "base": r.base, "state": r.state,
+                    "position": {"lat": r.lat, "lon": r.lon}, "current_node": r.current_node,
+                    "current_node_name": _node_name(r.current_node), "place": place, "task": task,
+                    "fault": agent.fault, "sim_time_s": round(clock.now(), 1)})
+    return out
+
+
+def _node_name(nid: str | None) -> str | None:
+    if not nid:
+        return None
+    try:
+        return fleet.graph.node(nid).name or None
+    except KeyError:
+        return None
+
+
+class ViewCommand(BaseModel):
+    resource_id: str
+    node_id: str
+    replace: bool = False      # 임무 중인 차를 세우고 새 목적지로 보낼지 (상황판이 먼저 묻는다)
+
+
+@app.post("/view/command")
+async def view_command(req: ViewCommand):
+    """상황판에서 차를 골라 노드를 누른 경우 — 그 차에 직접 명령한다 (운영자 명령, 총괄 Safety 를 거치지 않음).
+    임무 중이면 replace=true 일 때만: 세우고(stop) → 평가 → 출발. 평가는 차가 서 있어야 된다 (주행 중이면 BUSY).
+    총괄이 맡긴 임무(ATT-*)를 교체하면 그 임무는 FAILED(OPERATOR_OVERRIDE) 로 닫는다 — 총괄은 실패로 보고
+    다른 자원에 인계한다 (CANCELLED 로 두면 총괄 계약에 그 상태 처리가 없어 점유가 풀리지 않는다)."""
+    import uuid
+    agent = _agent(req.resource_id)
+    try:
+        node = fleet.graph.node(req.node_id)
+    except KeyError:
+        raise HTTPException(404, f"도로 노드 {req.node_id} 없음")
+    old = _task_of.get(req.resource_id)
+    busy = old is not None and (_tasks.get(old) or {}).get("status") in ("STARTED", "IN_PROGRESS")
+    if busy and not req.replace:
+        raise HTTPException(409, {"reason": "BUSY", "task_id": old, "hint": "replace=true 로 다시 보내면 세우고 바꾼다"})
+    stopped = None
+    if busy or agent.resource.state == "UNAVAILABLE":
+        stopped = await stop(req.resource_id)
+        if old and old.startswith("ATT-") and old in _tasks:
+            _tasks[old].update(status="FAILED", error="OPERATOR_OVERRIDE: 상황판 직접 명령으로 교체",
+                               progress={**(_tasks[old].get("progress") or {}), "phase": "FAILED"})
+            _save()
+            _report("UGV_TASK_FAILED", agent, old, reason="OPERATOR_OVERRIDE", error="상황판 직접 명령으로 교체")
+    tid, did = f"VIEW-CMD-{uuid.uuid4().hex[:8]}", f"VIEW-{uuid.uuid4().hex[:8]}"
+    ev = await evaluate(req.resource_id, EvaluateRequest(task_id=tid, decision_id=did, target_node=node.node_id))
+    result = {"resource_id": req.resource_id, "node_id": node.node_id, "replaced_task": old if busy else None,
+              "stopped": stopped is not None, "task_id": tid, "verdict": ev.verdict, "reason": ev.reason,
+              "detail": ev.detail, "eta_sec": ev.eta_sec}
+    if ev.verdict == "ACCEPT":
+        ex = await execute(req.resource_id, ExecuteRequest(task_id=tid, decision_id=did, target_node=node.node_id))
+        result["status"] = ex.status
+    if history is not None:
+        history.record("VIEW_COMMAND", req.resource_id, tid, node_id=node.node_id,
+                       nodes=[{"node_id": node.node_id, "lat": node.lat, "lon": node.lon}],
+                       replaced_task=result["replaced_task"], verdict=ev.verdict, reason=ev.reason, eta_sec=ev.eta_sec)
+    return result
+
+
+_terrain_cache: dict | None = None
+
+
+@app.get("/view/terrain")
+async def view_terrain():
+    """지도 보기 배경: 환경 격자(90 m)의 고도·연료를 위경도 정렬 격자로 다시 뽑아 준다 (LIVE 화면과 같은 자료,
+    web/static/inje2019/scenario.json). 색칠·음영은 브라우저가 한다. 격자는 EPSG:5186 이라 위경도와 약간 돌아가
+    있어 네 모서리 좌표로 역변환해 표본을 뽑는다 (모서리 오차 수 m)."""
+    global _terrain_cache
+    if _terrain_cache is None:
+        import base64
+        import json
+        import numpy as np
+        src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                           "web", "static", "inje2019", "scenario.json")
+        try:
+            d = json.load(open(src, encoding="utf-8"))
+        except OSError:
+            raise HTTPException(404, "지형 자료 없음 (web/static/inje2019/scenario.json)")
+        C, R = d["grid"]["cols"], d["grid"]["rows"]
+        elev = np.frombuffer(base64.b64decode(d["elev_dm_u16"]), dtype=np.uint16).reshape(R, C)
+        fuel = np.frombuffer(base64.b64decode(d["fuel_u8"]), dtype=np.uint8).reshape(R, C)
+        try:
+            import gz_bridge as gb
+            corners = [gb.grid_cell_to_latlon(c, r) for c, r in ((-0.5, -0.5), (C - 0.5, -0.5), (-0.5, R - 0.5))]
+        except Exception:      # noqa: BLE001 — 좌표 변환 라이브러리가 없으면 미리 계산해 둔 값 (2026-10-08)
+            corners = [(38.10975038713186, 128.11850550827705), (38.10631696531064, 128.43449186224782),
+                       (37.91842988279845, 128.11560158129583)]
+        (la0, lo0), (la1, lo1), (la2, lo2) = corners
+        # (col,row) → (lat,lon) 아핀: P = P0 + u·(P1-P0) + v·(P2-P0), u = (col+0.5)/C, v = (row+0.5)/R
+        A = np.array([[la1 - la0, la2 - la0], [lo1 - lo0, lo2 - lo0]])
+        Ainv = np.linalg.inv(A)
+        lats = [la0, la1, la2, la1 + la2 - la0]
+        lons = [lo0, lo1, lo2, lo1 + lo2 - lo0]
+        s_, n_, w_, e_ = min(lats), max(lats), min(lons), max(lons)
+        H, W = R * 2, C * 2
+        la = np.linspace(n_, s_, H)[:, None] * np.ones((1, W))
+        lo = np.ones((H, 1)) * np.linspace(w_, e_, W)[None, :]
+        uv = np.einsum("ij,jhw->ihw", Ainv, np.stack([la - la0, lo - lo0]))
+        col = np.floor(uv[0] * C).astype(int)
+        row = np.floor(uv[1] * R).astype(int)
+        inside = (col >= 0) & (col < C) & (row >= 0) & (row < R)
+        cc, rr = np.clip(col, 0, C - 1), np.clip(row, 0, R - 1)
+        e_out = np.where(inside, elev[rr, cc], 0).astype(np.uint16)
+        f_out = np.where(inside, fuel[rr, cc], 255).astype(np.uint8)     # 255 = 격자 밖 (투명)
+        _terrain_cache = {"w": W, "h": H, "bounds": [[s_, w_], [n_, e_]], "cell_m": d["grid"]["cell_m"],
+                          "elev_dm_u16": base64.b64encode(e_out.tobytes()).decode(),
+                          "fuel_u8": base64.b64encode(f_out.tobytes()).decode()}
+    return _terrain_cache
 
 
 @app.get("/graph/bases")

@@ -1,6 +1,8 @@
 # ugv/history.py — UGV 실행 기록 (도로 상황판의 실시간·과거 조회용)
 #
-# 서버 한 번 기동 = 실행(run) 하나. {UGV_STATE_DIR}/history/<run_id>.jsonl 에 한 줄씩 덧붙인다.
+# 서버 한 번 기동 = 실행(run) 하나. <기록 폴더>/<run_id>.jsonl 에 한 줄씩 덧붙인다.
+# 기록 폴더 = UGV_HISTORY_DIR (기본 ugv/.state/history). UGV_STATE_DIR 과 따로 둔다 — tools/run_twin.sh 는
+# 실행마다 새 UGV_STATE_DIR 을 주므로, 거기에 두면 지난 실행이 상황판 과거 목록에 안 보인다.
 #   {"seq", "wall", "sim_time_s", "type", "resource_id", "task_id", "data"}
 # 무엇을 적나
 #   - 총괄 보고와 같은 이벤트 (UGV_EVALUATED·UGV_TASK_STARTED·UGV_PROGRESS·UGV_REROUTED·UGV_ARRIVED·…)
@@ -20,8 +22,8 @@ log = logging.getLogger(__name__)
 
 
 class History:
-    def __init__(self, state_dir: str, clock=None, enabled: bool = True, keep: int = 30):
-        self.dir = os.path.join(state_dir, "history")
+    def __init__(self, history_dir: str, clock=None, enabled: bool = True, keep: int = 30):
+        self.dir = history_dir
         self.clock = clock
         self.enabled = enabled
         self.keep = keep
