@@ -78,13 +78,12 @@ h2{font-size:12px;color:var(--dim);font-weight:600;margin:14px 14px 6px;letter-s
 .ev .d{color:#aebbc5;font-size:12px;margin-top:2px}
 .ev.future{opacity:.35}
 .grp{border-bottom:1px solid #26313a}
-.grp > .gh{padding:8px 12px;cursor:pointer;display:grid;grid-template-columns:14px 1fr;gap:6px}
+.grp > .gh{padding:8px 12px;cursor:pointer}
 .grp > .gh:hover{background:#1b252d}
-.grp > .gh .ar{color:var(--dim);transition:transform .15s}
-.grp.open > .gh .ar{transform:rotate(90deg)}
+.grp .ar{color:var(--dim);width:12px;flex:0 0 12px;font-size:12px}
 .grp .gt{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .grp .gt b{font-weight:700}
-.grp .gm{color:#aebbc5;font-size:12px;margin-top:2px}
+.grp .gm{color:#aebbc5;font-size:12px;margin-top:2px;padding-left:20px}
 .grp .gm span{margin-right:10px;white-space:nowrap}
 .grp .body{display:none;background:#121a20;border-top:1px solid #1f282f}
 .grp.open .body{display:block}
@@ -151,7 +150,7 @@ footer.show{display:flex}
   </header>
 
   <aside class="left">
-    <h2>차량 <span style="font-weight:400">— 누르면 선택 · 선택한 채 노드를 누르면 그 차에 명령</span></h2>
+    <h2 style="display:flex;align-items:center;gap:8px">차량 <span style="font-weight:400;flex:1">— 선택한 채 노드를 누르면 그 차에 명령</span><button id="unsel" title="선택 해제 (Esc)" style="font-size:11px;padding:2px 8px">선택 안 함</button></h2>
     <div id="vehicles"></div>
     <h2>경로 · 구간 소요시간</h2>
     <div id="legSum" class="sum"></div>
@@ -390,13 +389,13 @@ function buildRoadLayers(){
   if (S.view === "map"){
     for (const [id, r] of Object.entries(roadInfo)){
       if (S.terrain) casingLines[id] = L.polyline(r.geometry, {color: css("--casing"), weight: 4.6, opacity: .85, renderer, interactive: false}).addTo(layers.casing);
-      roadLines[id] = L.polyline(r.geometry, {...styleFor(false, 1, false), renderer})
+      roadLines[id] = L.polyline(r.geometry, {...styleFor(false, 1, false), renderer, bubblingMouseEvents: false})
         .bindTooltip(() => roadTip(id, curRoadState()), {className: "rt", sticky: true}).addTo(layers.roads);
     }
   } else {
     for (const c of CHAINS){
       const a = NODE[c.a], b = NODE[c.b]; if (!a || !b) continue;
-      L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {...styleFor(false, 1, true), renderer, chain: c.id})
+      L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {...styleFor(false, 1, true), renderer, chain: c.id, bubblingMouseEvents: false})
         .bindTooltip(() => chainTip(c, curRoadState()), {className: "rt", sticky: true}).addTo(layers.gedges);
     }
   }
@@ -410,7 +409,7 @@ function drawNodes(){
   if (S.view === "graph"){
     for (const nid of JUNCTION){
       const n = NODE[nid]; if (!n) continue;
-      L.circleMarker([n.lat, n.lon], {radius: z >= 13 ? 9 : 7, color: "#0b1013", weight: 2, fillColor: css("--node"), fillOpacity: 1, renderer})
+      L.circleMarker([n.lat, n.lon], {radius: z >= 13 ? 9 : 7, color: "#0b1013", weight: 2, fillColor: css("--node"), fillOpacity: 1, renderer, bubblingMouseEvents: false})
         .bindTooltip(`${esc(n.name || "노드")} ${esc(nid)} · 도로 ${n.degree}개`, {className: "rt"})
         .on("click", ev => openNode(n, ev.latlng)).addTo(layers.gnodes);
     }
@@ -420,7 +419,7 @@ function drawNodes(){
     const junction = JUNCTION.has(n.node_id);
     if (!junction && z < 14) continue;            // 길이 휘는 점은 확대했을 때만
     L.circleMarker([n.lat, n.lon], {radius: junction ? (z >= 14 ? 6 : 4.5) : 3, color: "#0b1013", weight: 1.5,
-      fillColor: junction ? css("--node") : "#e8eef2", fillOpacity: 1, renderer})
+      fillColor: junction ? css("--node") : "#e8eef2", fillOpacity: 1, renderer, bubblingMouseEvents: false})
       .on("click", ev => openNode(n, ev.latlng)).addTo(layers.nodes);
   }
 }
@@ -444,8 +443,9 @@ document.querySelectorAll("#viewSeg button").forEach(b => b.onclick = () => {
 });
 
 // 차량: 같은 자리에 겹치면 둘레로 벌려 둘 다 보이게
+const vMarkers = {}, vLinks = L.layerGroup().addTo(map);
 function drawVehicles(veh){
-  layers.veh.clearLayers();
+  vLinks.clearLayers();
   const vs = Object.values(veh).filter(v => v.position);
   const pts = vs.map(v => map.latLngToLayerPoint([v.position.lat, v.position.lon]));
   const groups = [];
@@ -455,18 +455,29 @@ function drawVehicles(veh){
       const v = vs[i]; let p = pts[i];
       if (g.length > 1){ const a = -Math.PI / 2 + 2 * Math.PI * k / g.length; p = L.point(pts[g[0]].x + 20 * Math.cos(a), pts[g[0]].y + 20 * Math.sin(a)); }
       const ll = map.layerPointToLatLng(p), sel = S.sel === v.resource_id, dim = S.sel && !sel;
-      const icon = L.divIcon({className: `vmark ${sel ? "sel" : ""} ${dim ? "dim" : ""}`, iconSize: [0, 0],
-        html: `<div class="vbox">${vehicleSvg(v.resource_type, sel ? 40 : 34)}<div class="vlbl">${esc(v.resource_id)}</div></div>`});
-      L.marker(ll, {icon, zIndexOffset: sel ? 1000 : 0, keyboard: false}).on("click", () => select(v.resource_id)).addTo(layers.veh);
-      if (g.length > 1) L.polyline([[v.position.lat, v.position.lon], ll], {color: "#fff", weight: 1, opacity: .5, renderer, interactive: false}).addTo(layers.veh);
+      const cls = `vmark ${sel ? "sel" : ""} ${dim ? "dim" : ""}`, key = `${cls}|${v.resource_type}`;
+      let m = vMarkers[v.resource_id];
+      if (!m){
+        m = vMarkers[v.resource_id] = L.marker(ll, {keyboard: false, bubblingMouseEvents: false})
+          .on("click", ev => { L.DomEvent.stop(ev); select(v.resource_id); }).addTo(layers.veh);
+      }
+      m.setLatLng(ll);
+      if (m._key !== key){
+        m._key = key;
+        m.setIcon(L.divIcon({className: cls, iconSize: [0, 0],
+          html: `<div class="vbox">${vehicleSvg(v.resource_type, sel ? 40 : 34)}<div class="vlbl">${esc(v.resource_id)}</div></div>`}));
+        m.setZIndexOffset(sel ? 1000 : 0);
+      }
+      if (g.length > 1) L.polyline([[v.position.lat, v.position.lon], ll], {color: "#fff", weight: 1, opacity: .5, renderer, interactive: false}).addTo(vLinks);
     });
   }
+  for (const rid of Object.keys(vMarkers)) if (!veh[rid]?.position){ layers.veh.removeLayer(vMarkers[rid]); delete vMarkers[rid]; }
 }
 
 function drawBases(){
   layers.bases.clearLayers();
   for (const b of S.bases){
-    L.circleMarker([b.lat, b.lon], {radius: S.view === "graph" ? 12 : 8, color: "#e8eef2", weight: 2.5, fillColor: "#0b1013", fillOpacity: 1, renderer})
+    L.circleMarker([b.lat, b.lon], {radius: S.view === "graph" ? 12 : 8, color: "#e8eef2", weight: 2.5, fillColor: "#0b1013", fillOpacity: 1, renderer, bubblingMouseEvents: false})
       .bindTooltip(`${esc(b.name)}`, {permanent: true, direction: "left", offset: [-10, 0], className: "blab"})
       .on("click", ev => openNode(NODE[b.node_id] || {...b, degree: "?"}, ev.latlng)).addTo(layers.bases);
   }
@@ -769,8 +780,8 @@ function drawLog(t){
     const members = x.events.filter(e => e.type !== "UGV_PROGRESS" || $("#fProg").checked);
     const etaTxt = s.eta0 != null ? `ETA ${durS(s.eta0)}${s.etaChanges.length ? " → " + s.etaChanges.map(durS).join(" → ") : ""}` : "";
     return `<div class="grp ${open ? "open" : ""} ${fut ? "future" : ""}" data-key="${esc(x.key)}">
-      <div class="gh"><span class="ar">▶</span><div>
-        <div class="gt"><span class="t">${hms(x.t0)}</span><b>${esc(s.rid || "?")}</b><span>→ ${s.target ? nodeLabel(s.target) : "?"}</span><span class="badge ${s.cls}">${esc(s.status)}</span></div>
+      <div class="gh"><div>
+        <div class="gt"><span class="ar">${open ? "▾" : "▸"}</span><span class="t">${hms(x.t0)}</span><b>${esc(s.rid || "?")}</b><span>→ ${s.target ? nodeLabel(s.target) : "?"}</span><span class="badge ${s.cls}">${esc(s.status)}</span></div>
         <div class="gm"><span>${esc(x.key)}</span><span>${esc(s.origin)}</span>${etaTxt ? `<span>${etaTxt}</span>` : ""}${s.t0 != null ? `<span class="el" data-t0="${s.t0}" data-t1="${s.done ? s.t1 : ""}">경과 ${durS(s.elapsed)}</span>` : ""}${s.reroutes ? `<span style="color:var(--warn)">변경: 재탐색 ${s.reroutes}회</span>` : ""}</div>
       </div></div>
       <div class="body">${open ? members.map(evRow).join("") : ""}</div></div>`;
@@ -884,6 +895,10 @@ async function dispatchTo(n, type, el){
 }
 
 // ---------------------------------------------------------------- 상호작용
+function unselect(){ if (!S.sel) return; S.sel = null; S.live.route = null; S.legFollow = null; render(); }
+$("#unsel").onclick = unselect;
+document.addEventListener("keydown", ev => { if (ev.key === "Escape"){ map.closePopup(); unselect(); } });
+map.on("click", () => unselect());          // 지도 빈 곳 (노드·차량·도로 클릭은 여기 오지 않게 막는다)
 function select(id){
   S.sel = S.sel === id ? null : id;
   S.live.route = null; S.legFollow = null;
