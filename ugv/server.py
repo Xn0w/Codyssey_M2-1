@@ -23,6 +23,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from . import config
 from .agent import GroundResourceAgent
@@ -969,6 +970,60 @@ def _bases() -> list[dict]:
             n = fleet.graph.node(nid)
             out[nid] = {"node_id": nid, "lat": n.lat, "lon": n.lon, "name": n.name or nid}
     return list(out.values())
+
+
+@app.get("/graph/nodes")
+async def graph_nodes():
+    """도로 노드 전체 (상황판 표시용). degree = 닿은 도로 수 (2 가 아니면 교차로·끝점)."""
+    g = fleet.graph
+    return [{"node_id": nid, "lat": n.lat, "lon": n.lon, "name": n.name or "", "degree": len(g._adj.get(nid, []))}
+            for nid, n in g._nodes.items()]
+
+
+class ViewDispatch(BaseModel):
+    node_id: str
+    resource_type: str = "UGV"        # UGV / FIRE_ENGINE — 어느 차가 갈지는 총괄이 고른다
+
+
+@app.post("/view/dispatch")
+async def view_dispatch(req: ViewDispatch):
+    """상황판에서 노드를 눌러 출동 요청 → 총괄 POST /tasks 로 전달한다 (UGV 를 직접 움직이지 않는다).
+    임무 = 그 지점까지 이동 (sensor 없음 → 총괄은 도착으로 완료, 환경 반영 ACK 없음). 차 선택·Safety 는 총괄 몫.
+    다른 센서로 보내지 않는 이유 (2026-10-08 확인):
+      WEATHER     — 총괄은 목표 칸이 화재·위험 칸 목록에 있을 때만 측정을 '목표 달성'으로 쳐서,
+                    임의 도로 노드로는 도착·측정·재출동이 끝없이 되풀이된다.
+      ROAD_STATUS — 총괄 능력표에 소방차는 ROAD_STATUS 가 없어 후보에서 빠진다 (UGV 만 감).
+    브라우저가 총괄(:8200)을 직접 부르면 다른 출처(CORS)라 막히므로 이 서버가 대신 보낸다."""
+    import uuid
+    import httpx
+    if req.resource_type not in ("UGV", "FIRE_ENGINE"):
+        raise HTTPException(422, "resource_type 은 UGV 또는 FIRE_ENGINE")
+    try:
+        n = fleet.graph.node(req.node_id)
+    except KeyError:
+        raise HTTPException(404, f"도로 노드 {req.node_id} 없음")
+    rid = f"UGV-VIEW:{req.node_id}:{req.resource_type}:{uuid.uuid4().hex[:8]}"
+    body = {"request_id": rid, "incident_id": "INC-UGV-VIEW", "kind": "RECON",
+            "target": {"lat": n.lat, "lon": n.lon},
+            "requirements": {"resource_types": [req.resource_type], "sensor": None}}
+    url = f"{config.ORCH_URL.rstrip('/')}/tasks"
+    try:
+        async with httpx.AsyncClient(timeout=15) as cx:
+            r = await cx.post(url, json=body)
+        out = r.json()
+    except Exception as e:      # noqa: BLE001 — 총괄이 없으면 이유만 돌려준다
+        out, r = {"error": f"{type(e).__name__}: {e}"}, None
+    status = None if r is None else r.status_code
+    task = (out or {}).get("task") or {}
+    disp = (out or {}).get("dispatch") or {}
+    if history is not None:
+        history.record("VIEW_DISPATCH", None, task.get("task_id"), node_id=req.node_id,
+                       nodes=[{"node_id": n.node_id, "lat": n.lat, "lon": n.lon}],
+                       resource_type=req.resource_type, request_id=rid, orch_http=status,
+                       purpose_status=task.get("purpose_status"), hold_reason=task.get("hold_reason"),
+                       dispatch=disp.get("status") if isinstance(disp, dict) else disp,
+                       error=(out or {}).get("error") or (None if status in (200, 202) else (out or {}).get("detail")))
+    return {"orch_http": status, "request": body, "response": out}
 
 
 @app.get("/graph/bases")

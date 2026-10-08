@@ -25,7 +25,7 @@ def _port():
 def _start(state_dir, scenario=""):
     port = _port()
     env = {**os.environ, "UGV_DRIVER": "sim", "UGV_STATE_DIR": str(state_dir), "UGV_TIME_SCALE": "100",
-           "UGV_SCENARIO": scenario, "UGV_REPORT_URL": ""}
+           "UGV_SCENARIO": scenario, "UGV_REPORT_URL": "", "UGV_ORCH_URL": "http://127.0.0.1:9"}
     p = subprocess.Popen([sys.executable, "-m", "uvicorn", "ugv.server:app", "--port", str(port), "--log-level", "warning"],
                          cwd=str(ROOT), env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     url = f"http://127.0.0.1:{port}"
@@ -73,6 +73,13 @@ def test_history_route_legs_and_past_run(tmp_path):
         assert all(e["seq"] > last for e in more["events"])
 
         assert httpx.get(url + "/graph/bases").json()
+        nodes = httpx.get(url + "/graph/nodes").json()
+        assert len(nodes) > 100 and {"node_id", "lat", "lon", "degree"} <= set(nodes[0])
+        # 총괄이 없으면 출동 요청은 실패 이유만 돌려준다 (서버는 멀쩡해야 한다)
+        d = httpx.post(url + "/view/dispatch", json={"node_id": "B", "resource_type": "UGV"}, timeout=30).json()
+        assert d["orch_http"] is None and d["request"]["requirements"] == {"resource_types": ["UGV"], "sensor": None}
+        assert httpx.post(url + "/view/dispatch", json={"node_id": "B", "resource_type": "UAV"}).status_code == 422
+        assert httpx.post(url + "/view/dispatch", json={"node_id": "nope", "resource_type": "UGV"}).status_code == 404
         assert httpx.get(url + "/view").status_code == 200
         assert httpx.get(url + "/history/runs/..%2Fugv_tasks").status_code == 404
     finally:

@@ -12,7 +12,7 @@
 <style>
 :root{
   --bg:#0f1418; --panel:#161d23; --panel2:#1c252c; --line:#2a353e; --text:#d9e2e8; --dim:#8696a3;
-  --road:#4a5864; --block:#ff4d4f; --cong1:#f5b041; --cong2:#ff7a1a; --route:#3ea6ff; --done:#56708a;
+  --road:#6f8494;--node:#a9bccb; --block:#ff4d4f; --cong1:#f5b041; --cong2:#ff7a1a; --route:#3ea6ff; --done:#56708a;
   --hl:#ffe14d; --ugv:#2ed3a5; --fire:#ff6b6b; --ok:#2ed3a5; --warn:#f5b041; --bad:#ff4d4f; --ai:#b28dff;
 }
 *{box-sizing:border-box}
@@ -92,6 +92,10 @@ footer.show{display:flex}
 .lg{display:flex;gap:12px;align-items:center;color:var(--dim);font-size:12px}
 .lg i{display:inline-block;width:18px;height:4px;border-radius:2px;margin-right:4px;vertical-align:middle}
 .leaflet-container{background:#0b1013;font:inherit}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#10171c;color:var(--text);border:1px solid var(--line)}
+.np b{font-size:13px}.np .r{color:var(--dim);font-size:12px;margin:2px 0 8px}
+.np button{margin:0 6px 6px 0}.np .res{font-size:12px;color:#aebbc5;max-width:240px;white-space:normal}
+.np .res.bad{color:var(--bad)}.np .res.ok{color:var(--ok)}
 .vlab{background:transparent;border:0;box-shadow:none;color:#fff;font-weight:700;font-size:11px;text-shadow:0 0 3px #000,0 0 3px #000}
 .vlab:before{display:none}
 .leaflet-tooltip.rt{background:#10171c;color:var(--text);border:1px solid var(--line)}
@@ -107,7 +111,7 @@ footer.show{display:flex}
     <span class="pill" id="scen">시나리오 <b>-</b></span>
     <span class="pill sealed" id="agentpill" title="UGV 도로 AI 에이전트 — 봉인 기능">도로 AI <b>봉인</b></span>
     <span class="grow"></span>
-    <span class="lg"><span><i style="background:var(--road)"></i>도로</span><span><i style="background:var(--cong1)"></i>혼잡</span><span><i style="background:var(--block)"></i>차단</span><span><i style="background:var(--route)"></i>경로</span><span><i style="background:var(--hl)"></i>기록 강조</span></span>
+    <span class="lg"><span><i style="background:var(--road)"></i>도로</span><span><i style="background:var(--cong1)"></i>혼잡</span><span><i style="background:var(--block)"></i>차단</span><span><i style="background:var(--route)"></i>경로</span><span><i style="background:var(--node);width:8px;height:8px;border-radius:50%"></i>교차로(누르면 출동)</span><span><i style="background:var(--hl)"></i>기록 강조</span></span>
     <button id="tiles" title="지도 배경(OSM) 켜기/끄기">배경</button>
   </header>
 
@@ -171,14 +175,14 @@ $("#tiles").onclick = () => {
 };
 const roadLines = {};          // road_id → polyline
 const roadInfo = {};           // road_id → {name, geometry}
-const layers = {route: L.layerGroup().addTo(map), hl: L.layerGroup().addTo(map), nodes: L.layerGroup().addTo(map),
+const layers = {gnodes: L.layerGroup().addTo(map), route: L.layerGroup().addTo(map), hl: L.layerGroup().addTo(map), nodes: L.layerGroup().addTo(map),
                 bases: L.layerGroup().addTo(map), veh: L.layerGroup().addTo(map)};
 
 function roadStyle(id, rs){
   const blocked = rs.blockedSet.has(id), c = rs.congested[id] || 1;
   if (blocked) return {color: css("--block"), weight: 5, opacity: 1, dashArray: "6 5"};
   if (c > 1) return {color: c >= 2 ? css("--cong2") : css("--cong1"), weight: 2 + Math.min(4, c), opacity: .95, dashArray: null};
-  return {color: css("--road"), weight: 1.6, opacity: .9, dashArray: null};
+  return {color: css("--road"), weight: 2.2, opacity: .95, dashArray: null};
 }
 
 // ---------------------------------------------------------------- 상태
@@ -250,6 +254,55 @@ function drawVehicles(veh){
       .bindTooltip(v.resource_id, {permanent: true, direction: "right", offset: [8, 0], className: "vlab", opacity: dim ? .4 : 1})
       .on("click", () => select(v.resource_id)).addTo(layers.veh);
   }
+}
+
+// ---------------------------------------------------------------- 노드 · 출동 (총괄 경유)
+let NODES = [];
+function drawNodes(){
+  layers.gnodes.clearLayers();
+  const z = map.getZoom();
+  for (const n of NODES){
+    const junction = n.degree !== 2;
+    if (!junction && z < 14) continue;            // 길이 휘는 점은 확대했을 때만
+    L.circleMarker([n.lat, n.lon], {radius: junction ? 3.2 : 2, color: css("--node"), weight: 1,
+      fillColor: junction ? css("--node") : "#0b1013", fillOpacity: 1, renderer})
+      .on("click", ev => openNode(n, ev.latlng)).addTo(layers.gnodes);
+  }
+}
+map.on("zoomend", drawNodes);
+
+function openNode(n, at){
+  const el = document.createElement("div"); el.className = "np";
+  el.innerHTML = `<b>${esc(n.name || "노드")} ${esc(n.node_id)}</b><div class="r">닿은 도로 ${n.degree}개 · ${n.lat.toFixed(5)}, ${n.lon.toFixed(5)}</div>` +
+    (S.mode === "live"
+      ? `<button data-t="UGV">UGV 출동 요청</button><button data-t="FIRE_ENGINE">소방차 출동 요청</button>
+         <div class="res">총괄에 이 지점까지 이동 임무를 요청한다 (도착하면 완료). 어느 차가 갈지·승인은 총괄이 정한다.</div>`
+      : `<div class="res">과거 실행 재생 중에는 출동할 수 없다.</div>`);
+  el.querySelectorAll("button").forEach(b => b.onclick = () => dispatchTo(n, b.dataset.t, el));
+  L.popup({maxWidth: 280}).setLatLng(at).setContent(el).openOn(map);
+}
+
+async function dispatchTo(n, type, el){
+  const res = el.querySelector(".res");
+  el.querySelectorAll("button").forEach(b => b.disabled = true);
+  res.className = "res"; res.textContent = "총괄에 요청 중…";
+  try {
+    const r = await fetch(API + "/view/dispatch", {method: "POST", headers: {"content-type": "application/json"},
+      body: JSON.stringify({node_id: n.node_id, resource_type: type})});
+    const j = await r.json();
+    const o = j.response || {}, t = o.task || {}, dp = o.dispatch || {};
+    if (j.orch_http === 202 || j.orch_http === 200){
+      res.className = "res ok";
+      res.innerHTML = `접수됨 ${esc(t.task_id || "")} · ${esc(t.purpose_status || "")}` +
+        (t.hold_reason ? `<br>보류 사유: ${esc(t.hold_reason)}` : "") +
+        (dp && dp.status ? `<br>배정: ${esc(dp.status)}${dp.reason ? " (" + esc(dp.reason) + ")" : ""}` : "") +
+        `<br><small>진행은 기록 탭·총괄 /board 에서</small>`;
+    } else {
+      res.className = "res bad";
+      res.textContent = `거절/실패 (${j.orch_http ?? "총괄 연결 실패"}): ${JSON.stringify(o.detail || o.error || o).slice(0, 200)}`;
+    }
+  } catch (err) { res.className = "res bad"; res.textContent = "요청 실패: " + err.message; }
+  el.querySelectorAll("button").forEach(b => b.disabled = false);
 }
 
 function drawBases(){
@@ -380,6 +433,7 @@ const TYPE = {
   UGV_EVALUATED: ["수행 가능성 평가", "info"], UGV_TASK_STARTED: ["출동", "ok"], UGV_PROGRESS: ["진행", "info"],
   UGV_REROUTED: ["재탐색(우회)", "warn"], UGV_ARRIVED: ["도착", "ok"], UGV_TASK_FAILED: ["임무 실패", "bad"],
   UGV_TASK_CANCELLED: ["임무 취소", "warn"], RESOURCE_CHANGED: ["자원 상태 변화", "info"],
+  VIEW_DISPATCH: ["상황판 출동 요청", "info"],
   UGV_WORK_STARTED: ["작업 시작", "info"], UGV_WORK_ENDED: ["작업 끝", "info"], UGV_LOADING: ["싣기", "info"],
 };
 function roadName(id){ const r = roadInfo[id]; return r ? `${r.name || "도로"}(${id})` : id; }
@@ -416,6 +470,8 @@ function describe(e){
     case "UGV_PROGRESS": return `${PHASE_KO[d.phase] || d.phase} · ${roadName(d.current_road_id)} · 남은 ${km(d.remaining_m)} / ${dur(d.eta_remaining_sec)}`;
     case "UGV_REROUTED": return `막힘 ${roadName(d.blocked_road_id)} → 새 경로, 남은 ${dur(d.eta_remaining_sec)} (재탐색 ${d.reroutes ?? ""}회)`;
     case "UGV_TASK_FAILED": return `${esc(d.reason)} — ${esc(d.error)}`;
+    case "VIEW_DISPATCH": return `${d.resource_type === "FIRE_ENGINE" ? "소방차" : "UGV"} → 노드 ${esc(d.node_id)} · 총괄 ${d.orch_http ?? "연결 실패"}` +
+      `${d.purpose_status ? " · " + esc(d.purpose_status) : ""}${d.hold_reason ? " · " + esc(d.hold_reason) : ""}${d.error ? " · " + esc(typeof d.error === "string" ? d.error : JSON.stringify(d.error)).slice(0, 120) : ""}`;
     case "RESOURCE_CHANGED": return `${esc(d.why)}${d.fault ? " · " + esc(d.fault) : ""}`;
     default: return Object.entries(d).filter(([k]) => !["position","state","fuel_pct","source"].includes(k))
       .slice(0, 4).map(([k, v]) => `${esc(k)}=${esc(typeof v === "object" ? JSON.stringify(v).slice(0, 60) : v)}`).join(" · ");
@@ -672,6 +728,8 @@ async function init(){
   map.fitBounds(L.latLngBounds(all).pad(.05));
   S.bases = await get("/graph/bases").catch(() => []);
   drawBases();
+  NODES = await get("/graph/nodes").catch(() => []);
+  drawNodes();
   await loadRuns("live");
   await switchMode("live");
 }

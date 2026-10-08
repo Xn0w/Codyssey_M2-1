@@ -62,6 +62,8 @@ SECONDS_PER_ENV_STEP = float(os.getenv("UGV_SECONDS_PER_ENV_STEP", "60"))
 # 기본 꺼짐: 총괄이 1초마다 조회(polling)하므로 필요 없다. 켜려면 UGV_REPORT_URL=http://127.0.0.1:8200
 # 꺼져 있어도 GET /reports 에 기록은 남는다.
 REPORT_URL = os.getenv("UGV_REPORT_URL", "")
+# 총괄 주소 — 도로 상황판의 노드 클릭 출동 요청을 여기 POST /tasks 로 전달한다 (ugv/server.py /view/dispatch)
+ORCH_URL = os.getenv("UGV_ORCH_URL", "http://127.0.0.1:8200")
 
 # 도로 환경 시나리오(차단 도로·경유 불가 노드·혼잡의 시간대, CSV 또는 JSON). 기본은 시나리오 없음(도로 전부 열림)
 # — 2026-10-08 발표 범위에서 길막·혼잡 제외. 켜기: UGV_SCENARIO=ugv/scenarios/inje_girin.csv
