@@ -40,6 +40,7 @@ class SimClock:
         self._src_last = None                     # (값, 벽시계) — 멈춤 판정용
         self.source_switches = 0
         self._last_value = 0.0
+        self._held: float | None = None           # 멈춘 시계 (환경 시계를 기다리는 동안). release() 로 다시 흐른다
 
     STALE_S = 10.0
 
@@ -76,8 +77,25 @@ class SimClock:
         else:
             self._src_key, self._src_anchor = src
 
+    def hold(self, sim_time_s: float = 0.0) -> None:
+        """시계를 sim_time_s 에 멈춘다. 디지털 트윈 기동 중 환경 시계가 아직 흐르지 않을 때 — 혼자 앞서 가면
+        시나리오 사건이 미리 발동한다. 환경 시각이 바뀌거나(follow_env) 차가 출발하거나(release) reset 하면 다시 흐른다."""
+        self._held = float(sim_time_s)
+        self._last_value = self._held
+
+    @property
+    def held(self) -> bool:
+        return self._held is not None
+
+    def release(self) -> None:
+        if self._held is not None:
+            v, self._held = self._held, None
+            self._rebase(v, self._read_source())
+
     def now(self) -> float:
         """현재 시뮬레이션 초. PX4 시각이 있으면 그 흐름, 없으면 벽시계 × TIME_SCALE. 뒤로 가지 않는다."""
+        if self._held is not None:
+            return self._held
         src = self._read_source()
         if src is None:
             if self._src_key is not None:         # 소스가 끊김 → 마지막 값에서 벽시계로 이어 간다
@@ -107,7 +125,18 @@ class SimClock:
         self.env_step, self.env_synced_at = sim_step, self._anchor_wall
         return {"sim_time_s": env_s, "drift_s": self.last_drift_s, "reset": reset}
 
+    def follow_env(self, sim_time_s: float) -> dict:
+        """환경 서버의 시뮬레이션 초를 그대로 받는다 (스텝 번호가 아니라 초). 값이 바뀔 때마다 부른다.
+        환경은 스텝 단위로만 움직이므로(트윈: 2100초씩) 그 사이는 벽시계 × TIME_SCALE 로 이어 간다."""
+        before = self.now()
+        self._held = None
+        self._rebase(float(sim_time_s), self._read_source())
+        self.env_synced_at = self._anchor_wall
+        self.last_drift_s = round(before - sim_time_s, 1)
+        return {"sim_time_s": sim_time_s, "drift_s": self.last_drift_s}
+
     def reset(self, sim_time_s: float = 0.0) -> None:
+        self._held = None
         self._rebase(sim_time_s, self._read_source())
         self.env_step = self.env_synced_at = self.last_drift_s = None
 

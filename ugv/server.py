@@ -33,6 +33,8 @@ from .api_models import (
 )
 from .fleet import GroundFleet
 from .geo import distance_m
+from . import road_point
+from .api_models import StopPoint
 from . import graph_gpkg
 from .graph_gpkg import ROAD_CELLS
 from .road_status import RoadStatus
@@ -103,6 +105,47 @@ def _record_road_state() -> None:
         history.record("ROAD_STATE", **snap)
 
 
+ENV_WAIT_S = 10.0          # 환경 서버를 이만큼(벽시계 초) 못 만나면 시계를 혼자 흐르게 둔다
+_env_clock: dict = {"url": None, "run_id": None, "sim_time_s": None, "scenario_start_kst": None, "synced": False}
+
+
+async def _env_clock_loop() -> None:
+    """환경 시계 따라가기 (config.ENV_URL). 환경 시각이 바뀔 때만 UGV 시계를 맞춘다 — 그대로면 손대지 않는다.
+    처음 연결하면 환경 시각에 멈춰 둔다(트윈 기동 중 환경은 아직 안 흐른다): 환경이 한 스텝 나아가거나 차가 처음
+    출발하면 흐르기 시작한다. 환경이 ENV_WAIT_S 안에 안 뜨면 혼자 흐른다.
+    실행이 바뀌거나 시각이 줄면 시나리오를 처음부터. 시나리오 시작 시각이 들어오면 실행 기록에 CLOCK."""
+    import httpx
+    _env_clock["url"] = config.ENV_URL
+    last, t0 = None, time.monotonic()
+    async with httpx.AsyncClient(timeout=1.0) as cx:
+        while True:
+            try:
+                h = (await cx.get(f"{config.ENV_URL.rstrip('/')}/health")).json()
+                run, t = h.get("run_id"), h.get("simulation_time_s")
+                start = (h.get("assumptions") or {}).get("scenario_start_kst")
+                if t is not None and (last is None or (run, t) != last):
+                    restart = last is not None and (run != last[0] or t < last[1])
+                    if last is None and clock.held:
+                        clock.hold(float(t))
+                        res = {"drift_s": None}
+                    else:
+                        res = clock.follow_env(float(t))
+                    if scenario is not None:
+                        if restart:
+                            scenario.reset(roads)
+                        scenario.tick(clock.now(), roads)
+                    if (run, start) != (_env_clock["run_id"], _env_clock["scenario_start_kst"]) and history is not None:
+                        history.record("CLOCK", None, None, source="environment", env_run_id=run,
+                                       scenario_start_kst=start, env_sim_time_s=t)
+                    _env_clock.update(run_id=run, sim_time_s=t, scenario_start_kst=start, synced=True,
+                                      drift_s=res["drift_s"])
+                    last = (run, t)
+            except Exception:   # noqa: BLE001 — 환경이 없으면 혼자 간다
+                if last is None and time.monotonic() - t0 > ENV_WAIT_S:
+                    clock.release()
+            await asyncio.sleep(config.ENV_CLOCK_POLL_S)
+
+
 async def _refresh_loop() -> None:
     """드라이버 위치·연료를 자원 상태로 옮기고 도착을 확정한다. 시나리오 이벤트도 여기서 적용한다."""
     while True:
@@ -147,10 +190,15 @@ async def lifespan(app: FastAPI):
                    bases=_bases())
     _record_road_state()
     loop = asyncio.create_task(_refresh_loop())
+    if config.ENV_URL:
+        clock.hold(0.0)                             # 환경 시계를 받을 때까지 (또는 첫 출발까지) 멈춰 둔다
+    env_loop = asyncio.create_task(_env_clock_loop()) if config.ENV_URL else None
     log.info("UGV 서버 준비: driver=%s, 자원 %s, 시간배율 %.0f, 환경 1스텝=%.0fs", DRIVER, list(fleet.agents),
              config.TIME_SCALE, config.SECONDS_PER_ENV_STEP)
     yield
     loop.cancel()
+    if env_loop:
+        env_loop.cancel()
     await reporter.stop()
     history.close()
 
@@ -254,7 +302,7 @@ async def get_state(resource_id: str):
 
 
 def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str | None,
-            cargo=None, via_node: str | None = None) -> dict:
+            cargo=None, via_node: str | None = None, target_mode: str | None = None) -> dict:
     """목적지 도로 노드를 고르고 갈 수 있는지 판단한다. evaluate·execute 가 같은 규칙을 쓴다.
 
     target(화재 좌표)을 주면 화재에서 가장 가까운 도로 노드를 목적지로 삼는다.
@@ -263,12 +311,20 @@ def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str 
         APPROACH_MAX_M 안의 다음 노드들을 가까운 순으로 시도한다 (ugv/config.py)
     cargo(짐)가 있으면 적재 한도를 먼저 보고, via_node(싣는 곳)가 있으면 지금 → 경유지 → 목적지로 판단한다.
     ETA 에는 싣기 시간(LOAD_S)이 들어간다. 내리기는 도착 뒤 작업이라 ETA 에 넣지 않는다.
-    반환: verdict, eta_sec, reason, detail, target_node(TargetNode|None), path
+    target_mode="road_point"(또는 UGV_TARGET_MODE) 이고 target 을 주면 노드 대신 가장 가까운 도로 위 점에 선다
+    (ugv/road_point.py). 짐 싣기(cargo)와는 같이 쓰지 않는다.
+    반환: verdict, eta_sec, reason, detail, target_node(TargetNode|None), path, stop_point(StopPoint|None), at_target
     """
     rid = agent.resource.resource_id
 
-    def reject(reason, detail, tn=None):
-        return dict(verdict="REJECT", eta_sec=None, reason=reason, detail=detail, target_node=tn, path=None)
+    def reject(reason, detail, tn=None, sp=None):
+        return dict(verdict="REJECT", eta_sec=None, reason=reason, detail=detail, target_node=tn, path=None,
+                    stop_point=sp, at_target=False)
+
+    # 총괄은 평가에서 받은 target_node 를 실행 때 target 과 같이 돌려보낸다 (engine._approve_and_send) —
+    # 도로 위 지점 방식이면 target 기준으로 다시 고른다 (평가와 같은 규칙이라 같은 끝 노드·지점이 나온다)
+    if target is not None and cargo is None and (target_mode or config.TARGET_MODE) == "road_point":
+        return _decide_point(agent, target, reject)
 
     if cargo is not None:
         eq = agent.resource.equipment
@@ -325,7 +381,7 @@ def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str 
         if result["response"] == "ACCEPT":
             return dict(verdict="ACCEPT", eta_sec=round(result["eta_s"]), reason=None,
                         detail=None if first_reject is None else f"가장 가까운 노드는 도달 불가, {snap_m:.0f} m 지점으로 접근",
-                        target_node=tn, path=result["path"])
+                        target_node=tn, path=result["path"], stop_point=None, at_target=len(result["path"]) == 1)
         if result["reason"] == "BUSY":
             return reject("BUSY", f"수행 중 task {_task_of.get(rid)}")
         if result.get("fault"):                 # UNAVAILABLE — 주행 중 이상, /stop 으로 해제
@@ -340,15 +396,53 @@ def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str 
                   + (f", 차단 도로 {blocked}" if blocked else ""), tn)
 
 
+def _decide_point(agent: GroundResourceAgent, target: LatLon, reject) -> dict:
+    """도로 위 지점 목적지. 이미 그 지점(NODE_ARRIVE_M 안)에 서 있으면 움직이지 않고 도착 (붙박이 반복 관측)."""
+    rp = road_point.nearest(fleet.graph, target.lat, target.lon)
+    if rp is None or rp.snap_m > config.TARGET_SNAP_M:
+        return reject("TARGET_UNREACHABLE", "가까운 도로 없음" if rp is None else
+                      f"가장 가까운 도로가 {rp.snap_m:.0f} m 떨어짐 (허용 {config.TARGET_SNAP_M:.0f} m)")
+    sp = StopPoint(**rp.to_dict())
+    r = agent.resource
+    if r.state == "READY" and r.current_node is not None \
+            and distance_m((r.lat, r.lon), (rp.lat, rp.lon)) <= config.NODE_ARRIVE_M:
+        n = fleet.graph.node(r.current_node)
+        return dict(verdict="ACCEPT", eta_sec=0, reason=None, detail="이미 그 지점에 서 있다",
+                    target_node=TargetNode(node_id=n.node_id, lat=n.lat, lon=n.lon, snap_m=round(rp.snap_m, 1)),
+                    path=[n.node_id], stop_point=sp, at_target=True)
+    res = agent.evaluate_point(rp)
+    if res is None or res["response"] != "ACCEPT":
+        res = res or {}
+        if res.get("reason") == "BUSY":
+            return reject("BUSY", f"수행 중 task {_task_of.get(agent.resource.resource_id)}", sp=sp)
+        if res.get("fault"):
+            return reject(res["reason"], f"자원 이상 [{res['fault']}] — 확인 후 /stop 으로 복귀", sp=sp)
+        blocked = res.get("blocked_road_id")
+        return reject(res.get("reason") or "TARGET_UNREACHABLE",
+                      f"도로 {rp.road_id} 위 지점 도달 불가" + (f", 차단 도로 {blocked}" if blocked else ""), sp=sp)
+    n = fleet.graph.node(res["end_node"])
+    return dict(verdict="ACCEPT", eta_sec=round(res["eta_s"]), reason=None,
+                detail=f"도로 {rp.road_id} 위 지점 (도로에서 {rp.snap_m:.0f} m)",
+                target_node=TargetNode(node_id=n.node_id, lat=n.lat, lon=n.lon, snap_m=round(rp.snap_m, 1)),
+                path=res["path"], stop_point=sp, at_target=False)
+
+
+def _rp(sp: StopPoint | None):
+    return None if sp is None else road_point.RoadPoint(sp.road_id, sp.lat, sp.lon, sp.snap_m, sp.along_m)
+
+
 @app.post("/ugv/{resource_id}/evaluate", response_model=EvaluateResponse)
 async def evaluate(resource_id: str, req: EvaluateRequest):
     """수행 가능성 판단. 차를 움직이지 않는다. 목적지 선정 규칙은 _decide 참고."""
     agent = _agent(resource_id)
-    d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node)
+    d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node, req.target_mode)
+    sp = d["stop_point"]
     _report("UGV_EVALUATED", agent, req.task_id, decision_id=req.decision_id, verdict=d["verdict"],
             eta_sec=d["eta_sec"], reason=d["reason"], detail=d["detail"],
-            target_node=None if d["target_node"] is None else d["target_node"].node_id)
-    return EvaluateResponse(task_id=req.task_id, decision_id=req.decision_id, resource_id=resource_id, **d)
+            target_node=None if d["target_node"] is None else d["target_node"].node_id,
+            **({} if sp is None else {"stop_point": sp.model_dump()}))
+    return EvaluateResponse(task_id=req.task_id, decision_id=req.decision_id, resource_id=resource_id,
+                            **{k: v for k, v in d.items() if k != "at_target"})
 
 
 @app.get("/ugv/{resource_id}/observation")
@@ -578,7 +672,8 @@ async def _run_task(task_id: str, agent: GroundResourceAgent, stages: list, eta_
             "fuel_pct": r.fuel_pct,
         }
         _report("UGV_ARRIVED", agent, task_id, target_node=target_node, observation=t["observation"],
-                reroutes=len(t.get("reroutes") or []))
+                reroutes=len(t.get("reroutes") or []),
+                **({"stop_point": t["stop_point"]} if t.get("stop_point") else {}))
         _after_arrival(agent, task_id)
         if agent.resource.state == "READY":
             _resource_changed(agent, "ARRIVED")
@@ -724,34 +819,37 @@ async def execute(resource_id: str, req: ExecuteRequest):
     if _task_of.get(resource_id):
         raise HTTPException(409, f"{resource_id} 는 task {_task_of[resource_id]} 수행 중")
 
-    d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node)
+    d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node, req.target_mode)
+    sp = d["stop_point"]
+    spd = {} if sp is None else {"stop_point": sp.model_dump()}
     if d["verdict"] != "ACCEPT":
         raise HTTPException(409, f"실행 불가: {d['reason']} — {d['detail']}")   # 실행 안 함 → 키를 쓰지 않는다
     node_id = d["target_node"].node_id
     url = f"/ugv/{resource_id}/task/{req.task_id}"
     cargo = None if req.cargo is None else {"name": req.cargo.name, "kg": req.cargo.kg, "via_node": req.via_node}
     stages = _stages(node_id, req.via_node, req.cargo)
-    if len(d["path"]) == 1 and cargo is None:     # 이미 목적지 노드에 서 있다 — 움직이지 않고 바로 완료
+    if d["at_target"] and cargo is None:          # 이미 목적지(노드·도로 위 지점)에 서 있다 — 움직이지 않고 바로 완료
         r = agent.resource
         resp = ExecuteResponse(task_id=req.task_id, resource_id=resource_id, status="STARTED", tracking_url=url,
-                               target_node=d["target_node"], eta_sec=0)
+                               target_node=d["target_node"], eta_sec=0, stop_point=sp)
         STORE.register(req.task_id, body, {
-            "task_id": req.task_id, "resource_id": resource_id, "status": "COMPLETED", "target_node": node_id,
+            "task_id": req.task_id, "resource_id": resource_id, "status": "COMPLETED", "target_node": node_id, **spd,
             "progress": {"phase": "ARRIVED", "waypoint": 0, "total": 0},
             "observation": {"observation_type": "ROAD_STATUS", "arrived_node": node_id,
                             "position": {"lat": r.lat, "lon": r.lon}, "fuel_pct": r.fuel_pct}},
             resp.model_dump())
         _report("UGV_ARRIVED", agent, req.task_id, target_node=node_id, already_there=True,
-                observation=_tasks[req.task_id]["observation"])
+                observation=_tasks[req.task_id]["observation"], **spd)
         _after_arrival(agent, req.task_id)
         return resp
-    if stages[0][0] == "DRIVE" and not await agent.execute(stages[0][1]):
+    clock.release()                               # 환경 시계를 기다리며 멈춰 있었다면 첫 출발부터 흐른다
+    if stages[0][0] == "DRIVE" and not await agent.execute(stages[0][1], _rp(sp)):
         raise HTTPException(500, "드라이버가 주행을 시작하지 못했다")
 
     resp = ExecuteResponse(task_id=req.task_id, resource_id=resource_id, status="STARTED", tracking_url=url,
-                           target_node=d["target_node"], eta_sec=d["eta_sec"])
+                           target_node=d["target_node"], eta_sec=d["eta_sec"], stop_point=sp)
     STORE.register(req.task_id, body, {"task_id": req.task_id, "resource_id": resource_id, "status": "STARTED",
-                                       "target_node": node_id, "progress": None, "observation": None,
+                                       "target_node": node_id, "progress": None, "observation": None, **spd,
                                        "cargo": cargo, "started_sim_s": round(clock.now(), 1),
                                        "eta_sec": d["eta_sec"]},
                    resp.model_dump())
@@ -760,7 +858,7 @@ async def execute(resource_id: str, req: ExecuteRequest):
         _siren(agent, True)
     _watchers[req.task_id] = asyncio.create_task(_run_task(req.task_id, agent, stages, d["eta_sec"]))
     _report("UGV_TASK_STARTED", agent, req.task_id, decision_id=req.decision_id, target_node=node_id,
-            eta_sec=d["eta_sec"], path=d["path"], cargo=cargo)
+            eta_sec=d["eta_sec"], path=d["path"], cargo=cargo, **spd)
     return resp
 
 
@@ -898,7 +996,8 @@ async def reports(limit: int = 30):
 
 @app.get("/clock")
 async def get_clock():
-    return clock.info()
+    """시뮬레이션 시각. environment = 환경 시계 따라가기 상태, scenario_start_kst = 시뮬레이션 0초의 실제 시각."""
+    return clock.info() | {"environment": dict(_env_clock), "scenario_start_kst": _env_clock["scenario_start_kst"]}
 
 
 @app.post("/clock/env")
@@ -962,6 +1061,18 @@ def _route_legs(agent: GroundResourceAgent) -> list[dict]:
         out.append({"road_id": r.road_id, "name": r.name, "from": a, "to": b, "distance_m": round(r.distance_m),
                     "congestion": r.congestion, "blocked": r.blocked,
                     "travel_s": None if t == float("inf") else round(t), "state": state})
+    tail = next((l for l in (agent.plan.legs if agent.plan else []) if l.get("to_point")), None)
+    if tail is not None:                       # 도로 위 지점 주행: 끝 노드 → 지점 꼬리 구간
+        r = fleet.graph.get_road(tail["road_id"])
+        on_tail = agent.driver is not None and agent.plan.current_leg(agent.driver.progress()[0]) is tail
+        if on_tail:
+            for o in out:
+                o["state"] = "DONE"
+        state = "CURRENT" if on_tail else "NEXT"
+        sp = r.speed_mps(agent.max_speed_mps)
+        out.append({"road_id": r.road_id, "name": r.name, "from": tail["from"], "to": None, "to_point": tail["to_point"],
+                    "distance_m": round(tail["distance_m"]), "congestion": r.congestion, "blocked": r.blocked,
+                    "travel_s": None if r.blocked else round(tail["distance_m"] / sp), "state": state})
     return out
 
 
@@ -984,7 +1095,9 @@ async def graph_nodes():
 
 
 class ViewDispatch(BaseModel):
-    node_id: str
+    node_id: str | None = None
+    point: LatLon | None = None       # 노드 대신 도로 위 지점. 총괄은 칸(90 m) 중심으로 보낸다 —
+                                      # 도로 위 점에 서려면 UGV_TARGET_MODE=road_point (아니면 가장 가까운 노드)
     resource_type: str = "UGV"        # UGV / FIRE_ENGINE — 어느 차가 갈지는 총괄이 고른다
 
 
@@ -1001,13 +1114,20 @@ async def view_dispatch(req: ViewDispatch):
     import httpx
     if req.resource_type not in ("UGV", "FIRE_ENGINE"):
         raise HTTPException(422, "resource_type 은 UGV 또는 FIRE_ENGINE")
-    try:
-        n = fleet.graph.node(req.node_id)
-    except KeyError:
-        raise HTTPException(404, f"도로 노드 {req.node_id} 없음")
-    rid = f"UGV-VIEW:{req.node_id}:{req.resource_type}:{uuid.uuid4().hex[:8]}"
+    if req.point is not None:
+        n = None
+        tgt, label = {"lat": req.point.lat, "lon": req.point.lon}, "point"
+    else:
+        if req.node_id is None:
+            raise HTTPException(422, "node_id 또는 point 중 하나가 필요하다")
+        try:
+            n = fleet.graph.node(req.node_id)
+        except KeyError:
+            raise HTTPException(404, f"도로 노드 {req.node_id} 없음")
+        tgt, label = {"lat": n.lat, "lon": n.lon}, req.node_id
+    rid = f"UGV-VIEW:{label}:{req.resource_type}:{uuid.uuid4().hex[:8]}"
     body = {"request_id": rid, "incident_id": "INC-UGV-VIEW", "kind": "RECON",
-            "target": {"lat": n.lat, "lon": n.lon},
+            "target": tgt,
             "requirements": {"resource_types": [req.resource_type], "sensor": None}}
     url = f"{config.ORCH_URL.rstrip('/')}/tasks"
     try:
@@ -1021,7 +1141,8 @@ async def view_dispatch(req: ViewDispatch):
     disp = (out or {}).get("dispatch") or {}
     if history is not None:
         history.record("VIEW_DISPATCH", None, task.get("task_id"), node_id=req.node_id,
-                       nodes=[{"node_id": n.node_id, "lat": n.lat, "lon": n.lon}],
+                       nodes=[{"node_id": n.node_id, "lat": n.lat, "lon": n.lon} if n is not None
+                              else {**tgt, "label": "도로 위 지점"}],
                        resource_type=req.resource_type, request_id=rid, orch_http=status,
                        purpose_status=task.get("purpose_status"), hold_reason=task.get("hold_reason"),
                        dispatch=disp.get("status") if isinstance(disp, dict) else disp,
@@ -1099,6 +1220,9 @@ async def view_vehicles():
         tid = _task_of.get(rid)
         t = _tasks.get(tid) if tid else None
         place = {"at_node": r.current_node}
+        if agent.parked is not None and r.state == "READY":       # 도로 위 지점에 서 있다
+            place = {"road_id": agent.parked.road_id, "road_name": _road_name(agent.parked.road_id), "point": True,
+                     "near_node": r.current_node}
         task = None
         if t is not None:
             prog = t.get("progress") or {}
@@ -1108,8 +1232,10 @@ async def view_vehicles():
                     place = {"road_id": cur["road_id"], "road_name": cur["name"], "from": cur["from"], "to": cur["to"]}
             tgt = t.get("target_node") or (agent.plan.target_node if agent.plan else None)
             started = t.get("started_sim_s")
+            spt = t.get("stop_point")
             task = {"task_id": tid, "status": t.get("status"), "phase": prog.get("phase"),
-                    "target_node": tgt, "target_name": _node_name(tgt),
+                    "target_node": tgt, "stop_point": spt,
+                    "target_name": f"{_road_name(spt['road_id'])} 위 지점" if spt else _node_name(tgt),
                     "eta_remaining_s": prog.get("eta_remaining_sec"), "remaining_m": prog.get("remaining_m"),
                     "started_sim_s": started, "reroutes": len(t.get("reroutes") or []),
                     "purpose": _purpose_text(tid, purposes.get(tid))}
@@ -1118,6 +1244,13 @@ async def view_vehicles():
                     "current_node_name": _node_name(r.current_node), "place": place, "task": task,
                     "fault": agent.fault, "sim_time_s": round(clock.now(), 1)})
     return out
+
+
+def _road_name(rid: str) -> str:
+    try:
+        return fleet.graph.get_road(rid).name or rid
+    except KeyError:
+        return rid
 
 
 def _node_name(nid: str | None) -> str | None:
@@ -1131,7 +1264,8 @@ def _node_name(nid: str | None) -> str | None:
 
 class ViewCommand(BaseModel):
     resource_id: str
-    node_id: str
+    node_id: str | None = None
+    point: LatLon | None = None   # 노드 대신 도로 위 지점 (가장 가까운 도로 선형 위 점에 선다, ugv/road_point.py)
     replace: bool = False      # 임무 중인 차를 세우고 새 목적지로 보낼지 (상황판이 먼저 묻는다)
 
 
@@ -1143,10 +1277,14 @@ async def view_command(req: ViewCommand):
     다른 자원에 인계한다 (CANCELLED 로 두면 총괄 계약에 그 상태 처리가 없어 점유가 풀리지 않는다)."""
     import uuid
     agent = _agent(req.resource_id)
-    try:
-        node = fleet.graph.node(req.node_id)
-    except KeyError:
-        raise HTTPException(404, f"도로 노드 {req.node_id} 없음")
+    node = None
+    if req.point is None:
+        if req.node_id is None:
+            raise HTTPException(422, "node_id 또는 point 중 하나가 필요하다")
+        try:
+            node = fleet.graph.node(req.node_id)
+        except KeyError:
+            raise HTTPException(404, f"도로 노드 {req.node_id} 없음")
     old = _task_of.get(req.resource_id)
     busy = old is not None and (_tasks.get(old) or {}).get("status") in ("STARTED", "IN_PROGRESS")
     if busy and not req.replace:
@@ -1160,16 +1298,22 @@ async def view_command(req: ViewCommand):
             _save()
             _report("UGV_TASK_FAILED", agent, old, reason="OPERATOR_OVERRIDE", error="상황판 직접 명령으로 교체")
     tid, did = f"VIEW-CMD-{uuid.uuid4().hex[:8]}", f"VIEW-{uuid.uuid4().hex[:8]}"
-    ev = await evaluate(req.resource_id, EvaluateRequest(task_id=tid, decision_id=did, target_node=node.node_id))
-    result = {"resource_id": req.resource_id, "node_id": node.node_id, "replaced_task": old if busy else None,
+    where = ({"target_node": node.node_id} if node is not None
+             else {"target": req.point, "target_mode": "road_point"})
+    ev = await evaluate(req.resource_id, EvaluateRequest(task_id=tid, decision_id=did, **where))
+    sp = None if ev.stop_point is None else ev.stop_point.model_dump()
+    result = {"resource_id": req.resource_id, "node_id": None if node is None else node.node_id, "stop_point": sp,
+              "replaced_task": old if busy else None,
               "stopped": stopped is not None, "task_id": tid, "verdict": ev.verdict, "reason": ev.reason,
               "detail": ev.detail, "eta_sec": ev.eta_sec}
     if ev.verdict == "ACCEPT":
-        ex = await execute(req.resource_id, ExecuteRequest(task_id=tid, decision_id=did, target_node=node.node_id))
+        ex = await execute(req.resource_id, ExecuteRequest(task_id=tid, decision_id=did, **where))
         result["status"] = ex.status
     if history is not None:
-        history.record("VIEW_COMMAND", req.resource_id, tid, node_id=node.node_id,
-                       nodes=[{"node_id": node.node_id, "lat": node.lat, "lon": node.lon}],
+        pt = ({"node_id": node.node_id, "lat": node.lat, "lon": node.lon} if node is not None
+              else {"lat": (sp or req.point.model_dump())["lat"], "lon": (sp or req.point.model_dump())["lon"],
+                    "label": "도로 위 지점"})
+        history.record("VIEW_COMMAND", req.resource_id, tid, node_id=result["node_id"], stop_point=sp, nodes=[pt],
                        replaced_task=result["replaced_task"], verdict=ev.verdict, reason=ev.reason, eta_sec=ev.eta_sec)
     return result
 

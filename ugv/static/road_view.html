@@ -128,6 +128,7 @@ footer.show{display:flex}
 .tlab{background:#10171ccc;border:1px solid #2f5d80;color:#cfe6ff;font-size:10px;padding:0 4px;border-radius:4px;box-shadow:none}
 .tlab:before{display:none}
 .tlab.CURRENT{border-color:#fff;color:#fff}
+.tlab.hl{border-color:var(--hl);color:#f3dcff;font-weight:600}
 .seq{background:#3ea6ff;color:#06121c;border:0;font-size:11px;font-weight:800;border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center;padding:0;box-shadow:0 0 0 2px #0b1013}
 .seq:before{display:none}
 .blab{background:transparent;border:0;box-shadow:none;color:#fff;font-weight:700;font-size:11px;text-shadow:0 0 3px #000,0 0 3px #000}
@@ -190,8 +191,23 @@ const API = location.origin;          // UGV 서버 자신
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const hms = s => { if (s == null || !isFinite(s)) return "--:--:--"; s = Math.max(0, Math.round(s));
+const elapsed = s => { if (s == null || !isFinite(s)) return "--:--:--"; s = Math.max(0, Math.round(s));
   return [Math.floor(s/3600), Math.floor(s%3600/60), s%60].map(v => String(v).padStart(2,"0")).join(":"); };
+// 시뮬레이션 초 → 시각. 시나리오 시작 시각(환경 서버 scenario_start_kst)을 알면 그 시각 + 초 (KST), 모르면 경과 시간
+let START = null;     // {ms, off} — off = 시작 시각 문자열의 UTC 오프셋(분)
+function setStart(iso){
+  if (!iso || (START && START.iso === iso)) return;
+  const m = /([+-])(\d{2}):?(\d{2})$/.exec(iso), ms = Date.parse(iso);
+  if (!isFinite(ms)) return;
+  START = {iso, ms, off: m ? (m[1] === "-" ? -1 : 1) * (+m[2] * 60 + +m[3]) : 540};
+}
+const hms = s => {
+  if (!START || s == null || !isFinite(s)) return elapsed(s);
+  const d = new Date(START.ms + s * 1000 + START.off * 60000), d0 = new Date(START.ms + START.off * 60000);
+  const t = [d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()].map(v => String(v).padStart(2, "0")).join(":");
+  return d.getUTCDate() !== d0.getUTCDate() ? `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${t}` : t;
+};
+const dateOf = () => { if (!START) return ""; const d0 = new Date(START.ms + START.off * 60000); return `${d0.getUTCMonth()+1}/${d0.getUTCDate()}`; };
 const dur = s => s == null || !isFinite(s) ? "–" : s < 60 ? `${Math.round(s)}초` : s < 3600 ? `${Math.floor(s/60)}분 ${Math.round(s%60)}초` : `${Math.floor(s/3600)}시간 ${Math.round(s%3600/60)}분`;
 const durS = s => s == null || !isFinite(s) ? "–" : s < 3600 ? `${Math.max(0, Math.round(s/60))}분` : `${Math.floor(s/3600)}시간 ${Math.round(s%3600/60)}분`;
 const km = m => m == null ? "–" : m >= 1000 ? `${(m/1000).toFixed(1)} km` : `${Math.round(m)} m`;
@@ -244,12 +260,81 @@ const S = {
   roadSig: "", bases: [], legFollow: null,
 };
 
+// ---------------------------------------------------------------- 차량 움직임 메우기
+// 위치는 띄엄띄엄 온다 (실시간 1초 조회 = 시뮬레이션 100초, 소방차면 1 km 남짓). 두 점 사이를 직선이 아니라
+// 차가 달리는 경로(도로 모양)를 따라 채워서, 굽은 산길에서 차가 도로 밖으로 가로지르지 않게 한다.
+const _routeLine = new WeakMap();
+function routeLine(route){
+  const key = route.legs || route; if (_routeLine.has(key)) return _routeLine.get(key);
+  const pts = [];
+  for (const l of route.legs || []){
+    let g = roadInfo[l.road_id]?.geometry; if (!g || !g.length) continue;
+    const a = NODE[l.from];
+    if (a){ const d0 = (g[0][0] - a.lat) ** 2 + (g[0][1] - a.lon) ** 2, d1 = (g[g.length-1][0] - a.lat) ** 2 + (g[g.length-1][1] - a.lon) ** 2; if (d1 < d0) g = [...g].reverse(); }
+    pts.push(...g);
+  }
+  const lat0 = pts.length ? pts[0][0] : 0, kx = 111320 * Math.cos(lat0 * Math.PI / 180), ky = 110540;
+  const xy = pts.map(p => [p[1] * kx, p[0] * ky]), cum = [0];
+  for (let i = 1; i < xy.length; i++) cum.push(cum[i-1] + Math.hypot(xy[i][0] - xy[i-1][0], xy[i][1] - xy[i-1][1]));
+  const line = {pts, xy, cum, kx, ky};
+  _routeLine.set(key, line);
+  return line;
+}
+function projectOn(line, p){               // 경로 위 가장 가까운 지점의 누적거리 s 와 떨어진 거리(m)
+  const x = p.lon * line.kx, y = p.lat * line.ky;
+  let best = {s: 0, d: Infinity};
+  for (let i = 1; i < line.xy.length; i++){
+    const [ax, ay] = line.xy[i-1], [bx, by] = line.xy[i], dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
+    const u = L2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)) : 0;
+    const d = Math.hypot(ax + u * dx - x, ay + u * dy - y);
+    if (d < best.d) best = {s: line.cum[i-1] + u * (line.cum[i] - line.cum[i-1]), d};
+  }
+  return best;
+}
+function pointAt(line, s){
+  let i = 1; while (i < line.cum.length - 1 && line.cum[i] < s) i++;
+  const seg = line.cum[i] - line.cum[i-1], u = seg ? Math.max(0, Math.min(1, (s - line.cum[i-1]) / seg)) : 0;
+  const a = line.pts[i-1], b = line.pts[i];
+  return {lat: a[0] + (b[0] - a[0]) * u, lon: a[1] + (b[1] - a[1]) * u};
+}
+function alongRoute(route, pA, pB, f){
+  const lerp = () => ({lat: pA.lat + (pB.lat - pA.lat) * f, lon: pA.lon + (pB.lon - pA.lon) * f});
+  if (!route) return lerp();
+  const line = routeLine(route); if (line.xy.length < 2) return lerp();
+  const a = projectOn(line, pA), b = projectOn(line, pB);
+  if (a.d > 80 || b.d > 80 || b.s < a.s - 5) return lerp();     // 경로를 벗어났거나(재탐색 직후) 거꾸로면 직선
+  return pointAt(line, a.s + (b.s - a.s) * f);
+}
+
+// 실시간: 새 위치가 오면 지금 보이는 자리에서 새 위치까지 다음 조회 간격 동안 경로를 따라 옮긴다
+const anim = {};
+let lastPollAt = 0, pollGap = 1000, lastVmap = null, lastRoutes = {};
+function liveTarget(vmap, routes){
+  const now = performance.now();
+  if (lastPollAt) pollGap = Math.max(300, Math.min(2500, now - lastPollAt));
+  lastPollAt = now;
+  for (const v of Object.values(vmap)){
+    if (!v.position) continue;
+    const a = anim[v.resource_id], cur = a ? animPos(a, now) : v.position;
+    if (a && a.pB.lat === v.position.lat && a.pB.lon === v.position.lon) continue;
+    anim[v.resource_id] = {pA: cur, pB: v.position, t0: now, dur: pollGap, route: v.task ? routes[v.resource_id] : null};
+  }
+}
+function animPos(a, now){ return alongRoute(a.route, a.pA, a.pB, Math.min(1, (now - a.t0) / a.dur)); }
+function animatedVmap(vmap, now){
+  const out = {};
+  for (const [k, v] of Object.entries(vmap)) out[k] = anim[k] && v.position ? {...v, position: animPos(anim[k], now)} : v;
+  return out;
+}
+
 // 기록 → 시각 t 의 상태 (실시간이면 t = 끝)
 function stateAt(t){
   const veh = {}, routes = {};
   let road = {blocked: [], blocked_nodes: {}, congested: {}, active_rules: [], blocked_by: {}};
-  for (const e of S.events){
-    if (t != null && e.sim_time_s != null && e.sim_time_s > t) break;
+  let stop = S.events.length;
+  for (let i = 0; i < S.events.length; i++){
+    const e = S.events[i];
+    if (t != null && e.sim_time_s != null && e.sim_time_s > t){ stop = i; break; }
     const d = e.data || {}, rid = e.resource_id;
     if (e.type === "RUN_START"){
       for (const r of d.resources || []) veh[r.resource_id] = {...r, current_node: r.home_node, phase: null, eta: null, task: null, road: null, reroutes: 0};
@@ -258,20 +343,31 @@ function stateAt(t){
     if (e.type === "ROAD_STATE"){ road = d; continue; }
     if (!rid) continue;
     const v = veh[rid] || (veh[rid] = {resource_id: rid, resource_type: "?", reroutes: 0});
-    if (d.position) v.position = d.position;
+    if (d.position){ v.position = d.position; v._pt = e.sim_time_s; }
     if (d.state) v.state = d.state;
     if (e.type === "ROUTE"){ routes[rid] = {path: d.path, legs: d.legs, target: d.target_node, task: e.task_id}; v.task = e.task_id; v.road = null; }
-    if (e.type === "UGV_TASK_STARTED"){ v.task = e.task_id; v.target = d.target_node; v.eta = d.eta_sec; v.phase = "STARTED"; v.reroutes = 0; v.started = e.sim_time_s; }
+    if (e.type === "UGV_TASK_STARTED"){ v.parked = null; v.task = e.task_id; v.target = d.target_node; v.eta = d.eta_sec; v.phase = "STARTED"; v.reroutes = 0; v.started = e.sim_time_s; }
     if (e.type === "UGV_PROGRESS" && e.task_id === v.task){ v.phase = d.phase; v.eta = d.eta_remaining_sec; v.road = d.current_road_id; v.remaining = d.remaining_m; }
     if (e.type === "UGV_REROUTED"){ v.reroutes = (v.reroutes || 0) + 1; v.eta = d.eta_remaining_sec ?? v.eta; }
     if (["UGV_ARRIVED","UGV_TASK_FAILED","UGV_TASK_CANCELLED"].includes(e.type) && e.task_id === v.task){
       v.phase = e.type === "UGV_ARRIVED" ? "ARRIVED" : e.type === "UGV_TASK_FAILED" ? "FAILED" : "CANCELLED";
       v.eta = null; v.road = null; v.task = null; v.current_node = d.target_node || v.current_node; delete routes[rid];
+      v.parked = e.type === "UGV_ARRIVED" ? d.stop_point || null : null;
     }
     if (e.type === "RESOURCE_CHANGED" && d.current_node) v.current_node = d.current_node;
   }
   road.blockedSet = new Set(road.blocked || []);
   road.congested = road.congested || {};
+  // 재생: 위치 보고(약 50 시뮬레이션 초마다) 사이를 경로를 따라 시각 비례로 메운다 — 고속 차량이 뚝뚝 끊기지 않게
+  if (t != null){
+    for (const v of Object.values(veh)){
+      if (!v.task || !v.position || v._pt == null || !routes[v.resource_id]) continue;
+      const nx = S.events.slice(stop).find(e => e.resource_id === v.resource_id && e.data?.position && e.sim_time_s != null);
+      if (!nx || nx.task_id !== v.task || nx.sim_time_s <= v._pt) continue;
+      const f = (t - v._pt) / (nx.sim_time_s - v._pt);
+      v.position = alongRoute(routes[v.resource_id], v.position, nx.data.position, Math.max(0, Math.min(1, f)));
+    }
+  }
   return {veh, routes, road};
 }
 
@@ -390,7 +486,8 @@ function buildRoadLayers(){
     for (const [id, r] of Object.entries(roadInfo)){
       if (S.terrain) casingLines[id] = L.polyline(r.geometry, {color: css("--casing"), weight: 4.6, opacity: .85, renderer, interactive: false}).addTo(layers.casing);
       roadLines[id] = L.polyline(r.geometry, {...styleFor(false, 1, false), renderer, bubblingMouseEvents: false})
-        .bindTooltip(() => roadTip(id, curRoadState()), {className: "rt", sticky: true}).addTo(layers.roads);
+        .bindTooltip(() => roadTip(id, curRoadState()), {className: "rt", sticky: true})
+        .on("click", ev => openRoadPoint(id, ev.latlng)).addTo(layers.roads);
     }
   } else {
     for (const c of CHAINS){
@@ -444,8 +541,30 @@ document.querySelectorAll("#viewSeg button").forEach(b => b.onclick = () => {
 
 // 차량: 같은 자리에 겹치면 둘레로 벌려 둘 다 보이게
 const vMarkers = {}, vLinks = L.layerGroup().addTo(map);
+// 그래프 보기: 간선은 교차로 사이 직선이라 실제 위치를 그대로 찍으면 선 밖에 뜬다 → 가장 가까운 간선 묶음 위의
+// 같은 비율 지점으로 옮긴다 (도로를 따라 몇 % 왔는지 = 직선 위 몇 %)
+function chainLine(c){
+  return c.line || (c.line = routeLine({legs: c.roads.map((r, i) => ({road_id: r, from: c.nodes[i]}))}));
+}
+function graphPos(p){
+  let best = null;
+  for (const c of CHAINS){
+    const a = NODE[c.a], b = NODE[c.b]; if (!a || !b) continue;
+    const line = chainLine(c); if (line.xy.length < 2) continue;
+    if (!c.bb){ const la = line.pts.map(q => q[0]), lo = line.pts.map(q => q[1]); c.bb = [Math.min(...la), Math.max(...la), Math.min(...lo), Math.max(...lo)]; }
+    if (best){                                    // 묶음 경계 상자까지 거리가 지금 최선보다 멀면 건너뛴다
+      const dy = Math.max(0, c.bb[0] - p.lat, p.lat - c.bb[1]) * 110540, dx = Math.max(0, c.bb[2] - p.lon, p.lon - c.bb[3]) * 88000;
+      if (Math.hypot(dx, dy) > best.d) continue;
+    }
+    const pr = projectOn(line, p);
+    if (!best || pr.d < best.d) best = {d: pr.d, f: pr.s / (line.cum[line.cum.length - 1] || 1), a, b};
+  }
+  if (!best) return p;
+  return {lat: best.a.lat + (best.b.lat - best.a.lat) * best.f, lon: best.a.lon + (best.b.lon - best.a.lon) * best.f};
+}
 function drawVehicles(veh){
   vLinks.clearLayers();
+  if (S.view === "graph") veh = Object.fromEntries(Object.entries(veh).map(([k, v]) => [k, v.position ? {...v, position: graphPos(v.position)} : v]));
   const vs = Object.values(veh).filter(v => v.position);
   const pts = vs.map(v => map.latLngToLayerPoint([v.position.lat, v.position.lon]));
   const groups = [];
@@ -503,7 +622,7 @@ function drawRoute(route){
   if (!route || !route.legs) return;
   if (S.view === "map"){
     for (const leg of route.legs){
-      const geo = roadInfo[leg.road_id]?.geometry; if (!geo) continue;
+      const geo = leg.to_point ? tailGeo(leg) : roadInfo[leg.road_id]?.geometry; if (!geo) continue;
       const done = leg.state === "DONE", cur = leg.state === "CURRENT";
       L.polyline(geo, {color: done ? css("--done") : css("--route"), weight: cur ? 7 : 5, opacity: done ? .7 : .95, renderer})
         .bindTooltip(`${esc(leg.name || leg.road_id)} · ${km(leg.distance_m)} · ${dur(leg.travel_s)}${leg.congestion > 1 ? ` · 혼잡 ×${leg.congestion}` : ""}${leg.blocked ? " · 통제" : ""}`, {className: "rt", sticky: true})
@@ -527,19 +646,32 @@ function drawRoute(route){
   routeNodeLabels(route);
 }
 
+// 도로 위 지점 주행의 꼬리 구간: 들어가는 끝 노드에서 도로를 따라 지점까지만
+function tailGeo(leg){
+  if (!roadInfo[leg.road_id]?.geometry || !NODE[leg.from]) return null;
+  const line = routeLine({legs: [{road_id: leg.road_id, from: leg.from}]});
+  const s = projectOn(line, leg.to_point).s, out = [];
+  for (let i = 0; i < line.pts.length && line.cum[i] < s; i++) out.push(line.pts[i]);
+  out.push([leg.to_point.lat, leg.to_point.lon]);
+  return out.length >= 2 ? out : null;
+}
+
 // 경로 위 노드 라벨: 남은 구간만, 교차로에서 누적 시간이 간격(5분 또는 전체의 1/6) 이상 늘 때마다 한 번 + 목적지
 function routeNodeLabels(route){
   const rest = route.legs.filter(l => l.state !== "DONE");
   if (!rest.length) return;
-  const last = rest[rest.length - 1].to;
+  const endLeg = rest[rest.length - 1], last = endLeg.to;
   const total = rest.reduce((a, l) => a + (l.travel_s || 0), 0);
   const gap = Math.max(300, total / 6);                // 라벨은 많아야 6개 남짓 (5분 이상 간격)
   let acc = 0, lastMark = 0, k = 0;
   for (const l of rest){
     acc += l.travel_s || 0;
-    const n = NODE[l.to]; if (!n) continue;
-    const isEnd = l.to === last;
+    const isEnd = l === endLeg;
+    const n = isEnd && l.to_point ? l.to_point : NODE[l.to]; if (!n) continue;
     if (!isEnd && (!JUNCTION.has(l.to) || acc - lastMark < gap || total - acc < gap / 2)) continue;
+    if (isEnd && l.to_point) { lastMark = acc; L.tooltip({permanent: true, direction: "right", offset: [8, 0], className: "tlab CURRENT", interactive: false})
+      .setLatLng([n.lat, n.lon]).setContent(`도착(도로 위) · ${durS(acc)}`).addTo(layers.route);
+      L.circleMarker([n.lat, n.lon], {radius: 6, color: "#fff", weight: 2, fillColor: css("--route"), fillOpacity: 1, renderer, interactive: false}).addTo(layers.route); continue; }
     lastMark = acc; k++;
     L.tooltip({permanent: true, direction: "right", offset: [8, 0], className: `tlab ${isEnd ? "CURRENT" : ""}`, interactive: false})
       .setLatLng([n.lat, n.lon]).setContent(`${isEnd ? "도착" : k} · ${durS(acc)}`).addTo(layers.route);
@@ -557,8 +689,16 @@ function highlight(refs){
     L.polyline(g, {color: css("--hl"), weight: 3, opacity: 1, renderer, interactive: false}).addTo(layers.hl);
     pts.push(...g);
   }
+  for (let g of refs.lines || []){                // 도로 일부만 (꼬리 구간)
+    if (S.view === "graph") g = g.map(q => { const r = graphPos({lat: q[0], lon: q[1]}); return [r.lat, r.lon]; });
+    L.polyline(g, {color: css("--hl"), weight: 12, opacity: .45, renderer, interactive: false}).addTo(layers.hl);
+    L.polyline(g, {color: css("--hl"), weight: 3, opacity: 1, renderer, interactive: false}).addTo(layers.hl);
+    pts.push(...g);
+  }
   for (const n of refs.points || []){
     L.circleMarker([n.lat, n.lon], {radius: 13, color: css("--hl"), weight: 3, fill: false, renderer, interactive: false}).addTo(layers.hl);
+    if (n.label) L.tooltip({permanent: true, direction: "top", offset: [0, -14], className: "tlab hl", interactive: false})
+      .setLatLng([n.lat, n.lon]).setContent(esc(n.label)).addTo(layers.hl);
     pts.push([n.lat, n.lon]);
   }
   if (pts.length && refs.fly){
@@ -577,7 +717,7 @@ function vehicleRows(st){
   if (S.mode === "live" && S.live.veh) return S.live.veh.map(v => ({...v, _live: true}));
   return Object.values(st.veh).map(v => {
     const route = st.routes[v.resource_id];
-    let place = {at_node: v.current_node};
+    let place = v.parked ? {point: true, road_id: v.parked.road_id, road_name: roadInfo[v.parked.road_id]?.name} : {at_node: v.current_node};
     if (v.road && route){ const leg = route.legs?.find(l => l.road_id === v.road); if (leg) place = {road_id: v.road, road_name: leg.name, from: leg.from, to: leg.to}; }
     return {resource_id: v.resource_id, resource_type: v.resource_type, base: v.base, state: v.state, position: v.position,
       current_node: v.current_node, place, task: v.task ? {task_id: v.task, phase: v.phase, target_node: v.target || route?.target,
@@ -592,12 +732,12 @@ function drawVehicleList(rows){
   const now = curTime();
   el.innerHTML = rows.map(v => {
     const t = v.task, p = v.place || {};
-    const where = p.road_id ? `${esc(p.road_name || "도로")} <span style="color:var(--dim)">(${esc(p.from)} → ${esc(p.to)})</span>` : `노드 ${nodeLabel(p.at_node || v.current_node, v.current_node_name)}`;
+    const where = p.point ? `${esc(p.road_name || "도로")} 위 지점에 정차` : p.road_id ? `${esc(p.road_name || "도로")} <span style="color:var(--dim)">(${esc(p.from)} → ${esc(p.to || "도로 위 지점")})</span>` : `노드 ${nodeLabel(p.at_node || v.current_node, v.current_node_name)}`;
     let lines;
     if (t){
       const ph = PHASE_KO[t.phase] || (t.status === "STARTED" ? "출발" : t.phase || "진행");
       lines = `<div class="ln"><b>${esc(ph)}</b> · ${where}</div>
-        <div class="ln">목적지 ${nodeLabel(t.target_node, t.target_name)} · 남은 <b>${durS(t.eta_remaining_s)}</b>${t.started_sim_s != null && now != null ? ` · 경과 ${durS(now - t.started_sim_s)}` : ""}${t.reroutes ? ` · 재탐색 ${t.reroutes}` : ""}</div>
+        <div class="ln">목적지 ${t.stop_point ? esc(t.target_name) : nodeLabel(t.target_node, t.target_name)} · 남은 <b>${durS(t.eta_remaining_s)}</b>${t.started_sim_s != null && now != null ? ` · 경과 ${durS(now - t.started_sim_s)}` : ""}${t.reroutes ? ` · 재탐색 ${t.reroutes}` : ""}</div>
         <div class="ln dim">${esc(t.task_id)}${t.purpose ? " · " + esc(t.purpose) : ""}</div>`;
     } else {
       lines = `<div class="ln dim">${v.state === "UNAVAILABLE" ? "이상 — /stop 으로 해제 필요" : "임무 없음"} · ${where}</div>`;
@@ -624,11 +764,12 @@ function drawLegs(route, eta){
   if (!route || !route.legs || !route.legs.length) return empty(`${S.sel}: 주행 중인 경로 없음`);
   const legs = route.legs, rest = legs.filter(l => l.state !== "DONE");
   const restT = rest.reduce((a, l) => a + (l.travel_s || 0), 0), restM = rest.reduce((a, l) => a + (l.distance_m || 0), 0);
-  $("#legSum").innerHTML = `목적지 <b>${esc(route.target || route.target_node || "?")}</b> · 구간 ${legs.length}개 · 남은 <b>${km(restM)}</b> / <b>${dur(restT)}</b>` +
+  const tailLeg = legs.find(l => l.to_point);
+  $("#legSum").innerHTML = `목적지 <b>${tailLeg ? esc((roadInfo[tailLeg.road_id]?.name || tailLeg.road_id) + " 위 지점") : esc(route.target || route.target_node || "?")}</b> · 구간 ${legs.length}개 · 남은 <b>${km(restM)}</b> / <b>${dur(restT)}</b>` +
     (eta != null ? ` <span title="차량이 보고한 남은 시간">(보고 ${dur(eta)})</span>` : "");
   const groups = groupLegs(legs);
   tb.innerHTML = groups.map((g, i) => `<tr class="${g.state} ${g.blocked ? "blk" : ""}" data-roads="${esc(g.roads.join(","))}">
-    <td>${i+1}</td><td class="n" title="${esc(g.name)} · ${esc(g.from)} → ${esc(g.to)}">${esc(g.name)}${g.n > 1 ? `<small>${g.n}</small>` : ""}</td>
+    <td>${i+1}</td><td class="n" title="${esc(g.name)} · ${esc(g.from)} → ${esc(g.to || "도로 위 지점")}">${esc(g.name)}${g.n > 1 ? `<small>${g.n}</small>` : ""}</td>
     <td class="num">${km(g.distance_m)}</td><td class="num">${g.blocked ? "통제" : dur(g.travel_s)}</td>
     <td class="num">${g.congestion > 1 ? `<span class="k ${trafficOf(g.congestion).cls}">${trafficOf(g.congestion).label}</span> ×${g.congestion}` : ""}</td></tr>`).join("");
   tb.querySelectorAll("tr").forEach(tr => {
@@ -644,7 +785,7 @@ function drawLegs(route, eta){
 
 // ---------------------------------------------------------------- 기록: 출동 하나 = 한 묶음
 const TYPE = {
-  RUN_START: ["실행 시작", "info"], ROAD_STATE: ["도로 상황 변화", "road"], ROUTE: ["경로 확정", "info"],
+  RUN_START: ["실행 시작", "info"], CLOCK: ["환경 시계 연결", "info"], ROAD_STATE: ["도로 상황 변화", "road"], ROUTE: ["경로 확정", "info"],
   UGV_EVALUATED: ["수행 가능성 평가", "info"], UGV_TASK_STARTED: ["출발", "ok"], UGV_PROGRESS: ["진행", "info"],
   UGV_REROUTED: ["재탐색(우회)", "warn"], UGV_ARRIVED: ["도착", "ok"], UGV_TASK_FAILED: ["임무 실패", "bad"],
   UGV_TASK_CANCELLED: ["임무 중단", "warn"], RESOURCE_CHANGED: ["자원 상태 변화", "info"],
@@ -662,6 +803,7 @@ function prevRoadState(e){
 function describe(e){
   const d = e.data || {};
   switch (e.type){
+    case "CLOCK": return `시나리오 시작 ${esc((d.scenario_start_kst || "?").replace("T", " "))} · 환경 실행 ${esc(d.env_run_id || "?")}`;
     case "RUN_START": return `${d.driver} · 배율 ${d.time_scale} · 시나리오 ${d.scenario || "없음"} · 차량 ${(d.resources||[]).length}대`;
     case "ROAD_STATE": {
       const p = prevRoadState(e);
@@ -681,13 +823,13 @@ function describe(e){
     case "ROUTE": { const t = (d.legs||[]).reduce((a,l) => a + (l.travel_s||0), 0);
       return `→ ${esc(d.target_node)} · 구간 ${(d.legs||[]).length}개 · ${km((d.legs||[]).reduce((a,l)=>a+(l.distance_m||0),0))} · ${dur(t)}${d.why === "UGV_REROUTED" ? " (우회 경로)" : ""}`; }
     case "UGV_EVALUATED": return `${esc(d.verdict)}${d.eta_sec != null ? ` · ETA ${dur(d.eta_sec)}` : ""}${d.reason ? ` · ${esc(d.reason)}` : ""}${d.target_node ? ` · 목표 ${esc(d.target_node)}` : ""}`;
-    case "UGV_TASK_STARTED": return `목표 ${esc(d.target_node)} · ETA ${dur(d.eta_sec)}`;
+    case "UGV_TASK_STARTED": return `목표 ${d.stop_point ? esc(roadInfo[d.stop_point.road_id]?.name || d.stop_point.road_id) + " 위 지점 (" + esc(d.target_node) + " 로 진입)" : esc(d.target_node)} · ETA ${dur(d.eta_sec)}`;
     case "UGV_PROGRESS": return `${PHASE_KO[d.phase] || esc(d.phase)} · ${esc(roadName(d.current_road_id))} · 남은 ${km(d.remaining_m)} / ${dur(d.eta_remaining_sec)}`;
     case "UGV_REROUTED": return `막힘 ${esc(roadName(d.blocked_road_id))} → 새 경로, 남은 ${dur(d.eta_remaining_sec)}`;
     case "UGV_ARRIVED": {
       const st = S.events.find(x => x.type === "UGV_TASK_STARTED" && x.task_id === e.task_id);
       const el = st && e.sim_time_s != null ? ` · 경과 ${durS(e.sim_time_s - st.sim_time_s)}` : "";
-      return `${esc(d.target_node)} 도착${d.already_there ? " (이미 그 자리)" : el}`;
+      return `${d.stop_point ? esc(roadInfo[d.stop_point.road_id]?.name || d.stop_point.road_id) + " 위 지점" : esc(d.target_node)} 도착${d.already_there ? " (이미 그 자리)" : el}`;
     }
     case "UGV_TASK_FAILED": return `${esc(d.reason)} — ${esc(d.error)}`;
     case "UGV_TASK_CANCELLED": return `${esc(d.reason || "")}`;
@@ -702,19 +844,30 @@ function describe(e){
 }
 
 function refsOf(e){
-  const d = e.data || {}, roads = new Set(d.roads || []), points = [];
+  const d = e.data || {}, roads = new Set(d.roads || []), points = [], lines = [];
   if (d.blocked_road_id) roads.add(d.blocked_road_id);
   if (d.current_road_id) roads.add(d.current_road_id);
-  if (e.type === "ROUTE") (d.legs || []).forEach(l => roads.add(l.road_id));
+  // 경로: 도로 위 지점 주행의 꼬리 구간은 도로 전체가 아니라 들어가는 끝 노드 ~ 지점까지만
+  const tail = e.type === "ROUTE" ? (d.legs || []).find(l => l.to_point) : null;
+  if (e.type === "ROUTE") (d.legs || []).forEach(l => { if (l.to_point){ const g = tailGeo(l); if (g) lines.push(g); } else roads.add(l.road_id); });
   if (e.type === "ROAD_STATE"){
     const p = prevRoadState(e) || {blocked: [], congested: {}}, pb = new Set(p.blocked || []);
     (d.blocked || []).filter(x => !pb.has(x)).forEach(x => roads.add(x));
     [...pb].filter(x => !(d.blocked || []).includes(x)).forEach(x => roads.add(x));
   }
-  if (d.position && !["RUN_START","ROAD_STATE"].includes(e.type)) points.push(d.position);
-  for (const n of d.nodes || []) if (n.lat != null) points.push(n);
-  if (d.target_node && NODE[d.target_node]) points.push(NODE[d.target_node]);
-  return {roads: [...roads], points, fly: true};
+  // 점마다 이름표: 출발 행은 출발·목적지 두 점이 같은 모양이라 구별이 필요하다
+  const add = (q, label) => {
+    const same = points.find(x => Math.abs(x.lat - q.lat) < 1e-5 && Math.abs(x.lon - q.lon) < 1e-5);
+    if (same){ if (label && same.label !== label) same.label = same.label ? `${same.label}·${label}` : label; return; }
+    points.push({lat: q.lat, lon: q.lon, label});
+  };
+  if (d.position && !["RUN_START","ROAD_STATE"].includes(e.type))
+    add(d.position, e.type === "UGV_TASK_STARTED" ? "출발" : e.type === "UGV_ARRIVED" ? "도착" : "그때 위치");
+  for (const n of d.nodes || []) if (n.lat != null) add(n, n.label || null);
+  const sp = d.stop_point || tail?.to_point;
+  if (sp) add(sp, e.type === "UGV_ARRIVED" ? "도착 (도로 위)" : "목적지 (도로 위)");
+  else if (d.target_node && NODE[d.target_node]) add(NODE[d.target_node], e.type === "UGV_ARRIVED" ? "도착" : "목적지");
+  return {roads: [...roads], lines, points, fly: true};
 }
 const focusRefs = () => { const e = S.events.find(x => x.seq === S.focusSeq); return e ? {...refsOf(e), fly: false} : null; };
 
@@ -737,14 +890,32 @@ function buildEntries(){
       g.events.push(e);
     } else entries.push({kind: "event", e, seq: e.seq, t0: e.sim_time_s});
   }
-  return entries;
+  // 이미 그 자리라 움직이지 않고 끝난 출동(already_there)이 같은 차·같은 지점으로 되풀이되면 한 줄로 묶는다.
+  // (총괄이 같은 임무를 계속 다시 보내는 경우 — 예: 드론이 못 가는 동안 지상 차량에 ENV_SENSE 반복)
+  const out = [], rep = {};
+  for (const x of entries){
+    if (x.kind !== "group"){ out.push(x); continue; }
+    const arr = x.events.find(e => e.type === "UGV_ARRIVED");
+    const instant = arr?.data?.already_there && !x.events.some(e => e.type === "UGV_TASK_STARTED");
+    const rid = x.events.find(e => e.resource_id)?.resource_id;
+    if (!instant){ if (rid) for (const k of Object.keys(rep)) if (k.startsWith(rid + "|")) delete rep[k]; out.push(x); continue; }
+    const sp = arr.data.stop_point, k = `${rid}|${sp ? sp.road_id + ":" + sp.lat : arr.data.target_node}`;
+    const r = rep[k];
+    if (r){ r.events.push(...x.events); r.count++; r.t1 = x.t0; r.keys.push(x.key); continue; }
+    const g = {...x, events: [...x.events], count: 1, t1: x.t0, keys: [x.key]};
+    rep[k] = g; out.push(g);
+  }
+  return out;
 }
 
 function summarize(g, now){
   const ev = g.events, by = t => ev.filter(e => e.type === t);
   const start = by("UGV_TASK_STARTED")[0], evals = by("UGV_EVALUATED"), cmd = by("VIEW_COMMAND")[0], disp = by("VIEW_DISPATCH")[0];
   const rid = ev.find(e => e.resource_id)?.resource_id || disp?.data?.assigned || "";
-  const target = start?.data?.target_node || cmd?.data?.node_id || evals[0]?.data?.target_node || disp?.data?.node_id;
+  const arr = by("UGV_ARRIVED")[0];
+  const sp = start?.data?.stop_point || cmd?.data?.stop_point || evals[0]?.data?.stop_point || arr?.data?.stop_point;
+  const target = sp ? null : start?.data?.target_node || cmd?.data?.node_id || evals[0]?.data?.target_node || disp?.data?.node_id || arr?.data?.target_node;
+  const targetText = sp ? `${esc(roadInfo[sp.road_id]?.name || sp.road_id)} 위 지점` : null;
   const endE = ev.find(e => ["UGV_ARRIVED","UGV_TASK_FAILED","UGV_TASK_CANCELLED"].includes(e.type));
   const rr = by("UGV_REROUTED");
   let status, cls;
@@ -758,7 +929,7 @@ function summarize(g, now){
   const t0 = start?.sim_time_s ?? g.t0, t1 = endE ? endE.sim_time_s : now;
   const eta0 = start?.data?.eta_sec;
   const etaChanges = rr.map(e => e.data?.eta_remaining_sec).filter(x => x != null);
-  return {rid, target, status, cls, origin, elapsed: t1 != null && t0 != null ? t1 - t0 : null, eta0, etaChanges, reroutes: rr.length, done: !!endE, t0, t1};
+  return {rid, target, targetText, status, cls, origin, elapsed: t1 != null && t0 != null ? t1 - t0 : null, eta0, etaChanges, reroutes: rr.length, done: !!endE, t0, t1};
 }
 
 let lastLogSig = "";
@@ -781,12 +952,13 @@ function drawLog(t){
   box.innerHTML = entries.length ? entries.map(x => {
     if (x.kind === "event") return evRow(x.e);
     const s = summarize(x, now), open = S.open.has(x.key), fut = t != null && x.t0 > t;
-    const members = x.events.filter(e => e.type !== "UGV_PROGRESS" || $("#fProg").checked);
+    const members = x.count > 1 ? x.events.filter(e => e.type === "UGV_ARRIVED").slice(-20)     // 반복은 최근 20번만
+                                : x.events.filter(e => e.type !== "UGV_PROGRESS" || $("#fProg").checked);
     const etaTxt = !s.done && s.eta0 != null ? `ETA ${durS(s.eta0)}${s.etaChanges.length ? " → " + s.etaChanges.map(durS).join(" → ") : ""}` : "";
     return `<div class="grp ${open ? "open" : ""} ${fut ? "future" : ""}" data-key="${esc(x.key)}">
       <div class="gh"><div>
-        <div class="gt"><span class="ar">${open ? "▼" : "▶"}</span><span class="t">${hms(x.t0)}</span><b>${esc(s.rid || "?")}</b><span>→ ${s.target ? nodeLabel(s.target) : "?"}</span><span class="badge ${s.cls}">${esc(s.status)}</span></div>
-        <div class="gm"><span>${esc(x.key)}</span><span>${esc(s.origin)}</span>${etaTxt ? `<span>${etaTxt}</span>` : ""}${s.t0 != null && s.done ? `<span>경과 ${durS(s.elapsed)}</span>` : ""}${s.reroutes ? `<span style="color:var(--warn)">변경: 재탐색 ${s.reroutes}회</span>` : ""}</div>
+        <div class="gt"><span class="ar">${open ? "▼" : "▶"}</span><span class="t">${hms(x.t0)}</span><b>${esc(s.rid || "?")}</b><span>→ ${s.targetText || (s.target ? nodeLabel(s.target) : "?")}</span><span class="badge ${s.cls}">${x.count > 1 ? `반복 관측 ×${x.count}` : esc(s.status)}</span></div>
+        <div class="gm">${x.count > 1 ? `<span>${hms(x.t0)} ~ ${hms(x.t1)} · 매번 이미 그 자리 (움직이지 않음) · 총괄이 같은 임무를 다시 보냄</span>` : `<span>${esc(x.key)}</span>`}<span>${esc(s.origin)}</span>${etaTxt ? `<span>${etaTxt}</span>` : ""}${s.t0 != null && s.done && !(x.count > 1) ? `<span>경과 ${durS(s.elapsed)}</span>` : ""}${s.reroutes ? `<span style="color:var(--warn)">변경: 재탐색 ${s.reroutes}회</span>` : ""}</div>
       </div></div>
       <div class="body">${open ? members.map(evRow).join("") : ""}</div></div>`;
   }).join("") : `<div class="empty">기록 없음</div>`;
@@ -827,11 +999,32 @@ function drawScenario(rs){
   const rule = (r, on) => `<div class="rule ${on ? "on" : ""}"><div class="h"><b>${esc({road:"도로 통제",node:"노드 통제",congestion:"혼잡"}[r.kind] || r.kind)}${r.value ? " ×" + r.value : ""}</b>
     <span class="t">${typeof r.start === "number" ? hms(r.start) : esc(r.start)}–${r.end == null ? "끝" : typeof r.end === "number" ? hms(r.end) : esc(r.end)}</span></div>
     <div class="d">${esc(r.note || "")}</div><div class="r">${(r.targets || []).map(x => esc(roadInfo[x]?.name ? roadName(x) : x)).join(", ")}</div></div>`;
+  // 규칙 밖 통제: 시나리오가 아닌 출처(manual = API 직접, cells = 구역 통제)로 막힌 도로. 출처별로 묶는다
+  const SRC_KO = {manual: "수동 통제", cells: "구역 통제"};
+  const outside = {};
+  for (const id of rs.blocked || []){
+    const srcs = (rs.blocked_by || {})[id] || ["?"];
+    for (const src of srcs){
+      if (src.startsWith("scenario")) continue;
+      const [base, node] = src.split("-node:");
+      const k = node ? `${base}|${node}` : base;
+      (outside[k] = outside[k] || {base, node, roads: []}).roads.push(id);
+    }
+  }
+  const extra = Object.values(outside);
+  const xcard = (x, i) => `<div class="rule on xrule" data-i="${i}"><div class="h"><b>${esc(SRC_KO[x.base] || "출처 미상")}${x.node ? " · 노드" : ""}</b><span class="t">해제 전까지</span></div>
+    <div class="d">${x.base === "manual" ? "관제 API 로 직접 막음 (시나리오 규칙 아님)" : x.base === "cells" ? "격자 칸 묶음으로 막음 (시나리오 규칙 아님)" : "기록에 출처 없음"}</div>
+    <div class="r">${x.node ? `노드 ${esc(x.node)} — ` : ""}${x.roads.map(r => esc(roadInfo[r]?.name ? roadName(r) : r)).join(", ")}</div></div>`;
   box.innerHTML = `<h2>지금 도로</h2><div class="sum" style="margin:0 12px 6px">통제 도로 <b>${nb}</b> · 경유 불가 노드 <b>${nn}</b> · 혼잡 도로 <b>${cong.length}</b></div>
     ${cong.length ? `<div class="sum" style="margin:0 12px 8px">${cong.slice(0, 8).map(([id, c]) => { const tr = trafficOf(c); return `<span class="k ${tr.cls}">${tr.label}</span> ${esc(roadName(id))} ×${c}`; }).join("<br>")}${cong.length > 8 ? "<br>…" : ""}</div>` : ""}
-    <h2>켜진 규칙</h2>${active.length ? active.map(r => rule(r, true)).join("") : `<div class="empty">없음 — 도로 전부 열림</div>`}
+    ${extra.length ? `<h2>규칙 밖 통제</h2>${extra.map(xcard).join("")}` : ""}
+    <h2>켜진 규칙</h2>${active.length ? active.map(r => rule(r, true)).join("") : `<div class="empty">${nb || cong.length ? "없음 — 시나리오 규칙으로 바뀐 도로 없음" : "없음 — 도로 전부 열림"}</div>`}
     ${S.mode === "live" ? `<h2>예정</h2>${upcoming.length ? upcoming.map(r => rule(r, false)).join("") : `<div class="empty">없음</div>`}` : ""}`;
-  box.querySelectorAll(".rule").forEach((d, i) => d.onclick = () => {
+  box.querySelectorAll(".xrule").forEach(d => d.onclick = () => {
+    const x = extra[+d.dataset.i]; if (!x) return;
+    highlight({roads: x.roads, points: x.node && NODE[x.node] ? [{...NODE[x.node], label: "통제 노드"}] : [], fly: true});
+  });
+  box.querySelectorAll(".rule:not(.xrule)").forEach((d, i) => d.onclick = () => {
     const r = [...active, ...upcoming][i]; if (!r) return;
     highlight({roads: r.kind === "node" ? r.targets.flatMap(n => rs.blocked_nodes?.[n] || []) : r.targets, points: r.kind === "node" ? r.targets.map(n => NODE[n]).filter(Boolean) : [], fly: true});
   });
@@ -850,22 +1043,50 @@ function openNode(n, at){
             <div class="q">이 노드로 바꾸시겠습니까?</div><button data-a="replace">바꾸기 (정지 후 출동)</button><button data-a="cancel">취소</button>`
          : `<div class="q">이 노드로 보내시겠습니까?</div><button data-a="go">출동</button><button data-a="cancel">취소</button>`) +
       `<div class="res"></div><div class="note">운영자 직접 명령 — 총괄 Safety 를 거치지 않는다. 총괄이 맡긴 임무를 바꾸면 그 임무는 실패(운영자 교체)로 닫혀 총괄이 다른 자원에 인계한다. 차 선택을 풀면 총괄에 요청하는 방식이 된다.</div>`;
-    el.querySelectorAll("button").forEach(b => b.onclick = () => b.dataset.a === "cancel" ? map.closePopup() : commandTo(v, n, b.dataset.a === "replace", el));
+    el.querySelectorAll("button").forEach(b => b.onclick = () => b.dataset.a === "cancel" ? map.closePopup() : commandTo(v, {node_id: n.node_id}, b.dataset.a === "replace", el));
   } else {
     el.innerHTML = head + `<button data-t="UGV">UGV 출동 요청</button><button data-t="FIRE_ENGINE">소방차 출동 요청</button>
       <div class="res">총괄에 이 지점까지 이동 임무를 요청한다 (도착하면 완료). 어느 차가 갈지·승인은 총괄이 정한다.</div>
       <div class="note">특정 차에 시키려면 왼쪽에서 차를 먼저 고른다.</div>`;
-    el.querySelectorAll("button").forEach(b => b.onclick = () => dispatchTo(n, b.dataset.t, el));
+    el.querySelectorAll("button").forEach(b => b.onclick = () => dispatchTo({node_id: n.node_id}, b.dataset.t, el));
   }
   L.popup({maxWidth: 300}).setLatLng(at).setContent(el).openOn(map);
 }
 
-async function commandTo(v, n, replace, el){
+// 도로를 누르면: 그 도로 위 지점(노드가 아닌 도로 중간)으로 명령·출동 — 긴 도로 중간 계측용 (ugv/road_point.py)
+function openRoadPoint(id, at){
+  const r = roadInfo[id]; if (!r) return;
+  const line = routeLine({legs: [{road_id: id}]}), pr = projectOn(line, {lat: at.lat, lng: at.lng, lon: at.lng});
+  const pt = pointAt(line, pr.s), here = L.latLng(pt.lat, pt.lon);
+  highlight({roads: [], points: [{lat: pt.lat, lon: pt.lon, label: "도로 위 지점"}]});
+  const el = document.createElement("div"); el.className = "np";
+  const head = `<b>${esc(r.name || "도로")} 위 지점</b><div class="r">도로 ${esc(id)} · ${pt.lat.toFixed(5)}, ${pt.lon.toFixed(5)}</div>`;
+  const where = {point: {lat: pt.lat, lon: pt.lon}};
+  if (S.mode !== "live"){ el.innerHTML = head + `<div class="res">과거 실행 재생 중에는 명령할 수 없다.</div>`; L.popup({maxWidth: 300}).setLatLng(here).setContent(el).openOn(map); return; }
+  const v = S.sel && (S.live.veh || []).find(x => x.resource_id === S.sel);
+  if (v){
+    const t = v.task;
+    el.innerHTML = head + `<div><b>${esc(v.resource_id)}</b> 에 명령 — 이 도로 위 지점에 선다</div>` +
+      (t ? `<div class="cur">현재 임무 <b>${esc(t.task_id)}</b><br>목적지 ${nodeLabel(t.target_node, t.target_name)} · 남은 ${durS(t.eta_remaining_s)}<br>작전 이유: ${esc(t.purpose || "-")}</div>
+            <div class="q">이 지점으로 바꾸시겠습니까?</div><button data-a="replace">바꾸기 (정지 후 출동)</button><button data-a="cancel">취소</button>`
+         : `<div class="q">이 지점으로 보내시겠습니까?</div><button data-a="go">출동</button><button data-a="cancel">취소</button>`) +
+      `<div class="res"></div><div class="note">도로 양 끝 중 빨리 닿는 쪽으로 들어가 도로를 따라 이 지점에 선다. 같은 지점으로 다시 보내면 움직이지 않고 바로 완료(반복 관측). 이 도로가 통제되면 갈 수 없다.</div>`;
+    el.querySelectorAll("button").forEach(b => b.onclick = () => b.dataset.a === "cancel" ? map.closePopup() : commandTo(v, where, b.dataset.a === "replace", el));
+  } else {
+    el.innerHTML = head + `<button data-t="UGV">UGV 출동 요청</button><button data-t="FIRE_ENGINE">소방차 출동 요청</button>
+      <div class="res">총괄에 이 지점까지 이동 임무를 요청한다. 총괄은 90 m 칸 중심으로 보내며, 차가 도로 위 지점에 서는 건 UGV 서버가 UGV_TARGET_MODE=road_point 일 때다 (아니면 가장 가까운 노드).</div>
+      <div class="note">특정 차를 이 지점에 세우려면 왼쪽에서 차를 먼저 고른다.</div>`;
+    el.querySelectorAll("button").forEach(b => b.onclick = () => dispatchTo(where, b.dataset.t, el));
+  }
+  L.popup({maxWidth: 300}).setLatLng(here).setContent(el).openOn(map).on("remove", () => highlight(focusRefs()));
+}
+
+async function commandTo(v, where, replace, el){
   const res = el.querySelector(".res");
   el.querySelectorAll("button").forEach(b => b.disabled = true);
   res.className = "res"; res.textContent = replace ? "정지 후 평가·출동 중…" : "평가·출동 중…";
   try {
-    const r = await post("/view/command", {resource_id: v.resource_id, node_id: n.node_id, replace});
+    const r = await post("/view/command", {resource_id: v.resource_id, ...where, replace});
     const j = r.body || {};
     if (r.status === 200 && j.verdict === "ACCEPT"){
       res.className = "res ok"; res.innerHTML = `출발 ${esc(j.task_id)} · ETA ${durS(j.eta_sec)}${j.replaced_task ? `<br>교체된 임무: ${esc(j.replaced_task)}` : ""}`;
@@ -879,12 +1100,12 @@ async function commandTo(v, n, replace, el){
   pollLive();
 }
 
-async function dispatchTo(n, type, el){
+async function dispatchTo(where, type, el){
   const res = el.querySelector(".res");
   el.querySelectorAll("button").forEach(b => b.disabled = true);
   res.className = "res"; res.textContent = "총괄에 요청 중…";
   try {
-    const r = await post("/view/dispatch", {node_id: n.node_id, resource_type: type});
+    const r = await post("/view/dispatch", {...where, resource_type: type});
     const j = r.body || {}, o = j.response || {}, t = o.task || {}, dp = o.dispatch || {};
     if (j.orch_http === 202 || j.orch_http === 200){
       res.className = "res ok";
@@ -943,7 +1164,8 @@ function render(){
   const rows = vehicleRows(st);
   drawRoads(st.road);
   const vmap = {}; rows.forEach(r => vmap[r.resource_id] = r);
-  drawVehicles(vmap);
+  if (S.mode === "live"){ if (S._livePolled){ S._livePolled = false; liveTarget(vmap, st.routes); } lastVmap = vmap; drawVehicles(animatedVmap(vmap, performance.now())); }
+  else { lastVmap = null; drawVehicles(vmap); }
   drawVehicleList(rows);
   let route = S.sel ? st.routes[S.sel] : null;
   const selRow = S.sel ? vmap[S.sel] : null;
@@ -955,7 +1177,10 @@ function render(){
   drawLog(t);
   drawScenario(st.road);
   drawBases();
-  $("#clock").innerHTML = `${S.mode === "live" ? "실시간" : "재생"} <b>${hms(curTime())}</b>`;
+  for (const e of S.events) if (e.type === "CLOCK" && e.data?.scenario_start_kst) setStart(e.data.scenario_start_kst);
+  const ct = curTime();
+  $("#clock").innerHTML = `${S.mode === "live" ? "LIVE" : "재생"} ${START ? `${dateOf()} ` : "경과 "}<b>${hms(ct)}</b>`;
+  $("#clock").title = START ? `시나리오 시각 (시작 ${START.iso}) · 시작 후 ${elapsed(ct)}` : "시나리오 시작 시각을 모름 (환경 서버 미연결) — 서버 시작 후 경과 시간";
   $("#clock").classList.toggle("live", S.mode === "live");
   const start = S.events.find(e => e.type === "RUN_START");
   $("#scen").innerHTML = `시나리오 <b>${esc(start?.data?.scenario || "없음")}</b>`;
@@ -992,6 +1217,7 @@ function frame(now){
     if (S.t >= S.tMax) pausePlay();
     if (now - lastRender > 120){ lastRender = now; render(); }
   }
+  if (S.mode === "live" && lastVmap && Object.values(anim).some(a => now - a.t0 < a.dur + 50)) drawVehicles(animatedVmap(lastVmap, now));
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -1038,10 +1264,10 @@ async function pollLive(){
   try {
     const [hist, veh, scen] = await Promise.all([
       S.runId ? get(`/history/runs/${encodeURIComponent(S.runId)}?after=${S.after}`) : null,
-      get("/view/vehicles"), get("/scenario").catch(() => null)]);
+      get("/view/vehicles"), get("/scenario").catch(() => null), get("/clock").then(c => setStart(c.scenario_start_kst)).catch(() => null)]);
     if (S.mode !== "live") return;
     if (hist){ S.events.push(...hist.events); S.after = hist.next_after; }
-    S.live.veh = veh; S.live.scenario = scen && scen.name ? scen : null;
+    S.live.veh = veh; S.live.scenario = scen && scen.name ? scen : null; S._livePolled = true;
     await pollRoute();
     render();
   } catch (err) {

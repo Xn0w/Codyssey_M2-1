@@ -8,6 +8,7 @@ import os
 # max_speed_mps: 차량 최고속도(시뮬레이션 초당 m). ETA = 도로별 min(도로 제한속도, 이 값) 으로 계산한다.
 #   r1_rover 2.1 (RO_MAX_THR_SPEED), rover_ackermann 3.1, lawnmower 2.7 — PX4 v1.16 기본 파라미터 기준.
 #   실제 소방차(수십 km/h)가 아니라 Gazebo 차량 속도에 맞춘 값이다. 실제 시간감은 UGV_TIME_SCALE 로 맞춘다.
+# sim_speed_mps: sim 드라이버(PX4 없이)로 달릴 때만 쓰는 속도. 없으면 max_speed_mps. ETA 도 같은 값으로 낸다.
 # 스폰 위치는 ugv/data/road_network.json 의 spawn[resource_id] (build_road_network.py 가 계산).
 RESOURCES = [
     {"resource_id": "A-ugv1",  "resource_type": "UGV",
@@ -15,7 +16,8 @@ RESOURCES = [
     # 소방차도 r1_rover 기반 (2026-10-03 WSL): rover_ackermann 은 명령 없이(disarm 상태) 조향된 채 굴러가
     # 도로 밖으로 떨어졌다. 경광등·방수포는 px4-start.sh 가 r1_rover 위에 붙인다 (ugv/gazebo/fire_truck)
     {"resource_id": "A-fire1", "resource_type": "FIRE_ENGINE",
-     "base": "A", "home_node": "A", "px4_instance": 3, "px4_model": "r1_rover", "max_speed_mps": 2.0},
+     "base": "A", "home_node": "A", "px4_instance": 3, "px4_model": "r1_rover", "max_speed_mps": 2.0,
+     "sim_speed_mps": 11.0},   # sim 주행일 때만: 산간 도로 출동 평균 약 40 km/h (PX4 는 r1_rover 라 2.0 그대로)
     {"resource_id": "B-ugv1",  "resource_type": "UGV",
      "base": "B", "home_node": "B", "px4_instance": 2, "px4_model": "r1_rover", "max_speed_mps": 2.0},
 ]
@@ -62,6 +64,11 @@ SECONDS_PER_ENV_STEP = float(os.getenv("UGV_SECONDS_PER_ENV_STEP", "60"))
 # 기본 꺼짐: 총괄이 1초마다 조회(polling)하므로 필요 없다. 켜려면 UGV_REPORT_URL=http://127.0.0.1:8200
 # 꺼져 있어도 GET /reports 에 기록은 남는다.
 REPORT_URL = os.getenv("UGV_REPORT_URL", "")
+# 환경 시계 따라가기 (ugv/sim_clock.py): 환경 서버(/health 의 simulation_time_s)가 바뀔 때마다 UGV 시계를 그 값으로 맞추고,
+# 그 사이는 벽시계 × UGV_TIME_SCALE 로 채운다. 시나리오 시작 시각(scenario_start_kst)도 받아 상황판이 시각으로 보여 준다.
+# 비우면 UGV 서버 혼자 시계 (서버 시작 = 0). 환경이 없으면 조용히 혼자 간다.
+ENV_URL = os.getenv("UGV_ENV_URL", "http://127.0.0.1:8300")
+ENV_CLOCK_POLL_S = float(os.getenv("UGV_ENV_CLOCK_POLL_S", "1.0"))
 # 총괄 주소 — 도로 상황판의 노드 클릭 출동 요청을 여기 POST /tasks 로 전달한다 (ugv/server.py /view/dispatch)
 ORCH_URL = os.getenv("UGV_ORCH_URL", "http://127.0.0.1:8200")
 
@@ -96,6 +103,9 @@ FAULT_CONFIRM_S = 3.0        # 차량 이상이 이 시간 이상 계속돼야 �
 #   UGV_APPROACH_FALLBACK=1: 가장 가까운 노드로 못 가면 APPROACH_MAX_M 안의 다음 노드로 접근
 TARGET_SNAP_M = float(os.getenv("UGV_TARGET_SNAP_M", "2000"))      # 가장 가까운 노드가 이보다 멀면 TARGET_UNREACHABLE (루트 config.UGV_TARGET_SNAP_M 과 같은 값)
 APPROACH_FALLBACK = os.getenv("UGV_APPROACH_FALLBACK", "0") == "1"
+# 목적지 방식 (ugv/road_point.py): node = 목표에서 가장 가까운 도로 노드(기본, 지금까지 동작) /
+#   road_point = 목표에서 가장 가까운 도로 위 점에 선다 (교차로 사이 긴 도로 중간 계측용). 요청마다 target_mode 로 바꿀 수 있다
+TARGET_MODE = os.getenv("UGV_TARGET_MODE", "node")
 APPROACH_MAX_M = float(os.getenv("UGV_APPROACH_MAX_M", "500"))     # fallback 접근 노드의 화재 거리 상한
 
 # 시연용 가속 — 6노드 시연 도로망(graph_data_demo, 총괄 orchestrator_v012 데모)에서만 쓴다.

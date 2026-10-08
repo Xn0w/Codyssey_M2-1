@@ -1,10 +1,11 @@
 import time
 
-from . import route_plan
+from . import road_point, route_plan
 from .drivers.base import MotionDriver
 from .geo import distance_m
 from .resource import GroundResource
 from .road_graph import RoadGraph
+from .road_point import RoadPoint
 from .route_plan import RoutePlan
 
 # 이상 코드 → evaluate 거절 사유 (공통 계약 RejectReason 에 있는 값만 쓴다)
@@ -31,6 +32,8 @@ class GroundResourceAgent:
         self.plan: RoutePlan | None = None           # 주행 중 계획 (도로 선형 웨이포인트)
         self.fault: str | None = None                # 'CODE: 설명'. 있으면 UNAVAILABLE, /stop 으로 해제
         self.reroutes = 0                            # 이번 task 에서 경로를 바꾼 횟수
+        self.stop_point: RoadPoint | None = None     # 도로 위 지점에 서는 주행이면 그 지점 (ugv/road_point.py)
+        self.parked: RoadPoint | None = None         # 도로 위 지점에 도착해 서 있으면 그 지점 (다음 출발·정지 때 지운다)
 
     @property
     def route(self) -> list[tuple[float, float]]:
@@ -108,6 +111,27 @@ class GroundResourceAgent:
             "path": route.path,
         }
 
+    def evaluate_point(self, rp: RoadPoint) -> dict:
+        """도로 위 지점까지 갈 수 있는지. 지점이 있는 도로의 양 끝 노드 중 (그 노드까지 + 도로를 따라 지점까지)가
+        더 빠른 쪽을 고른다. ACCEPT 면 eta_s·path(끝 노드까지)·end_node. 지점 도로가 막혔으면 ROAD_BLOCKED."""
+        rid = self.resource.resource_id
+        road = self.graph.get_road(rp.road_id)
+        if road.blocked and self.resource.state == "READY":
+            return {"resource_id": rid, "response": "REJECT", "reason": "ROAD_BLOCKED", "blocked_road_id": road.road_id}
+        best, first_reject = None, None
+        for end in (road.node_a, road.node_b):
+            res = self.evaluate(end)
+            if res["response"] != "ACCEPT":
+                if res.get("reason") in ("BUSY",) or res.get("fault"):
+                    return res
+                first_reject = first_reject or res
+                continue
+            tail = road_point.tail_leg(self.graph, rp, end, self.max_speed_mps)
+            eta = res["eta_s"] + tail["distance_m"] / tail["speed_mps"]
+            if best is None or eta < best["eta_s"]:
+                best = {**res, "eta_s": eta, "end_node": end}
+        return best or first_reject
+
     # --- get_ugv_observation 응답 --------------------------------------
 
     def observation(self) -> dict:
@@ -128,28 +152,37 @@ class GroundResourceAgent:
 
     def _plan(self, start_node: str, target_node: str, start: tuple[float, float],
               lead: list[dict] | None = None) -> RoutePlan | None:
-        """start_node → target_node 주행 계획. lead: 앞에 붙일 구간(지금 달리는 도로의 남은 부분)."""
+        """start_node → target_node 주행 계획. lead: 앞에 붙일 구간(지금 달리는 도로의 남은 부분).
+        도로 위 지점 주행(self.stop_point)이면 target_node(지점 도로의 끝 노드)에서 지점까지 꼬리 구간을 붙인다."""
         route = self.graph.find_route(start_node, target_node, self.max_speed_mps)
         if not route.reachable:
             return None
-        legs = (lead or []) + self.graph.legs(route.path, self.max_speed_mps)
-        lead_s = sum(leg["distance_m"] / leg["speed_mps"] for leg in (lead or []))
-        return route_plan.build(legs, start, target_node, route.path, route.eta_s + lead_s)
+        tail = []
+        if self.stop_point is not None:
+            if self.graph.get_road(self.stop_point.road_id).blocked:
+                return None
+            tail = [road_point.tail_leg(self.graph, self.stop_point, target_node, self.max_speed_mps)]
+        legs = (lead or []) + self.graph.legs(route.path, self.max_speed_mps) + tail
+        extra_s = sum(leg["distance_m"] / leg["speed_mps"] for leg in (lead or []) + tail)
+        return route_plan.build(legs, start, target_node, route.path, route.eta_s + extra_s)
 
     def _speeds(self, plan: RoutePlan) -> list[float] | None:
         """구간별 속도는 차량 최고속도를 아는 경우(실제 도로망, server.py)에만 넘긴다.
         시연 도로망(GroundFleet() 기본, 총괄 v0.1.2)은 드라이버 기본 속도(DEMO_SPEED_MPS)로 달려야 한다."""
         return plan.speeds if self.max_speed_mps is not None else None
 
-    async def execute(self, target_node: str) -> bool:
-        """판단 후 도로 선형을 따라가는 웨이포인트를 드라이버에 넘겨 주행을 시작한다."""
+    async def execute(self, target_node: str, stop_point: RoadPoint | None = None) -> bool:
+        """판단 후 도로 선형을 따라가는 웨이포인트를 드라이버에 넘겨 주행을 시작한다.
+        stop_point 를 주면 target_node(지점 도로의 끝 노드)를 지나 도로 위 그 지점에 선다."""
         result = self.evaluate(target_node)
         if result["response"] != "ACCEPT":
             return False
         if self.driver is None:
             return False
-        if len(result["path"]) == 1:
+        if len(result["path"]) == 1 and stop_point is None:
             return True     # 이미 목적지 노드에 있다 — 움직일 것 없이 READY 그대로 (감시가 곧바로 도착 처리)
+        prev_stop, self.stop_point = self.stop_point, stop_point
+        prev_parked, self.parked = self.parked, None
 
         start = self.graph.node(self.resource.current_node)
         plan = self._plan(self.resource.current_node, target_node, (start.lat, start.lon))
@@ -161,7 +194,12 @@ class GroundResourceAgent:
         options = [p for p in options if p is not None]
         if options:
             plan = min(options, key=lambda p: p.eta_s)
+        if plan is None:
+            self.stop_point, self.parked = prev_stop, prev_parked
+            return False
         started = await self.driver.goto(plan.waypoints, self._speeds(plan))
+        if not started:
+            self.stop_point, self.parked = prev_stop, prev_parked
         if started:
             self.plan = plan
             self.reroutes = 0
@@ -245,6 +283,7 @@ class GroundResourceAgent:
         self.resource.state = "READY"
         self._target_node = None
         self.plan, self.fault = None, None
+        self.stop_point = self.parked = None
 
     async def fail(self, fault: str) -> None:
         """주행 중 이상. 차를 세우고 UNAVAILABLE 로 둔다. 운영자가 /stop 으로 확인해야 READY 로 돌아온다."""
@@ -255,6 +294,7 @@ class GroundResourceAgent:
         self.resource.current_node = None
         self._target_node = None
         self.plan = None
+        self.stop_point = self.parked = None
         self.fault = fault
 
     def off_route_m(self) -> float:
@@ -267,7 +307,8 @@ class GroundResourceAgent:
             return
         current, total = self.driver.progress()
         if total > 0 and current >= total:
-            self.resource.current_node = self._target_node
+            self.resource.current_node = self._target_node   # 도로 위 지점이면 들어온 끝 노드 (차는 지점에 서 있다)
             self.resource.state = "READY"
             self._target_node = None
             self.plan = None
+            self.parked, self.stop_point = self.stop_point, None
