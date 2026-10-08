@@ -491,12 +491,6 @@ function drawRoute(route){
   layers.route.clearLayers();
   if (!route || !route.legs) return;
   if (S.view === "map"){
-    for (const g of groupLegs(route.legs)){
-      if (g.state === "DONE" || g.travel_s < 30) continue;
-      const pts = g.roads.flatMap(id => roadInfo[id]?.geometry || []); if (!pts.length) continue;
-      L.tooltip({permanent: true, direction: "center", className: `tlab ${g.state}`, interactive: false})
-        .setLatLng(pts[Math.floor(pts.length / 2)]).setContent(`${esc(g.name)} ${dur(g.travel_s)}${g.congestion > 1 ? " ×" + g.congestion : ""}`).addTo(layers.route);
-    }
     for (const leg of route.legs){
       const geo = roadInfo[leg.road_id]?.geometry; if (!geo) continue;
       const done = leg.state === "DONE", cur = leg.state === "CURRENT";
@@ -504,6 +498,7 @@ function drawRoute(route){
         .bindTooltip(`${esc(leg.name || leg.road_id)} · ${km(leg.distance_m)} · ${dur(leg.travel_s)}${leg.congestion > 1 ? ` · 혼잡 ×${leg.congestion}` : ""}${leg.blocked ? " · 통제" : ""}`, {className: "rt", sticky: true})
         .addTo(layers.route);
     }
+    routeNodeLabels(route);
     return;
   }
   // 그래프 보기: 경로가 지나는 간선 묶음 + 교차로 순서 번호 + 간선별 시간
@@ -517,14 +512,27 @@ function drawRoute(route){
     const t = ls.reduce((s, x) => s + (x.travel_s || 0), 0);
     L.polyline([[a.lat, a.lon], [b.lat, b.lon]], {color: st === "DONE" ? css("--done") : css("--route"), weight: st === "CURRENT" ? 9 : 7, opacity: .95, renderer})
       .bindTooltip(`${esc(c.name)} · ${km(c.distance_m)} · ${dur(t)}`, {className: "rt", sticky: true}).addTo(layers.route);
-    if (st !== "DONE") L.tooltip({permanent: true, direction: "center", className: `tlab ${st}`, interactive: false})
-      .setLatLng([(a.lat + b.lat) / 2, (a.lon + b.lon) / 2]).setContent(`${dur(t)}`).addTo(layers.route);
   }
-  // 경로 노드 순서 (교차로만)
-  const seq = []; const path = [route.legs[0]?.from, ...route.legs.map(l => l.to)];
-  path.forEach(n => { if (n && (JUNCTION.has(n) || n === path[path.length - 1]) && seq[seq.length - 1] !== n) seq.push(n); });
-  seq.forEach((nid, i) => { const n = NODE[nid]; if (!n) return;
-    L.tooltip({permanent: true, direction: "center", className: "seq", interactive: false}).setLatLng([n.lat, n.lon]).setContent(String(i + 1)).addTo(layers.route); });
+  routeNodeLabels(route);
+}
+
+// 경로 위 노드 라벨: 남은 구간만, 교차로에서 누적 시간이 간격(5분 또는 전체의 1/6) 이상 늘 때마다 한 번 + 목적지
+function routeNodeLabels(route){
+  const rest = route.legs.filter(l => l.state !== "DONE");
+  if (!rest.length) return;
+  const last = rest[rest.length - 1].to;
+  const total = rest.reduce((a, l) => a + (l.travel_s || 0), 0);
+  const gap = Math.max(300, total / 6);                // 라벨은 많아야 6개 남짓 (5분 이상 간격)
+  let acc = 0, lastMark = 0, k = 0;
+  for (const l of rest){
+    acc += l.travel_s || 0;
+    const n = NODE[l.to]; if (!n) continue;
+    const isEnd = l.to === last;
+    if (!isEnd && (!JUNCTION.has(l.to) || acc - lastMark < gap || total - acc < gap / 2)) continue;
+    lastMark = acc; k++;
+    L.tooltip({permanent: true, direction: "right", offset: [8, 0], className: `tlab ${isEnd ? "CURRENT" : ""}`, interactive: false})
+      .setLatLng([n.lat, n.lon]).setContent(`${isEnd ? "도착" : k} · ${durS(acc)}`).addTo(layers.route);
+  }
 }
 
 function highlight(refs){
@@ -587,8 +595,9 @@ function drawVehicleList(rows){
       <div class="top">${vehicleSvg(v.resource_type, 30)}<span class="id">${esc(v.resource_id)}</span><span class="st ${esc(v.state)}">${esc(STATE_KO[v.state] || v.state || "?")}</span></div>
       ${lines}</div>`;
   }).join("");
-  el.querySelectorAll(".veh").forEach(d => d.onclick = () => select(d.dataset.id));
 }
+// 목록은 매초 다시 그려진다 — 개별 요소에 click 을 달면 누르는 사이 요소가 바뀌어 클릭이 사라진다. 컨테이너에서 pointerdown 으로 받는다
+$("#vehicles").addEventListener("pointerdown", ev => { const d = ev.target.closest(".veh"); if (d) select(d.dataset.id); });
 
 function markLegs(legs, curRoad){
   if (!legs) return legs;
@@ -734,7 +743,7 @@ function summarize(g, now){
   const t0 = start?.sim_time_s ?? g.t0, t1 = endE ? endE.sim_time_s : now;
   const eta0 = start?.data?.eta_sec;
   const etaChanges = rr.map(e => e.data?.eta_remaining_sec).filter(x => x != null);
-  return {rid, target, status, cls, origin, elapsed: t1 != null && t0 != null ? t1 - t0 : null, eta0, etaChanges, reroutes: rr.length, done: !!endE};
+  return {rid, target, status, cls, origin, elapsed: t1 != null && t0 != null ? t1 - t0 : null, eta0, etaChanges, reroutes: rr.length, done: !!endE, t0, t1};
 }
 
 let lastLogSig = "";
@@ -743,8 +752,9 @@ function drawLog(t){
   const entries = buildEntries().filter(x => x.kind === "group" ||
     (x.e.type === "ROAD_STATE" ? $("#fRoad").checked : x.e.type === "RESOURCE_CHANGED" ? $("#fOther").checked : true));
   $("#cLog").textContent = entries.filter(x => x.kind === "group").length || "";
-  const sig = `${S.events.length}|${Math.round(now || 0)}|${S.focusSeq}|${S.mode}|${[...S.open].join(",")}|${$("#fProg").checked}${$("#fRoad").checked}${$("#fOther").checked}`;
-  if (sig === lastLogSig) return; lastLogSig = sig;
+  const sig = `${S.events.length}|${S.mode}|${S.mode === "past" ? Math.round(t || 0) : ""}|${S.focusSeq}|${[...S.open].join(",")}|${$("#fProg").checked}${$("#fRoad").checked}${$("#fOther").checked}`;
+  if (sig === lastLogSig){ updateElapsed(now); return; }
+  lastLogSig = sig;
   const box = $("#tabLog"), atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
   const evRow = e => {
     const [k, cls] = TYPE[e.type] || [e.type, "info"];
@@ -761,12 +771,20 @@ function drawLog(t){
     return `<div class="grp ${open ? "open" : ""} ${fut ? "future" : ""}" data-key="${esc(x.key)}">
       <div class="gh"><span class="ar">▶</span><div>
         <div class="gt"><span class="t">${hms(x.t0)}</span><b>${esc(s.rid || "?")}</b><span>→ ${s.target ? nodeLabel(s.target) : "?"}</span><span class="badge ${s.cls}">${esc(s.status)}</span></div>
-        <div class="gm"><span>${esc(x.key)}</span><span>${esc(s.origin)}</span>${etaTxt ? `<span>${etaTxt}</span>` : ""}${s.elapsed != null ? `<span>경과 ${durS(s.elapsed)}</span>` : ""}${s.reroutes ? `<span style="color:var(--warn)">변경: 재탐색 ${s.reroutes}회</span>` : ""}</div>
+        <div class="gm"><span>${esc(x.key)}</span><span>${esc(s.origin)}</span>${etaTxt ? `<span>${etaTxt}</span>` : ""}${s.t0 != null ? `<span class="el" data-t0="${s.t0}" data-t1="${s.done ? s.t1 : ""}">경과 ${durS(s.elapsed)}</span>` : ""}${s.reroutes ? `<span style="color:var(--warn)">변경: 재탐색 ${s.reroutes}회</span>` : ""}</div>
       </div></div>
       <div class="body">${open ? members.map(evRow).join("") : ""}</div></div>`;
   }).join("") : `<div class="empty">기록 없음</div>`;
-  box.querySelectorAll(".grp > .gh").forEach(h => h.onclick = () => {
-    const key = h.parentElement.dataset.key;
+  if (S.mode === "live" && atBottom) box.scrollTop = box.scrollHeight;
+}
+function updateElapsed(now){
+  document.querySelectorAll("#tabLog .el").forEach(e => {
+    const t0 = +e.dataset.t0, t1 = e.dataset.t1 === "" ? now : +e.dataset.t1;
+    if (t1 != null && isFinite(t0)) e.textContent = `경과 ${durS(t1 - t0)}`;
+  });
+}
+function toggleGroup(key){
+  {
     S.open.has(key) ? S.open.delete(key) : S.open.add(key);
     const g = buildEntries().find(x => x.key === key);
     if (g){
@@ -777,10 +795,12 @@ function drawLog(t){
       if (S.mode === "past" && S.open.has(key)){ S.t = g.t0; pausePlay(); }
     }
     lastLogSig = ""; render();
-  });
-  box.querySelectorAll(".ev").forEach(d => d.onclick = ev => { ev.stopPropagation(); focusEvent(+d.dataset.seq); });
-  if (S.mode === "live" && atBottom) box.scrollTop = box.scrollHeight;
+  }
 }
+$("#tabLog").addEventListener("pointerdown", ev => {
+  const row = ev.target.closest(".ev"); if (row){ focusEvent(+row.dataset.seq); return; }
+  const h = ev.target.closest(".grp > .gh"); if (h) toggleGroup(h.parentElement.dataset.key);
+});
 
 function drawScenario(rs){
   const box = $("#tabScn"), sc = S.mode === "live" ? S.live.scenario : null;
