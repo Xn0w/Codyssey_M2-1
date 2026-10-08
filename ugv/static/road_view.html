@@ -15,7 +15,7 @@
 :root{
   --bg:#0f1418; --panel:#161d23; --panel2:#1c252c; --line:#2a353e; --text:#d9e2e8; --dim:#8696a3;
   --road:#7d92a2; --roadmap:#efe9da; --casing:#262a25; --node:#b8cad8; --block:#ff4d4f; --cong1:#f5b041; --cong2:#ff7a1a;
-  --route:#3ea6ff; --done:#56708a; --hl:#ffe14d; --ugv:#2ed3a5; --fire:#e8443a; --ok:#2ed3a5; --warn:#f5b041; --bad:#ff4d4f;
+  --route:#3ea6ff; --done:#56708a; --hl:#d36bff; --ugv:#2ed3a5; --fire:#e8443a; --ok:#2ed3a5; --warn:#f5b041; --bad:#ff4d4f;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.45 system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
@@ -145,7 +145,7 @@ footer.show{display:flex}
     <span class="pill" id="scen">시나리오 <b>-</b></span>
     <span class="pill" id="roadPill" title="막힌 도로 · 혼잡 도로 (도로 상황 탭에서 자세히)">도로 <b>-</b></span>
     <span class="grow"></span>
-    <span class="lg"><span><i style="background:var(--road)"></i>원활</span><span><i style="background:var(--cong1)"></i>서행</span><span><i style="background:var(--cong2)"></i>정체</span><span><i style="background:var(--block)"></i>통제</span><span><i style="background:var(--route)"></i>경로</span></span>
+    <span class="lg"><span><i style="background:var(--road)"></i>원활</span><span><i style="background:var(--cong1)"></i>서행</span><span><i style="background:var(--cong2)"></i>정체</span><span><i style="background:var(--block)"></i>통제</span><span><i style="background:var(--route)"></i>경로</span><span><i style="background:var(--hl)"></i>선택 강조</span></span>
     <button id="terrainBtn" title="지형 배경 켜기/끄기 (지도 보기)">지형</button>
   </header>
 
