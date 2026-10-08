@@ -80,7 +80,7 @@ h2{font-size:12px;color:var(--dim);font-weight:600;margin:14px 14px 6px;letter-s
 .grp{border-bottom:1px solid #26313a}
 .grp > .gh{padding:8px 12px;cursor:pointer}
 .grp > .gh:hover{background:#1b252d}
-.grp .ar{color:var(--dim);width:12px;flex:0 0 12px;font-size:12px}
+.grp .ar{color:var(--dim);width:14px;flex:0 0 14px;font-size:13px;line-height:1}
 .grp .gt{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .grp .gt b{font-weight:700}
 .grp .gm{color:#aebbc5;font-size:12px;margin-top:2px;padding-left:20px}
@@ -684,7 +684,11 @@ function describe(e){
     case "UGV_TASK_STARTED": return `목표 ${esc(d.target_node)} · ETA ${dur(d.eta_sec)}`;
     case "UGV_PROGRESS": return `${PHASE_KO[d.phase] || esc(d.phase)} · ${esc(roadName(d.current_road_id))} · 남은 ${km(d.remaining_m)} / ${dur(d.eta_remaining_sec)}`;
     case "UGV_REROUTED": return `막힘 ${esc(roadName(d.blocked_road_id))} → 새 경로, 남은 ${dur(d.eta_remaining_sec)}`;
-    case "UGV_ARRIVED": return `${esc(d.target_node)} 도착${d.already_there ? " (이미 그 자리)" : ""}`;
+    case "UGV_ARRIVED": {
+      const st = S.events.find(x => x.type === "UGV_TASK_STARTED" && x.task_id === e.task_id);
+      const el = st && e.sim_time_s != null ? ` · 경과 ${durS(e.sim_time_s - st.sim_time_s)}` : "";
+      return `${esc(d.target_node)} 도착${d.already_there ? " (이미 그 자리)" : el}`;
+    }
     case "UGV_TASK_FAILED": return `${esc(d.reason)} — ${esc(d.error)}`;
     case "UGV_TASK_CANCELLED": return `${esc(d.reason || "")}`;
     case "VIEW_DISPATCH": return `${d.resource_type === "FIRE_ENGINE" ? "소방차" : "UGV"} → 노드 ${esc(d.node_id)} · 총괄 ${d.orch_http ?? "연결 실패"}` +
@@ -778,11 +782,11 @@ function drawLog(t){
     if (x.kind === "event") return evRow(x.e);
     const s = summarize(x, now), open = S.open.has(x.key), fut = t != null && x.t0 > t;
     const members = x.events.filter(e => e.type !== "UGV_PROGRESS" || $("#fProg").checked);
-    const etaTxt = s.eta0 != null ? `ETA ${durS(s.eta0)}${s.etaChanges.length ? " → " + s.etaChanges.map(durS).join(" → ") : ""}` : "";
+    const etaTxt = !s.done && s.eta0 != null ? `ETA ${durS(s.eta0)}${s.etaChanges.length ? " → " + s.etaChanges.map(durS).join(" → ") : ""}` : "";
     return `<div class="grp ${open ? "open" : ""} ${fut ? "future" : ""}" data-key="${esc(x.key)}">
       <div class="gh"><div>
-        <div class="gt"><span class="ar">${open ? "▾" : "▸"}</span><span class="t">${hms(x.t0)}</span><b>${esc(s.rid || "?")}</b><span>→ ${s.target ? nodeLabel(s.target) : "?"}</span><span class="badge ${s.cls}">${esc(s.status)}</span></div>
-        <div class="gm"><span>${esc(x.key)}</span><span>${esc(s.origin)}</span>${etaTxt ? `<span>${etaTxt}</span>` : ""}${s.t0 != null ? `<span class="el" data-t0="${s.t0}" data-t1="${s.done ? s.t1 : ""}">경과 ${durS(s.elapsed)}</span>` : ""}${s.reroutes ? `<span style="color:var(--warn)">변경: 재탐색 ${s.reroutes}회</span>` : ""}</div>
+        <div class="gt"><span class="ar">${open ? "▼" : "▶"}</span><span class="t">${hms(x.t0)}</span><b>${esc(s.rid || "?")}</b><span>→ ${s.target ? nodeLabel(s.target) : "?"}</span><span class="badge ${s.cls}">${esc(s.status)}</span></div>
+        <div class="gm"><span>${esc(x.key)}</span><span>${esc(s.origin)}</span>${etaTxt ? `<span>${etaTxt}</span>` : ""}${s.t0 != null && s.done ? `<span>경과 ${durS(s.elapsed)}</span>` : ""}${s.reroutes ? `<span style="color:var(--warn)">변경: 재탐색 ${s.reroutes}회</span>` : ""}</div>
       </div></div>
       <div class="body">${open ? members.map(evRow).join("") : ""}</div></div>`;
   }).join("") : `<div class="empty">기록 없음</div>`;
