@@ -22,6 +22,7 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
 from . import config
 from .agent import GroundResourceAgent
@@ -37,6 +38,7 @@ from .road_status import RoadStatus
 from .scenario import Scenario
 from .sim_clock import SimClock
 from .reporter import Reporter
+from .history import History
 from .gz_fx import fx as gz_fx
 from .drive_log import DriveLog, ENABLED as DRIVE_LOG_ENABLED
 from .api_models import BlockRequest, EnvClockRequest
@@ -74,7 +76,30 @@ def _close_after_restart(t: dict) -> None:
 RESTART_CLOSED = STORE.reconcile_after_restart(
     lambda t: t["status"] in ("STARTED", "IN_PROGRESS"), _close_after_restart,
     basis="SIM_DRIVER_RESET" if DRIVER == "sim" else "PHYSICAL_STATE_FROM_TELEMETRY_AFTER_RESTART")
-_watchers: dict[str, asyncio.Task] = {}             # task_id → 도착 감시 태스크
+_watchers: dict[str, asyncio.Task] = {}
+history: History | None = None                       # 실행 기록 (lifespan 에서 만든다)             # task_id → 도착 감시 태스크
+
+
+def _road_snapshot() -> dict:
+    active = [] if scenario is None else [
+        {k: rule.get(k) for k in ("no", "kind", "targets", "start", "end", "value", "note")}
+        for rule in scenario.active(clock.now())]
+    return {"blocked": sorted(roads.blocked()), "blocked_by": roads.blocked_by(),
+            "blocked_nodes": roads.blocked_nodes(), "congested": roads.congested(), "active_rules": active}
+
+
+_last_road_snapshot: dict | None = None
+
+
+def _record_road_state() -> None:
+    """막힌 도로·혼잡·켜진 시나리오 규칙이 바뀌었으면 실행 기록에 남긴다 (도로 상황판 재생용)."""
+    global _last_road_snapshot
+    if history is None:
+        return
+    snap = _road_snapshot()
+    if snap != _last_road_snapshot:
+        _last_road_snapshot = snap
+        history.record("ROAD_STATE", **snap)
 
 
 async def _refresh_loop() -> None:
@@ -84,6 +109,7 @@ async def _refresh_loop() -> None:
             fleet.refresh_all()
             if scenario is not None:
                 scenario.tick(clock.now(), roads)
+            _record_road_state()
             gz_fx.sync_walls(roads.blocked())       # Gazebo 빨간 벽 (UGV_GZ_FX=1 일 때만)
         except Exception:
             log.exception("refresh 실패")
@@ -92,8 +118,10 @@ async def _refresh_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global fleet, roads, clock, scenario, reporter
+    global fleet, roads, clock, scenario, reporter, history
     clock = SimClock(config.TIME_SCALE, config.SECONDS_PER_ENV_STEP)
+    history = History(_STATE_DIR, clock, enabled=os.getenv("UGV_HISTORY", "1") != "0",
+                      keep=int(os.getenv("UGV_HISTORY_KEEP", "30")))
     reporter = Reporter(config.REPORT_URL, clock)
     await reporter.start()
     fleet = GroundFleet(use_px4=(DRIVER == "px4"), graph_data=graph_gpkg,   # 실제 도로망
@@ -106,12 +134,23 @@ async def lifespan(app: FastAPI):
     await fleet.connect_all()                       # PX4 는 연결될 때까지 대기
     if CLOCK_FOLLOWS_PX4 and any(_driver_kind(a) == "px4" for a in fleet.agents.values()):
         clock.set_source(_px4_time)                 # 시계 흐름 = PX4(Gazebo) 시뮬레이션 시간 (ugv/sim_clock.py)
+    history.record("RUN_START", driver=DRIVER, time_scale=config.TIME_SCALE,
+                   scenario=None if scenario is None else scenario.name,
+                   scenario_source=None if scenario is None else scenario.source,
+                   ugv_agent="SEALED",
+                   resources=[{"resource_id": rid, "resource_type": a.resource.resource_type,
+                               "base": a.resource.base, "home_node": a.resource.home_node,
+                               "position": {"lat": a.resource.lat, "lon": a.resource.lon},
+                               "state": a.resource.state} for rid, a in fleet.agents.items()],
+                   bases=_bases())
+    _record_road_state()
     loop = asyncio.create_task(_refresh_loop())
     log.info("UGV 서버 준비: driver=%s, 자원 %s, 시간배율 %.0f, 환경 1스텝=%.0fs", DRIVER, list(fleet.agents),
              config.TIME_SCALE, config.SECONDS_PER_ENV_STEP)
     yield
     loop.cancel()
     await reporter.stop()
+    history.close()
 
 
 app = FastAPI(
@@ -135,6 +174,12 @@ def _report(type_: str, agent: GroundResourceAgent, task_id: str | None = None, 
     r = agent.resource
     reporter.report(type_, r.resource_id, task_id, state=r.state,
                     position={"lat": r.lat, "lon": r.lon}, fuel_pct=r.fuel_pct, **payload)
+    if history is not None:
+        history.record(type_, r.resource_id, task_id, state=r.state,
+                       position={"lat": r.lat, "lon": r.lon}, **payload)
+        if type_ in ("UGV_TASK_STARTED", "UGV_REROUTED") and agent.plan is not None:
+            history.record("ROUTE", r.resource_id, task_id, target_node=agent.plan.target_node,
+                           path=agent.plan.path, legs=_route_legs(agent), why=type_)
 
 
 def _resource_changed(agent: GroundResourceAgent, why: str) -> None:
@@ -891,4 +936,65 @@ async def get_route(resource_id: str):
     cur, total = agent.driver.progress()
     return {"resource_id": resource_id, "target_node": agent.plan.target_node, "path": agent.plan.path,
             "route": [list(p) for p in agent.route], "waypoint": cur, "total": total,
-            "reroutes": agent.reroutes, **_remaining(agent, cur)}
+            "reroutes": agent.reroutes, "legs": _route_legs(agent), **_remaining(agent, cur)}
+
+
+def _route_legs(agent: GroundResourceAgent) -> list[dict]:
+    """경로를 도로 구간으로 — 상황판의 구간별 소요시간. 지금 도로 상태(차단·혼잡)로 다시 계산한다.
+    state: DONE(지나옴) / CURRENT(달리는 중) / NEXT(남음). travel_s = 그 차 최고속도·지금 혼잡 기준 통과 시간."""
+    path = agent.plan.path if agent.plan else []
+    cur_road = agent.current_road_id()
+    out, seen_current = [], cur_road is None
+    for a, b in zip(path, path[1:]):
+        try:
+            r = fleet.graph.road_between(a, b)
+        except KeyError:
+            continue
+        t = r.travel_s(agent.max_speed_mps)
+        if not seen_current and r.road_id == cur_road:
+            state, seen_current = "CURRENT", True
+        else:
+            state = "NEXT" if seen_current else "DONE"
+        out.append({"road_id": r.road_id, "name": r.name, "from": a, "to": b, "distance_m": round(r.distance_m),
+                    "congestion": r.congestion, "blocked": r.blocked,
+                    "travel_s": None if t == float("inf") else round(t), "state": state})
+    return out
+
+
+def _bases() -> list[dict]:
+    out = {}
+    for a in fleet.agents.values():
+        nid = a.resource.home_node
+        if nid not in out:
+            n = fleet.graph.node(nid)
+            out[nid] = {"node_id": nid, "lat": n.lat, "lon": n.lon, "name": n.name or nid}
+    return list(out.values())
+
+
+@app.get("/graph/bases")
+async def graph_bases():
+    """거점 노드 (상황판 표시용)."""
+    return _bases()
+
+
+# --- 도로 상황판·실행 기록 (ugv/static/road_view.html, ugv/history.py) ------------
+
+@app.get("/view", include_in_schema=False)
+async def road_view():
+    """UGV 도로 상황판. 이 서버 API 만 폴링한다 (총괄·관제판과 무관)."""
+    return FileResponse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "road_view.html"))
+
+
+@app.get("/history/runs")
+async def history_runs():
+    """실행(서버 기동) 목록, 최신 먼저. current=true 가 지금 실행."""
+    return {"current": history.run_id if history.enabled else None, "runs": history.runs()}
+
+
+@app.get("/history/runs/{run_id}")
+async def history_events(run_id: str, after: int = 0, limit: int = 20000):
+    """한 실행의 기록. after=seq 이후만 (실시간 화면은 이어 받기)."""
+    try:
+        return history.read(run_id, after, min(max(limit, 1), 50000))
+    except KeyError:
+        raise HTTPException(404, f"실행 기록 {run_id} 없음")

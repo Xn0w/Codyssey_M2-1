@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UGV 도로 상황판</title>
+<!-- ugv/static/road_view.html — UGV 서버(:8100) /view 로 연다. 이 서버 API 만 폴링한다.
+     실시간: /history/runs/{지금 실행} 을 이어 받고 /ugv·/ugv/{id}/route·/scenario 로 보강
+     과거 실행: 기록 전체를 받아 시간 막대로 그 시각의 상태를 다시 만든다 (ugv/history.py) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{
+  --bg:#0f1418; --panel:#161d23; --panel2:#1c252c; --line:#2a353e; --text:#d9e2e8; --dim:#8696a3;
+  --road:#4a5864; --block:#ff4d4f; --cong1:#f5b041; --cong2:#ff7a1a; --route:#3ea6ff; --done:#56708a;
+  --hl:#ffe14d; --ugv:#2ed3a5; --fire:#ff6b6b; --ok:#2ed3a5; --warn:#f5b041; --bad:#ff4d4f; --ai:#b28dff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/1.45 system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+#app{display:grid;grid-template-columns:300px 1fr 340px;grid-template-rows:48px 1fr auto;height:100vh}
+header{grid-column:1/4;display:flex;align-items:center;gap:14px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{font-size:15px;margin:0;font-weight:700;letter-spacing:.2px}
+.pill{padding:3px 9px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.pill b{color:var(--text);font-weight:600}
+.pill.sealed{border-color:#4b3b6b;color:#b9a6e0}
+.pill.live b{color:var(--ok)}
+header .grow{flex:1}
+select,button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font:inherit;cursor:pointer}
+button:hover,select:hover{border-color:#44525e}
+aside{background:var(--panel);overflow:auto;min-height:0}
+aside.left{border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}
+#vehicles{flex:0 0 auto;max-height:42%;overflow:auto}
+aside.right{border-left:1px solid var(--line);display:flex;flex-direction:column}
+h2{font-size:12px;color:var(--dim);font-weight:600;margin:14px 14px 6px;text-transform:uppercase;letter-spacing:.6px}
+#map{min-height:0;background:#0b1013}
+.veh{margin:0 10px 6px;padding:8px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.veh.sel{border-color:var(--route);box-shadow:0 0 0 1px var(--route) inset}
+.veh .top{display:flex;justify-content:space-between;align-items:center}
+.veh .id{font-weight:700}
+.veh .sub{color:var(--dim);font-size:12px;margin-top:2px}
+.st{font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid}
+.st.READY{color:var(--ok);border-color:#1f6b57}.st.RUNNING{color:var(--route);border-color:#245b85}
+.st.UNAVAILABLE{color:var(--bad);border-color:#7a2a2b}.st.WORKING{color:var(--warn);border-color:#7a5a20}
+.legs{margin:0 10px 12px;border:1px solid var(--line);border-radius:8px;overflow:auto;flex:1;min-height:80px}
+.legs table{width:100%;border-collapse:collapse;font-size:12px}
+.legs th{white-space:nowrap;position:sticky;top:0;background:var(--panel2);color:var(--dim);font-weight:600;text-align:left;padding:5px 6px}
+.legs td{padding:4px 6px;border-top:1px solid var(--line);white-space:nowrap}
+.legs td.n{max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.legs td.n small{color:var(--dim);margin-left:4px}
+.tlab{background:#10171ccc;border:1px solid #2f5d80;color:#cfe6ff;font-size:10px;padding:0 4px;border-radius:4px;box-shadow:none}
+.tlab:before{display:none}
+.tlab.CURRENT{border-color:#fff;color:#fff}.tlab.DONE{opacity:.5}
+.legs tr{cursor:pointer}.legs tr:hover td{background:#223039}
+.legs tr.DONE td{color:var(--done)}.legs tr.CURRENT td{background:#173247;color:#fff;font-weight:600}
+.legs tr.blk td{color:var(--bad)}
+.legs .num{text-align:right}
+.sum{margin:0 10px 8px;color:var(--dim);font-size:12px}
+.sum b{color:var(--text)}
+.empty{color:var(--dim);padding:10px 14px}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;border-radius:0;background:transparent;padding:10px 6px;color:var(--dim);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--text);border-bottom-color:var(--route)}
+.tabs button .cnt{color:var(--dim);font-size:11px;margin-left:3px}
+.tabbody{flex:1;overflow:auto;min-height:0}
+.flt{display:flex;gap:10px;padding:8px 12px;color:var(--dim);font-size:12px;border-bottom:1px solid var(--line)}
+.ev{padding:7px 12px;border-bottom:1px solid #1f282f;cursor:pointer}
+.ev:hover{background:#1b252d}.ev.on{background:#2a2a14}
+.ev .h{display:flex;gap:8px;align-items:baseline}
+.ev .t{color:var(--dim);font-variant-numeric:tabular-nums;font-size:12px}
+.ev .k{font-weight:600}
+.ev .r{color:var(--dim);font-size:12px}
+.ev .d{color:#aebbc5;font-size:12px;margin-top:2px}
+.ev.future{opacity:.35}
+.k.bad{color:var(--bad)}.k.warn{color:var(--warn)}.k.ok{color:var(--ok)}.k.info{color:var(--route)}.k.ai{color:var(--ai)}.k.road{color:var(--cong1)}
+.ai{margin:10px;padding:10px;border:1px solid #4b3b6b;border-radius:8px;background:#1d1830}
+.ai pre{white-space:pre-wrap;word-break:break-word;margin:6px 0 0;font-size:12px;color:#d7cdee}
+.sealed-box{margin:14px;padding:14px;border:1px dashed #4b3b6b;border-radius:8px;color:#b9a6e0;background:#191526}
+.sealed-box code{color:#d7cdee}
+.rule{margin:8px 12px;padding:8px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line)}
+.rule .h{display:flex;justify-content:space-between;gap:6px}
+.rule.on{border-color:#7a2a2b}
+footer{grid-column:1/4;background:var(--panel);border-top:1px solid var(--line);padding:8px 14px;display:none;gap:12px;align-items:center}
+footer.show{display:flex}
+#bar{position:relative;flex:1;height:34px}
+#bar input{position:absolute;inset:0;width:100%;margin:0;opacity:.0001;cursor:pointer;z-index:2}
+#bar .track{position:absolute;left:0;right:0;top:15px;height:4px;background:var(--line);border-radius:2px}
+#bar .fill{position:absolute;left:0;top:15px;height:4px;background:var(--route);border-radius:2px}
+#bar .tick{position:absolute;top:6px;width:2px;height:22px;border-radius:1px;opacity:.85}
+#bar .knob{position:absolute;top:9px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px var(--route)}
+#tlabel{font-variant-numeric:tabular-nums;min-width:150px;text-align:right;color:var(--dim)}
+#tlabel b{color:var(--text)}
+.lg{display:flex;gap:12px;align-items:center;color:var(--dim);font-size:12px}
+.lg i{display:inline-block;width:18px;height:4px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.leaflet-container{background:#0b1013;font:inherit}
+.vlab{background:transparent;border:0;box-shadow:none;color:#fff;font-weight:700;font-size:11px;text-shadow:0 0 3px #000,0 0 3px #000}
+.vlab:before{display:none}
+.leaflet-tooltip.rt{background:#10171c;color:var(--text);border:1px solid var(--line)}
+@media (max-width:1100px){#app{grid-template-columns:260px 1fr 300px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>UGV 도로 상황판</h1>
+    <select id="mode" title="실시간 또는 과거 실행"></select>
+    <span class="pill" id="clock">시뮬 <b>--:--:--</b></span>
+    <span class="pill" id="scen">시나리오 <b>-</b></span>
+    <span class="pill sealed" id="agentpill" title="UGV 도로 AI 에이전트 — 봉인 기능">도로 AI <b>봉인</b></span>
+    <span class="grow"></span>
+    <span class="lg"><span><i style="background:var(--road)"></i>도로</span><span><i style="background:var(--cong1)"></i>혼잡</span><span><i style="background:var(--block)"></i>차단</span><span><i style="background:var(--route)"></i>경로</span><span><i style="background:var(--hl)"></i>기록 강조</span></span>
+    <button id="tiles" title="지도 배경(OSM) 켜기/끄기">배경</button>
+  </header>
+
+  <aside class="left">
+    <h2>차량</h2>
+    <div id="vehicles"></div>
+    <h2 id="legsTitle">경로 · 구간 소요시간</h2>
+    <div id="legSum" class="sum"></div>
+    <div id="legs" class="legs" style="display:none"><table><thead><tr><th>#</th><th>도로 (구간)</th><th class="num">거리</th><th class="num">시간</th><th class="num">혼잡</th></tr></thead><tbody></tbody></table></div>
+    <div id="legEmpty" class="empty">차량을 고르면 경로가 나온다.</div>
+  </aside>
+
+  <div id="map"></div>
+
+  <aside class="right">
+    <div class="tabs">
+      <button data-tab="log" class="on">기록<span class="cnt" id="cLog"></span></button>
+      <button data-tab="ai">도로 AI<span class="cnt" id="cAi"></span></button>
+      <button data-tab="scn">도로 상황<span class="cnt" id="cScn"></span></button>
+    </div>
+    <div class="flt" id="logFilter">
+      <label><input type="checkbox" id="fProg"> 진행 보고</label>
+      <label><input type="checkbox" id="fEval" checked> 평가</label>
+      <label><input type="checkbox" id="fRoad" checked> 도로 변화</label>
+    </div>
+    <div class="tabbody" id="tabLog"></div>
+    <div class="tabbody" id="tabAi" style="display:none"></div>
+    <div class="tabbody" id="tabScn" style="display:none"></div>
+  </aside>
+
+  <footer id="foot">
+    <button id="play">▶</button>
+    <select id="rate" title="재생 속도 (시뮬 초 / 실제 초)">
+      <option value="10">10×</option><option value="60" selected>60×</option><option value="300">300×</option><option value="1200">1200×</option>
+    </select>
+    <div id="bar"><div class="track"></div><div class="fill"></div><div class="knob"></div><input type="range" id="slider" min="0" max="1000" step="1" value="1000"></div>
+    <span id="tlabel"></span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const API = location.origin;          // UGV 서버 자신
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const hms = s => { if (s == null || !isFinite(s)) return "--:--:--"; s = Math.max(0, Math.round(s));
+  return [Math.floor(s/3600), Math.floor(s%3600/60), s%60].map(v => String(v).padStart(2,"0")).join(":"); };
+const dur = s => s == null ? "–" : s < 60 ? `${Math.round(s)}초` : s < 3600 ? `${Math.floor(s/60)}분 ${Math.round(s%60)}초` : `${Math.floor(s/3600)}시간 ${Math.round(s%3600/60)}분`;
+const km = m => m == null ? "–" : m >= 1000 ? `${(m/1000).toFixed(1)} km` : `${Math.round(m)} m`;
+async function get(path){ const r = await fetch(API + path); if (!r.ok) throw new Error(`${path} ${r.status}`); return r.json(); }
+
+// ---------------------------------------------------------------- 지도
+const map = L.map("map", {preferCanvas: true, zoomControl: true, attributionControl: false});
+const renderer = L.canvas({padding: .3, tolerance: 6});
+let tileLayer = null;
+$("#tiles").onclick = () => {
+  if (tileLayer) { map.removeLayer(tileLayer); tileLayer = null; return; }
+  tileLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 18, opacity: .45}).addTo(map);
+  tileLayer.bringToBack();
+};
+const roadLines = {};          // road_id → polyline
+const roadInfo = {};           // road_id → {name, geometry}
+const layers = {route: L.layerGroup().addTo(map), hl: L.layerGroup().addTo(map), nodes: L.layerGroup().addTo(map),
+                bases: L.layerGroup().addTo(map), veh: L.layerGroup().addTo(map)};
+
+function roadStyle(id, rs){
+  const blocked = rs.blockedSet.has(id), c = rs.congested[id] || 1;
+  if (blocked) return {color: css("--block"), weight: 5, opacity: 1, dashArray: "6 5"};
+  if (c > 1) return {color: c >= 2 ? css("--cong2") : css("--cong1"), weight: 2 + Math.min(4, c), opacity: .95, dashArray: null};
+  return {color: css("--road"), weight: 1.6, opacity: .9, dashArray: null};
+}
+
+// ---------------------------------------------------------------- 상태
+const S = {
+  mode: "live", runId: null, currentRun: null, events: [], after: 0, t: null, tMin: 0, tMax: 0,
+  playing: false, sel: null, focusEvent: null, live: {ugv: null, route: null, scenario: null},
+  roadSig: "", bases: [],
+};
+
+// 기록 → 시각 t 의 상태 (실시간이면 t = 끝)
+function stateAt(t){
+  const veh = {}, routes = {};
+  let road = {blocked: [], blocked_nodes: {}, congested: {}, active_rules: [], blocked_by: {}};
+  for (const e of S.events){
+    if (t != null && e.sim_time_s != null && e.sim_time_s > t) break;
+    const d = e.data || {}, rid = e.resource_id;
+    if (e.type === "RUN_START"){
+      for (const r of d.resources || []) veh[r.resource_id] = {...r, phase: null, eta: null, task: null, road: null, reroutes: 0};
+      continue;
+    }
+    if (e.type === "ROAD_STATE"){ road = d; continue; }
+    if (!rid) continue;
+    const v = veh[rid] || (veh[rid] = {resource_id: rid, resource_type: "?", reroutes: 0});
+    if (d.position) v.position = d.position;
+    if (d.state) v.state = d.state;
+    if (e.type === "ROUTE"){ routes[rid] = {path: d.path, legs: d.legs, target: d.target_node, task: e.task_id}; v.task = e.task_id; v.road = null; }
+    if (e.type === "UGV_TASK_STARTED"){ v.task = e.task_id; v.eta = d.eta_sec; v.phase = "STARTED"; v.reroutes = 0; }
+    if (e.type === "UGV_PROGRESS"){ v.phase = d.phase; v.eta = d.eta_remaining_sec; v.road = d.current_road_id; v.remaining = d.remaining_m; }
+    if (e.type === "UGV_REROUTED"){ v.reroutes = (v.reroutes || 0) + 1; v.eta = d.eta_remaining_sec ?? v.eta; }
+    if (["UGV_ARRIVED","UGV_TASK_FAILED","UGV_TASK_CANCELLED"].includes(e.type)){
+      v.phase = e.type === "UGV_ARRIVED" ? "ARRIVED" : "FAILED"; v.eta = null; v.road = null; delete routes[rid];
+    }
+  }
+  road.blockedSet = new Set(road.blocked || []);
+  road.congested = road.congested || {};
+  return {veh, routes, road};
+}
+
+// ---------------------------------------------------------------- 그리기
+function drawRoads(rs){
+  const sig = JSON.stringify([rs.blocked, rs.congested]);
+  if (sig === S.roadSig) return;
+  S.roadSig = sig;
+  for (const [id, pl] of Object.entries(roadLines)) pl.setStyle(roadStyle(id, rs));
+  for (const id of rs.blockedSet) roadLines[id]?.bringToFront();
+  layers.nodes.clearLayers();
+  for (const nid of Object.keys(rs.blocked_nodes || {})){
+    const roads = rs.blocked_nodes[nid] || [];
+    const g = roadInfo[roads[0]]?.geometry; if (!g) continue;
+    // 노드 좌표: 막힌 도로 끝점 중 공통인 점
+    const ends = roads.map(r => roadInfo[r]?.geometry).filter(Boolean).flatMap(g => [g[0], g[g.length-1]]);
+    const key = p => p.join(","); const cnt = {}; ends.forEach(p => cnt[key(p)] = (cnt[key(p)]||0)+1);
+    const best = Object.entries(cnt).sort((a,b) => b[1]-a[1])[0]; if (!best) continue;
+    const [la, lo] = best[0].split(",").map(Number);
+    L.circleMarker([la, lo], {radius: 8, color: css("--block"), weight: 3, fillColor: "#300", fillOpacity: .8, renderer})
+      .bindTooltip(`경유 불가 노드 ${esc(nid)}`, {className: "rt"}).addTo(layers.nodes);
+  }
+}
+
+function drawVehicles(veh){
+  layers.veh.clearLayers();
+  for (const v of Object.values(veh)){
+    if (!v.position) continue;
+    const fire = v.resource_type === "FIRE_ENGINE", sel = S.sel === v.resource_id;
+    const col = fire ? css("--fire") : css("--ugv");
+    const dim = S.sel && !sel;
+    L.circleMarker([v.position.lat, v.position.lon], {radius: sel ? 9 : 7, color: "#fff", weight: sel ? 3 : 1.5,
+      fillColor: col, fillOpacity: dim ? .35 : 1, opacity: dim ? .4 : 1, renderer})
+      .bindTooltip(v.resource_id, {permanent: true, direction: "right", offset: [8, 0], className: "vlab", opacity: dim ? .4 : 1})
+      .on("click", () => select(v.resource_id)).addTo(layers.veh);
+  }
+}
+
+function drawBases(){
+  layers.bases.clearLayers();
+  for (const b of S.bases){
+    L.circleMarker([b.lat, b.lon], {radius: 6, color: "#9fb3c2", weight: 2, fillColor: "#0b1013", fillOpacity: 1, renderer})
+      .bindTooltip(`${esc(b.name)} (${esc(b.node_id)})`, {permanent: true, direction: "left", offset: [-8, 0], className: "vlab"})
+      .addTo(layers.bases);
+  }
+}
+
+function legLatLngs(leg){
+  const g = roadInfo[leg.road_id]?.geometry; if (!g) return null;
+  return g;
+}
+
+function drawRoute(route){
+  layers.route.clearLayers();
+  if (!route || !route.legs) return;
+  for (const g of groupLegs(route.legs)){
+    if (g.state === "DONE" || g.travel_s < 30) continue;
+    const pts = g.roads.flatMap(id => roadInfo[id]?.geometry || []); if (!pts.length) continue;
+    const mid = pts[Math.floor(pts.length / 2)];
+    L.tooltip({permanent: true, direction: "center", className: `tlab ${g.state}`, interactive: false})
+      .setLatLng(mid).setContent(`${esc(g.name)} ${dur(g.travel_s)}${g.congestion > 1 ? " ×" + g.congestion : ""}`).addTo(layers.route);
+  }
+  for (const leg of route.legs){
+    const g = legLatLngs(leg); if (!g) continue;
+    const done = leg.state === "DONE", cur = leg.state === "CURRENT";
+    L.polyline(g, {color: done ? css("--done") : css("--route"), weight: cur ? 7 : 5, opacity: done ? .7 : .95, renderer})
+      .bindTooltip(`${esc(leg.name || leg.road_id)} · ${km(leg.distance_m)} · ${dur(leg.travel_s)}${leg.congestion > 1 ? ` · 혼잡 ×${leg.congestion}` : ""}${leg.blocked ? " · 차단" : ""}`, {className: "rt", sticky: true})
+      .addTo(layers.route);
+  }
+}
+
+function highlight(refs){
+  layers.hl.clearLayers();
+  if (!refs) return;
+  const pts = [];
+  for (const id of refs.roads || []){
+    const g = roadInfo[id]?.geometry; if (!g) continue;
+    L.polyline(g, {color: css("--hl"), weight: 10, opacity: .55, renderer}).addTo(layers.hl);
+    L.polyline(g, {color: css("--hl"), weight: 3, opacity: 1, renderer})
+      .bindTooltip(`${esc(roadInfo[id].name || "")} ${esc(id)}`, {className: "rt", sticky: true}).addTo(layers.hl);
+    pts.push(...g);
+  }
+  for (const n of refs.points || []){
+    L.circleMarker([n.lat, n.lon], {radius: 11, color: css("--hl"), weight: 3, fill: false, renderer}).addTo(layers.hl);
+    pts.push([n.lat, n.lon]);
+  }
+  if (pts.length && refs.fly){
+    const b = L.latLngBounds(pts);
+    if (!map.getBounds().contains(b)) map.fitBounds(b.pad(.6), {maxZoom: 15});
+  }
+}
+
+// ---------------------------------------------------------------- 패널
+const STATE_KO = {READY: "대기", RUNNING: "주행", UNAVAILABLE: "이상", WORKING: "작업"};
+const PHASE_KO = {STARTED: "출발", ENROUTE: "이동 중", ARRIVED: "도착", FAILED: "실패", LOADING: "싣는 중"};
+
+function drawVehicleList(veh){
+  const el = $("#vehicles");
+  const vs = Object.values(veh).sort((a,b) => a.resource_id.localeCompare(b.resource_id));
+  if (!vs.length){ el.innerHTML = `<div class="empty">차량 정보 없음</div>`; return; }
+  el.innerHTML = vs.map(v => {
+    const sub = [v.resource_type === "FIRE_ENGINE" ? "소방차" : "UGV", v.base ? `거점 ${esc(v.base)}` : null,
+      v.phase ? PHASE_KO[v.phase] || v.phase : null, v.eta != null ? `남은 ${dur(v.eta)}` : null,
+      v.reroutes ? `재탐색 ${v.reroutes}` : null].filter(Boolean).join(" · ");
+    return `<div class="veh ${S.sel === v.resource_id ? "sel" : ""}" data-id="${esc(v.resource_id)}">
+      <div class="top"><span class="id">${esc(v.resource_id)}</span><span class="st ${esc(v.state)}">${esc(STATE_KO[v.state] || v.state || "?")}</span></div>
+      <div class="sub">${sub}</div></div>`;
+  }).join("");
+  el.querySelectorAll(".veh").forEach(d => d.onclick = () => select(d.dataset.id));
+}
+
+function markLegs(legs, curRoad){
+  // 과거 재생: 진행 보고의 current_road_id 로 지나온/달리는/남은 구간을 다시 매긴다
+  if (!legs) return legs;
+  if (!curRoad) return legs.map(l => ({...l, state: l.state || "NEXT"}));   // 경로 확정 직후 — 기록 당시 상태 그대로
+  let seen = false;
+  return legs.map(l => { let st; if (!seen && l.road_id === curRoad){ st = "CURRENT"; seen = true; } else st = seen ? "NEXT" : "DONE"; return {...l, state: st}; });
+}
+
+// 이름이 같은 도로 구간이 이어지면 한 줄로 묶는다 (교차로마다 쪼개진 7 m 구간까지 줄로 보이면 읽을 수 없다)
+function groupLegs(legs){
+  const out = [];
+  for (const l of legs || []){
+    const g = out[out.length - 1];
+    if (g && g.name === (l.name || l.road_id) && g.blocked === !!l.blocked){
+      g.roads.push(l.road_id); g.distance_m += l.distance_m || 0; g.travel_s += l.travel_s || 0; g.n++;
+      g.congestion = Math.max(g.congestion, l.congestion || 1); g.states.add(l.state); g.to = l.to;
+    } else out.push({name: l.name || l.road_id, roads: [l.road_id], distance_m: l.distance_m || 0, travel_s: l.travel_s || 0,
+      n: 1, congestion: l.congestion || 1, blocked: !!l.blocked, states: new Set([l.state]), from: l.from, to: l.to});
+  }
+  for (const g of out) g.state = g.states.has("CURRENT") ? "CURRENT" : g.states.has("NEXT") ? "NEXT" : "DONE";
+  return out;
+}
+
+function drawLegs(route, v){
+  const tb = $("#legs tbody");
+  if (!S.sel){ $("#legs").style.display = "none"; $("#legEmpty").style.display = ""; $("#legEmpty").textContent = "차량을 고르면 경로가 나온다."; $("#legSum").innerHTML = ""; return; }
+  if (!route || !route.legs || !route.legs.length){
+    $("#legs").style.display = "none"; $("#legEmpty").style.display = ""; $("#legEmpty").textContent = `${S.sel}: 주행 중인 경로 없음`; $("#legSum").innerHTML = ""; return;
+  }
+  const legs = route.legs, rest = legs.filter(l => l.state !== "DONE");
+  const restT = rest.reduce((a, l) => a + (l.travel_s || 0), 0), restM = rest.reduce((a, l) => a + (l.distance_m || 0), 0);
+  $("#legSum").innerHTML = `목적지 <b>${esc(route.target || route.target_node || "?")}</b> · 구간 ${legs.length}개 · 남은 <b>${km(restM)}</b> / <b>${dur(restT)}</b>` +
+    (v && v.eta != null ? ` <span title="차량이 보고한 남은 시간">(보고 ${dur(v.eta)})</span>` : "");
+  const groups = groupLegs(legs);
+  tb.innerHTML = groups.map((g, i) => `<tr class="${g.state} ${g.blocked ? "blk" : ""}" data-roads="${esc(g.roads.join(","))}">
+    <td>${i+1}</td><td class="n" title="${esc(g.name)} · ${esc(g.from)} → ${esc(g.to)} · 도로 ${esc(g.roads.join(", "))}">${esc(g.name)}${g.n > 1 ? `<small>${g.n}</small>` : ""}</td>
+    <td class="num">${km(g.distance_m)}</td><td class="num">${g.blocked ? "차단" : dur(g.travel_s)}</td>
+    <td class="num">${g.congestion > 1 ? "×" + g.congestion : ""}</td></tr>`).join("");
+  tb.querySelectorAll("tr").forEach(tr => {
+    const roads = tr.dataset.roads.split(",");
+    tr.onmouseenter = () => highlight({roads});
+    tr.onmouseleave = () => highlight(S.focusEvent ? refsOf(S.focusEvent) : null);
+    tr.onclick = () => highlight({roads, fly: true});
+  });
+  $("#legs").style.display = ""; $("#legEmpty").style.display = "none";
+  const cur = tb.querySelector("tr.CURRENT"), box = $("#legs");
+  if (cur && S.legFollow !== cur.dataset.roads){ S.legFollow = cur.dataset.roads; box.scrollTop = Math.max(0, cur.offsetTop - box.clientHeight / 2); }
+}
+
+// 기록 한 건 → 사람이 읽는 문장 + 지도에 표시할 도로·노드
+const TYPE = {
+  RUN_START: ["실행 시작", "info"], ROAD_STATE: ["도로 상황 변화", "road"], ROUTE: ["경로 확정", "info"],
+  UGV_EVALUATED: ["수행 가능성 평가", "info"], UGV_TASK_STARTED: ["출동", "ok"], UGV_PROGRESS: ["진행", "info"],
+  UGV_REROUTED: ["재탐색(우회)", "warn"], UGV_ARRIVED: ["도착", "ok"], UGV_TASK_FAILED: ["임무 실패", "bad"],
+  UGV_TASK_CANCELLED: ["임무 취소", "warn"], RESOURCE_CHANGED: ["자원 상태 변화", "info"],
+  UGV_WORK_STARTED: ["작업 시작", "info"], UGV_WORK_ENDED: ["작업 끝", "info"], UGV_LOADING: ["싣기", "info"],
+};
+function roadName(id){ const r = roadInfo[id]; return r ? `${r.name || "도로"}(${id})` : id; }
+
+function prevRoadState(e){
+  let prev = null;
+  for (const x of S.events){ if (x === e) break; if (x.type === "ROAD_STATE") prev = x; }
+  return prev ? prev.data : {blocked: [], congested: {}, blocked_nodes: {}, active_rules: []};
+}
+
+function describe(e){
+  const d = e.data || {};
+  switch (e.type){
+    case "RUN_START": return `${d.driver} · 배율 ${d.time_scale} · 시나리오 ${d.scenario || "없음"} · 차량 ${(d.resources||[]).length}대`;
+    case "ROAD_STATE": {
+      if (!S.events.some(x => x.type === "ROAD_STATE" && x.seq < e.seq))
+        return `초기 상태 — 막힌 도로 ${(d.blocked || []).length} · 혼잡 ${Object.keys(d.congested || {}).length}`;
+      const p = prevRoadState(e), pb = new Set(p.blocked || []), nb = new Set(d.blocked || []);
+      const on = [...nb].filter(x => !pb.has(x)), off = [...pb].filter(x => !nb.has(x));
+      const pc = p.congested || {}, nc = d.congested || {};
+      const con = Object.keys(nc).filter(k => pc[k] !== nc[k]), coff = Object.keys(pc).filter(k => !(k in nc));
+      const parts = [];
+      if (on.length) parts.push(`차단 ${on.length}: ${on.slice(0,3).map(roadName).join(", ")}${on.length > 3 ? " …" : ""}`);
+      if (off.length) parts.push(`해제 ${off.length}`);
+      if (con.length) parts.push(`혼잡 ${con.length}개 도로`);
+      if (coff.length) parts.push(`혼잡 해소 ${coff.length}`);
+      const notes = (d.active_rules || []).map(r => r.note).filter(Boolean);
+      return (parts.join(" · ") || "변화 없음") + (notes.length ? `<br>켜진 규칙: ${notes.map(esc).join(" / ")}` : "");
+    }
+    case "ROUTE": { const t = (d.legs||[]).reduce((a,l) => a + (l.travel_s||0), 0);
+      return `→ ${esc(d.target_node)} · 구간 ${(d.legs||[]).length}개 · ${km((d.legs||[]).reduce((a,l)=>a+(l.distance_m||0),0))} · ${dur(t)}${d.why === "UGV_REROUTED" ? " (우회 경로)" : ""}`; }
+    case "UGV_EVALUATED": return `${d.verdict}${d.eta_sec != null ? ` · ETA ${dur(d.eta_sec)}` : ""}${d.reason ? ` · ${esc(d.reason)}` : ""}${d.target_node ? ` · 목표 ${esc(d.target_node)}` : ""}`;
+    case "UGV_TASK_STARTED": return `목표 ${esc(d.target_node)} · ETA ${dur(d.eta_sec)}`;
+    case "UGV_PROGRESS": return `${PHASE_KO[d.phase] || d.phase} · ${roadName(d.current_road_id)} · 남은 ${km(d.remaining_m)} / ${dur(d.eta_remaining_sec)}`;
+    case "UGV_REROUTED": return `막힘 ${roadName(d.blocked_road_id)} → 새 경로, 남은 ${dur(d.eta_remaining_sec)} (재탐색 ${d.reroutes ?? ""}회)`;
+    case "UGV_TASK_FAILED": return `${esc(d.reason)} — ${esc(d.error)}`;
+    case "RESOURCE_CHANGED": return `${esc(d.why)}${d.fault ? " · " + esc(d.fault) : ""}`;
+    default: return Object.entries(d).filter(([k]) => !["position","state","fuel_pct","source"].includes(k))
+      .slice(0, 4).map(([k, v]) => `${esc(k)}=${esc(typeof v === "object" ? JSON.stringify(v).slice(0, 60) : v)}`).join(" · ");
+  }
+}
+
+function refsOf(e){
+  const d = e.data || {}, roads = new Set(d.roads || []), points = [];
+  if (d.blocked_road_id) roads.add(d.blocked_road_id);
+  if (d.current_road_id && e.type !== "UGV_PROGRESS") roads.add(d.current_road_id);
+  if (e.type === "ROUTE") (d.legs || []).forEach(l => roads.add(l.road_id));
+  if (e.type === "ROAD_STATE"){
+    const p = prevRoadState(e), pb = new Set(p.blocked || []);
+    (d.blocked || []).filter(x => !pb.has(x)).forEach(x => roads.add(x));
+    [...pb].filter(x => !(d.blocked || []).includes(x)).forEach(x => roads.add(x));
+    const pc = p.congested || {}, nc = d.congested || {};
+    Object.keys(nc).filter(k => pc[k] !== nc[k]).forEach(x => roads.add(x));
+    Object.keys(pc).filter(k => !(k in nc)).forEach(x => roads.add(x));
+  }
+  if (e.type === "UGV_PROGRESS" && d.current_road_id) roads.add(d.current_road_id);
+  if (d.position && !["RUN_START","ROAD_STATE"].includes(e.type)) points.push(d.position);
+  for (const n of d.nodes || []) if (n.lat != null) points.push(n);
+  return {roads: [...roads], points, fly: true};
+}
+
+function eventVisible(e){
+  if (e.type === "UGV_PROGRESS") return $("#fProg").checked;
+  if (e.type === "UGV_EVALUATED") return $("#fEval").checked;
+  if (e.type === "ROAD_STATE") return $("#fRoad").checked;
+  if (e.type.startsWith("AGENT_")) return true;
+  return true;
+}
+
+let lastLogSig = "";
+function drawLog(t){
+  const list = S.events.filter(eventVisible);
+  $("#cLog").textContent = list.length;
+  const sig = `${list.length}|${t}|${S.focusEvent?.seq}|${S.mode}`;
+  if (sig === lastLogSig) return; lastLogSig = sig;
+  const box = $("#tabLog"), atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
+  box.innerHTML = list.length ? list.map(e => {
+    const [k, cls] = TYPE[e.type] || [e.type, e.type.startsWith("AGENT_") ? "ai" : "info"];
+    const fut = t != null && e.sim_time_s > t;
+    return `<div class="ev ${fut ? "future" : ""} ${S.focusEvent?.seq === e.seq ? "on" : ""}" data-seq="${e.seq}">
+      <div class="h"><span class="t">${hms(e.sim_time_s)}</span><span class="k ${cls}">${esc(k)}</span><span class="r">${esc(e.resource_id || "")}${e.task_id ? " · " + esc(e.task_id) : ""}</span></div>
+      <div class="d">${describe(e)}</div></div>`;
+  }).join("") : `<div class="empty">기록 없음</div>`;
+  box.querySelectorAll(".ev").forEach(d => d.onclick = () => focusEvent(+d.dataset.seq));
+  if (S.mode === "live" && atBottom) box.scrollTop = box.scrollHeight;
+}
+
+function drawAi(){
+  const ev = S.events.filter(e => e.type.startsWith("AGENT_"));
+  $("#cAi").textContent = ev.length || "";
+  const start = S.events.find(e => e.type === "RUN_START");
+  const sealed = !start || (start.data || {}).ugv_agent !== "ON";
+  $("#agentpill").innerHTML = `도로 AI <b>${sealed ? "봉인" : "켜짐"}</b>`;
+  $("#agentpill").classList.toggle("sealed", sealed);
+  const box = $("#tabAi");
+  if (!ev.length){
+    box.innerHTML = `<div class="sealed-box"><b>도로 AI 에이전트 — ${sealed ? "봉인" : "기록 없음"}</b><br><br>
+      경로가 주행 중에 막히면 교통 정보(기사)를 검색해 대기·우회·포기를 판단하는 UGV 자체 에이전트.
+      총괄 LLM 과 별개이며 키도 따로 쓴다. 시연·화면에서 기본으로 꺼 둔다.<br><br>
+      판단·통신이 생기면 여기에 시각순으로 쌓이고, 항목을 누르면 그때 본 도로·노드를 지도에 강조한다.</div>`;
+    return;
+  }
+  box.innerHTML = ev.map(e => {
+    const d = e.data || {};
+    return `<div class="ai ev" data-seq="${e.seq}"><div class="h"><span class="t">${hms(e.sim_time_s)}</span><span class="k ai">${esc(e.type.replace("AGENT_",""))}</span><span class="r">${esc(e.resource_id || "")}</span></div>
+      ${d.decision ? `<div class="d"><b>${esc(d.decision)}</b> ${esc(d.reason || "")}</div>` : ""}
+      ${d.request ? `<details><summary>요청</summary><pre>${esc(typeof d.request === "string" ? d.request : JSON.stringify(d.request, null, 1))}</pre></details>` : ""}
+      ${d.response ? `<details><summary>응답</summary><pre>${esc(typeof d.response === "string" ? d.response : JSON.stringify(d.response, null, 1))}</pre></details>` : ""}</div>`;
+  }).join("");
+  box.querySelectorAll(".ev").forEach(d => d.onclick = ev2 => { if (ev2.target.tagName !== "SUMMARY") focusEvent(+d.dataset.seq); });
+}
+
+function drawScenario(rs){
+  const box = $("#tabScn"), sc = S.mode === "live" ? S.live.scenario : null;
+  const active = sc ? sc.active : (rs.active_rules || []);
+  const upcoming = sc ? sc.upcoming : [];
+  const nb = (rs.blocked || []).length, nc = Object.keys(rs.congested || {}).length, nn = Object.keys(rs.blocked_nodes || {}).length;
+  $("#cScn").textContent = nb + nc ? `${nb}/${nc}` : "";
+  const rule = (r, on) => `<div class="rule ${on ? "on" : ""}"><div class="h"><b>${esc({road:"도로 차단",node:"노드 차단",congestion:"혼잡"}[r.kind] || r.kind)}${r.value ? " ×" + r.value : ""}</b>
+    <span class="t">${typeof r.start === "number" ? hms(r.start) : esc(r.start)}–${r.end == null ? "끝" : typeof r.end === "number" ? hms(r.end) : esc(r.end)}</span></div>
+    <div class="d">${esc(r.note || "")}</div><div class="r">${(r.targets || []).map(x => esc(roadInfo[x]?.name ? roadName(x) : x)).join(", ")}</div></div>`;
+  box.innerHTML = `<h2>지금 상태</h2><div class="sum" style="margin:0 12px 6px">막힌 도로 <b>${nb}</b> · 경유 불가 노드 <b>${nn}</b> · 혼잡 도로 <b>${nc}</b></div>
+    <h2>켜진 규칙</h2>${active.length ? active.map(r => rule(r, true)).join("") : `<div class="empty">없음 — 도로 전부 열림</div>`}
+    ${S.mode === "live" ? `<h2>예정</h2>${upcoming.length ? upcoming.map(r => rule(r, false)).join("") : `<div class="empty">없음</div>`}` : ""}`;
+  box.querySelectorAll(".rule").forEach((d, i) => d.onclick = () => {
+    const r = [...active, ...upcoming][i]; if (!r) return;
+    highlight({roads: r.kind === "node" ? r.targets.flatMap(n => rs.blocked_nodes?.[n] || []) : r.targets, fly: true});
+  });
+}
+
+// ---------------------------------------------------------------- 상호작용
+function select(id){
+  S.sel = S.sel === id ? null : id;
+  S.live.route = null;
+  render();
+  if (S.sel && S.mode === "live") pollRoute();
+}
+
+function focusEvent(seq){
+  const e = S.events.find(x => x.seq === seq); if (!e) return;
+  S.focusEvent = S.focusEvent?.seq === seq ? null : e;
+  if (S.focusEvent && S.mode === "past" && e.sim_time_s != null){ S.t = e.sim_time_s; S.playing = false; $("#play").textContent = "▶"; }
+  if (S.focusEvent && e.resource_id && e.resource_id !== S.sel && e.type !== "ROAD_STATE"){ S.sel = e.resource_id; }
+  lastLogSig = "";
+  render();
+  highlight(S.focusEvent ? refsOf(S.focusEvent) : null);
+}
+
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+  const tab = b.dataset.tab;
+  $("#tabLog").style.display = tab === "log" ? "" : "none";
+  $("#logFilter").style.display = tab === "log" ? "" : "none";
+  $("#tabAi").style.display = tab === "ai" ? "" : "none";
+  $("#tabScn").style.display = tab === "scn" ? "" : "none";
+});
+["#fProg", "#fEval", "#fRoad"].forEach(s => $(s).onchange = () => { lastLogSig = ""; render(); });
+
+// ---------------------------------------------------------------- 렌더
+function render(){
+  const t = S.mode === "past" ? S.t : null;
+  const st = stateAt(t);
+  // 실시간: 차량 위치·상태는 /ugv 가 더 촘촘하다
+  if (S.mode === "live" && S.live.ugv){
+    for (const u of S.live.ugv){
+      const v = st.veh[u.resource_id] || (st.veh[u.resource_id] = {resource_id: u.resource_id, reroutes: 0});
+      Object.assign(v, {resource_type: u.resource_type, base: u.base, state: u.state, position: u.position});
+    }
+  }
+  drawRoads(st.road);
+  drawVehicles(st.veh);
+  drawVehicleList(st.veh);
+  let route = S.sel ? st.routes[S.sel] : null;
+  if (route && S.mode === "past") route = {...route, legs: markLegs(route.legs, st.veh[S.sel]?.road)};
+  if (S.mode === "live" && S.sel && S.live.route && S.live.route.resource_id === S.sel)
+    route = S.live.route.legs?.length ? {target: S.live.route.target_node, legs: S.live.route.legs} : null;
+  drawRoute(route);
+  drawLegs(route, S.sel ? st.veh[S.sel] : null);
+  drawLog(t);
+  drawAi();
+  drawScenario(st.road);
+  const last = S.events.length ? S.events[S.events.length - 1].sim_time_s : null;
+  $("#clock").innerHTML = `${S.mode === "live" ? "실시간" : "재생"} <b>${hms(S.mode === "live" ? (S.live.ugv?.[0]?.sim_time_s ?? last) : S.t)}</b>`;
+  $("#clock").classList.toggle("live", S.mode === "live");
+  const start = S.events.find(e => e.type === "RUN_START");
+  $("#scen").innerHTML = `시나리오 <b>${esc(start?.data?.scenario || "없음")}</b>`;
+  if (S.mode === "past") drawBar();
+}
+
+// ---------------------------------------------------------------- 시간 막대 (과거 실행)
+const TICK_COL = {UGV_REROUTED: "--warn", UGV_TASK_FAILED: "--bad", UGV_TASK_STARTED: "--ok", UGV_ARRIVED: "--ok", ROAD_STATE: "--cong1"};
+function drawBar(){
+  const span = Math.max(1, S.tMax - S.tMin), x = v => ((v - S.tMin) / span * 100).toFixed(3) + "%";
+  $("#bar .fill").style.width = x(S.t); $("#bar .knob").style.left = x(S.t);
+  $("#slider").value = Math.round((S.t - S.tMin) / span * 1000);
+  $("#tlabel").innerHTML = `<b>${hms(S.t)}</b> / ${hms(S.tMax)}`;
+}
+function drawTicks(){
+  const bar = $("#bar"); bar.querySelectorAll(".tick").forEach(x => x.remove());
+  const span = Math.max(1, S.tMax - S.tMin);
+  for (const e of S.events){
+    const c = e.type.startsWith("AGENT_") ? "--ai" : TICK_COL[e.type]; if (!c || e.sim_time_s == null) continue;
+    const d = document.createElement("div"); d.className = "tick";
+    d.style.left = ((e.sim_time_s - S.tMin) / span * 100) + "%"; d.style.background = css(c);
+    d.title = `${hms(e.sim_time_s)} ${(TYPE[e.type] || [e.type])[0]}`;
+    bar.insertBefore(d, bar.querySelector("input"));
+  }
+}
+$("#slider").oninput = ev => { S.t = S.tMin + (+ev.target.value / 1000) * (S.tMax - S.tMin); S.playing = false; $("#play").textContent = "▶"; render(); };
+$("#play").onclick = () => { S.playing = !S.playing; if (S.playing && S.t >= S.tMax) S.t = S.tMin; $("#play").textContent = S.playing ? "⏸" : "▶"; };
+let lastFrame = performance.now();
+function frame(now){
+  const dt = (now - lastFrame) / 1000; lastFrame = now;
+  if (S.mode === "past" && S.playing){
+    S.t = Math.min(S.tMax, S.t + dt * +$("#rate").value);
+    if (S.t >= S.tMax){ S.playing = false; $("#play").textContent = "▶"; }
+    render();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---------------------------------------------------------------- 데이터
+async function loadRuns(keep){
+  const r = await get("/history/runs");
+  S.currentRun = r.current;
+  const sel = $("#mode"), prev = keep ?? sel.value;
+  const fmt = id => id.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2}).*$/, "$2/$3 $4:$5:$6");
+  sel.innerHTML = `<option value="live">● 실시간 (지금 실행)</option>` +
+    r.runs.filter(x => !x.current).map(x => `<option value="${esc(x.run_id)}">과거 ${fmt(x.run_id)} · ${x.events}건 · ${hms(x.last_sim_time_s)}${x.scenario ? " · " + esc(x.scenario) : ""}</option>`).join("");
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+$("#mode").onfocus = () => loadRuns();
+$("#mode").onchange = () => switchMode($("#mode").value);
+
+async function switchMode(v){
+  S.events = []; S.after = 0; S.focusEvent = null; S.roadSig = ""; lastLogSig = ""; highlight(null);
+  if (v === "live"){
+    S.mode = "live"; S.runId = S.currentRun; S.t = null; $("#foot").classList.remove("show");
+    await pollLive();
+  } else {
+    S.mode = "past"; S.runId = v; S.playing = false; $("#play").textContent = "▶";
+    let after = 0, more = true;
+    while (more){ const r = await get(`/history/runs/${encodeURIComponent(v)}?after=${after}`); S.events.push(...r.events); after = r.next_after; more = r.more; }
+    const ts = S.events.map(e => e.sim_time_s).filter(x => x != null);
+    S.tMin = ts.length ? Math.min(...ts) : 0; S.tMax = ts.length ? Math.max(...ts) : 0; S.t = S.tMin;
+    $("#foot").classList.add("show"); drawTicks();
+  }
+  render();
+  setTimeout(() => map.invalidateSize(), 50);
+}
+
+async function pollRoute(){
+  if (!S.sel || S.mode !== "live") return;
+  try { S.live.route = await get(`/ugv/${encodeURIComponent(S.sel)}/route`); } catch { S.live.route = null; }
+}
+
+let polling = false;
+async function pollLive(){
+  if (S.mode !== "live" || polling) return;
+  polling = true;
+  try {
+    const [hist, ugv, scen] = await Promise.all([
+      S.runId ? get(`/history/runs/${encodeURIComponent(S.runId)}?after=${S.after}`) : null,
+      get("/ugv"), get("/scenario").catch(() => null)]);
+    if (S.mode !== "live") return;
+    if (hist){ S.events.push(...hist.events); S.after = hist.next_after; }
+    S.live.ugv = ugv; S.live.scenario = scen && scen.name ? scen : null;
+    await pollRoute();
+    render();
+  } catch (err) {
+    $("#clock").innerHTML = `연결 끊김 <b>${esc(err.message)}</b>`;
+  } finally { polling = false; }
+}
+setInterval(pollLive, 1000);
+
+async function init(){
+  const geo = await get("/roads/geometry");
+  const all = [];
+  for (const r of geo.roads){
+    if (!r.geometry || r.geometry.length < 2) continue;
+    roadInfo[r.road_id] = {name: r.name, geometry: r.geometry};
+    roadLines[r.road_id] = L.polyline(r.geometry, {...roadStyle(r.road_id, {blockedSet: new Set(), congested: {}}), renderer})
+      .bindTooltip(() => { const rs = stateAt(S.mode === "past" ? S.t : null).road;
+        const c = rs.congested[r.road_id]; return `${esc(r.name || "도로")} · ${esc(r.road_id)}${rs.blockedSet.has(r.road_id) ? " · <b style='color:var(--block)'>차단</b> " + esc((rs.blocked_by?.[r.road_id] || []).join(",")) : ""}${c > 1 ? ` · 혼잡 ×${c}` : ""}`; },
+        {className: "rt", sticky: true})
+      .addTo(map);
+    all.push(...r.geometry);
+  }
+  map.fitBounds(L.latLngBounds(all).pad(.05));
+  S.bases = await get("/graph/bases").catch(() => []);
+  drawBases();
+  await loadRuns("live");
+  await switchMode("live");
+}
+init().catch(err => { document.body.insertAdjacentHTML("afterbegin", `<div style="padding:12px;color:#ff4d4f">상황판 시작 실패: ${esc(err.message)}</div>`); });
+</script>
+</body>
+</html>
