@@ -22,11 +22,11 @@ def _port():
     s = socket.socket(); s.bind(("127.0.0.1", 0)); p = s.getsockname()[1]; s.close(); return p
 
 
-def _start(state_dir, scenario=""):
+def _start(state_dir, scenario="", **extra):
     port = _port()
     env = {**os.environ, "UGV_DRIVER": "sim", "UGV_STATE_DIR": str(state_dir), "UGV_TIME_SCALE": "100",
            "UGV_SCENARIO": scenario, "UGV_REPORT_URL": "", "UGV_ORCH_URL": "http://127.0.0.1:9",
-           "UGV_HISTORY_DIR": str(state_dir / "history"), "UGV_ENV_URL": ""}
+           "UGV_HISTORY_DIR": str(state_dir / "history"), "UGV_ENV_URL": "", **extra}
     p = subprocess.Popen([sys.executable, "-m", "uvicorn", "ugv.server:app", "--port", str(port), "--log-level", "warning"],
                          cwd=str(ROOT), env=env, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     url = f"http://127.0.0.1:{port}"

@@ -791,6 +791,9 @@ const TYPE = {
   UGV_TASK_CANCELLED: ["임무 중단", "warn"], RESOURCE_CHANGED: ["자원 상태 변화", "info"],
   VIEW_DISPATCH: ["상황판 출동 요청 (총괄)", "info"], VIEW_COMMAND: ["상황판 직접 명령", "warn"],
   UGV_WORK_STARTED: ["작업 시작", "info"], UGV_WORK_ENDED: ["작업 끝", "info"], UGV_LOADING: ["싣기", "info"],
+  // 도로 AI (봉인 — UGV_AGENT=1 일 때만 기록에 나온다)
+  AGENT_REQUEST: ["도로 AI 판단 요청", "warn"], AGENT_TOOL: ["도로 AI 기사 검색", "info"],
+  AGENT_DECISION: ["도로 AI 결정", "warn"], UGV_WAITING: ["대기 (도로 열림 기다림)", "warn"],
 };
 const roadName = id => { const r = roadInfo[id]; return r ? `${r.name || "도로"}(${id})` : (id || "–"); };
 
@@ -803,6 +806,10 @@ function prevRoadState(e){
 function describe(e){
   const d = e.data || {};
   switch (e.type){
+    case "AGENT_REQUEST": return `막힘 ${esc(roadName((d.roads || [])[0]))} · 선택지 ${(d.options || []).map(o => `${esc(o.name)} ${durS(o.eta_s)}`).join(" / ")} · WAIT · ${esc(d.mode || "")}`;
+    case "AGENT_TOOL": return `${d.by === "model" ? "모델이 검색" : "서버가 미리 검색"} "${esc(d.query || "")}" → ${esc((d.hits || []).join(", ") || "없음")} (${esc(d.method || "")})`;
+    case "AGENT_DECISION": return `<b>${esc(d.decision)}</b>${d.wait_until ? ` ~${esc(hms((d.wait_until_s ?? 0)))}` : ""} · ${esc(d.reason || "")}${(d.article_ids || []).length ? ` · 근거 ${esc(d.article_ids.join(", "))}` : ""}${d.fallback ? ` <span style="color:var(--warn)">[${esc(d.fallback)}]</span>` : ""}`;
+    case "UGV_WAITING": return `${esc(roadName(d.blocked_road_id))} 열릴 때까지 · 최대 ${hms(d.wait_until_sim_s)}`;
     case "CLOCK": return `시나리오 시작 ${esc((d.scenario_start_kst || "?").replace("T", " "))} · 환경 실행 ${esc(d.env_run_id || "?")}`;
     case "RUN_START": return `${d.driver} · 배율 ${d.time_scale} · 시나리오 ${d.scenario || "없음"} · 차량 ${(d.resources||[]).length}대`;
     case "ROAD_STATE": {

@@ -1,0 +1,216 @@
+# -*- coding: utf-8 -*-
+"""도로 AI (ugv/road_ai.py, 봉인 기능) — 가짜 Gemini 로 판단 흐름과 서버 연동을 본다. 실제 Gemini 는 부르지 않는다.
+
+실행 (저장소 루트):  python -m pytest tests/test_ugv_road_ai.py -q
+- 2순위 경로: 1순위와 겹침 70% 미만 (ugv/route_alt.py)
+- 기사 검색: 지금 시각 이후 기사는 안 보임, 도로로 거르기, BM25 순위 (ugv/road_news.py)
+- 판단: function calling(모델이 검색 → 결정), inline(서버가 기사를 넣음), 실패 시 1순위
+- 서버: 주행 중 막힘 → 차를 세우고 AI 에 묻고 → WAIT → 도로가 열리면 원래 길로 이어 도착
+"""
+
+import json
+import socket
+import threading
+import time
+from pathlib import Path
+
+import httpx
+import pytest
+
+from ugv import graph_gpkg
+from ugv.road_ai import GeminiClient, RoadAI
+from ugv.road_graph import RoadGraph
+from ugv.road_news import RoadNews
+from ugv.route_alt import best_and_alternative
+
+ROOT = Path(__file__).resolve().parents[1]
+NEWS = ROOT / "ugv" / "scenarios" / "road_news.json"
+
+
+def test_alternative_route_overlap():
+    g = RoadGraph(graph_gpkg.NODES, graph_gpkg.ROADS)
+    g.get_road("682501434").blocked = True
+    best, alt = best_and_alternative(g, "494949", "494955", 2.0)
+    assert best and alt
+    assert "682501434" not in best.roads and "682501434" not in alt.roads
+    assert alt.overlap_with(best, g) < 0.7 and alt.travel_s >= best.travel_s
+    assert sum(r.blocked for r in g.roads()) == 1          # 탐색이 도로 상태를 건드리지 않는다
+
+
+def test_news_time_and_road_filter():
+    n = RoadNews.load(NEWS)
+    r = n.search("설악로 통제 해제", 7 * 60, ["682501434"])
+    assert r["road_filter"] == "matched" and [h["id"] for h in r["hits"]] == ["N1"]   # N4(00:20)는 아직 안 나옴
+    r = n.search("설악로 통제 해제", 25 * 60, ["682501434"])
+    assert r["hits"][0]["id"] == "N4"
+    r = n.search("기린로", 7 * 60, ["no-such-road"])
+    assert r["road_filter"] == "relaxed" and r["hits"][0]["id"] == "N5"
+
+
+def _situation(options=("ROUTE_1",)):
+    opts = [{"name": o, "eta_s": 600 + 60 * i, "distance_m": 1200, "road_ids": ["682502600"], "road_names": ["신상촌길"],
+             "path": ["a", "b"]} for i, o in enumerate(options)]
+    return {"now_s": 420, "now_text": "14:52", "resource_id": "A-ugv1", "resource_type": "UGV", "target": "설악로",
+            "blocked_road_id": "682501434", "blocked_name": "설악로", "here_name": "설악로", "eta_before_s": 500,
+            "options": opts, "to_sim": lambda hhmm: int(hhmm[:2]) * 3600 + int(hhmm[3:5]) * 60 - (14 * 3600 + 45 * 60)}
+
+
+def _fc(name, args):
+    return {"candidates": [{"content": {"role": "model", "parts": [{"functionCall": {"name": name, "args": args}}]}}]}
+
+
+def test_function_calling_search_then_decide():
+    seen = []
+
+    def http(url, headers, body, timeout):
+        seen.append(body)
+        if ":generateContent" not in url:
+            return 404, {}
+        if len(body["contents"]) == 1:
+            return 200, _fc("search_road_news", {"query": "설악로 통제 언제 풀리나", "road_ids": ["682501434"]})
+        return 200, _fc("submit_decision", {"decision": "ROUTE_1", "reason": "40분 통제라 우회가 빠르다", "article_ids": ["N1"]})
+
+    ai = RoadAI(GeminiClient(None, "m", "e", http=http), RoadNews.load(NEWS))
+    out = ai.decide(_situation())
+    assert out["decision"] == "ROUTE_1" and out["fallback"] is None and out["article_ids"] == ["N1"]
+    fr = seen[1]["contents"][-1]["parts"][0]["functionResponse"]
+    assert fr["name"] == "search_road_news" and fr["response"]["articles"][0]["id"] == "N1"
+    assert [e["type"] for e in out["trace"]] == ["AGENT_REQUEST", "AGENT_TOOL", "AGENT_DECISION"]
+    assert seen[0]["toolConfig"]["functionCallingConfig"]["mode"] == "ANY"
+    assert "기사가 주어지지 않았으면 search_road_news" in seen[0]["systemInstruction"]["parts"][0]["text"]
+
+
+def test_inline_mode_puts_articles_in_prompt_and_wait():
+    seen = []
+
+    def http(url, headers, body, timeout):
+        seen.append(body)
+        return 200, _fc("submit_decision", {"decision": "WAIT", "wait_until": "15:30", "reason": "곧 열린다"})
+
+    ai = RoadAI(GeminiClient(None, "m", "e", http=http), RoadNews.load(NEWS), mode="inline")
+    out = ai.decide(_situation())
+    prompt = seen[0]["contents"][0]["parts"][0]["text"]
+    assert "참고 기사" in prompt and "[N1]" in prompt and "[N4]" not in prompt
+    assert [t["name"] for t in seen[0]["tools"][0]["functionDeclarations"]] == ["submit_decision"]
+    assert out["decision"] == "WAIT" and out["wait_until_s"] == 45 * 60
+
+
+def test_fallbacks():
+    n = RoadNews.load(NEWS)
+    assert RoadAI(GeminiClient(None, "m", "e"), n).decide(_situation())["fallback"] == "API_KEY_MISSING"
+    bad = RoadAI(GeminiClient(None, "m", "e", http=lambda *a: (500, {"error": {"message": "x"}})), n).decide(_situation())
+    assert bad["decision"] == "ROUTE_1" and bad["fallback"].startswith("RuntimeError")
+    # 선택지에 없는 ROUTE_2 → 1순위, 사유 남김
+    r2 = RoadAI(GeminiClient(None, "m", "e", http=lambda *a: (200, _fc("submit_decision", {"decision": "ROUTE_2", "reason": "r"}))), n)
+    out = r2.decide(_situation())
+    assert out["decision"] == "ROUTE_1" and "ROUTE_2" in out["fallback"]
+    lim = RoadAI(GeminiClient(None, "m", "e", http=lambda *a: (200, _fc("search_road_news", {"query": "q"}))), n, max_turns=2)
+    assert lim.decide(_situation())["fallback"] == "NO_DECISION"
+
+
+# --- 서버 연동: 가짜 Gemini 서버 + UGV 서버 ----------------------------------------------
+
+def _port():
+    s = socket.socket(); s.bind(("127.0.0.1", 0)); p = s.getsockname()[1]; s.close(); return p
+
+
+def _fake_gemini(decision="WAIT"):
+    """첫 호출: 기사 검색, 다음: WAIT(00:55 까지 — 시나리오 시작 시각을 모르면 시뮬레이션 시:분으로 읽힌다)."""
+    import uvicorn
+    from fastapi import FastAPI, Request
+    app, calls = FastAPI(), []
+
+    @app.post("/models/{rest:path}")
+    async def gen(rest: str, request: Request):
+        body = await request.json()
+        calls.append({"rest": rest, "body": body})
+        if rest.endswith(":batchEmbedContents"):
+            return {"embeddings": [{"values": [float(len(r["content"]["parts"][0]["text"]) % 7), 1.0, 0.5]}
+                                   for r in body["requests"]]}
+        last = body["contents"][-1]["parts"][0]
+        if "functionResponse" in last:
+            return _fc("submit_decision", {"decision": decision, "wait_until": "00:55",
+                                           "reason": "기사 N1 근거", "article_ids": ["N1"]})
+        return _fc("search_road_news", {"query": "설악로 통제 해제", "road_ids": ["682501434"]})
+
+    port = _port()
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
+    th = threading.Thread(target=server.run, daemon=True)
+    th.start()
+    for _ in range(100):
+        if server.started:
+            break
+        time.sleep(0.05)
+    return server, f"http://127.0.0.1:{port}", calls
+
+
+def test_server_waits_then_continues_original_road(tmp_path):
+    from tests.test_ugv_road_view import _start, _stop
+    gem, url_g, calls = _fake_gemini()
+    scen = tmp_path / "block.csv"
+    scen.write_text("kind,target,start,end,value,note\nroad,682501434,00:20,00:50,,시험 통제\n", encoding="utf-8")
+    p, url = _start(tmp_path, str(scen), UGV_AGENT="1", UGV_AGENT_API_KEY="test-key", UGV_AGENT_BASE_URL=url_g,
+                    UGV_TIME_SCALE="400")
+    try:
+        assert httpx.get(url + "/history/runs").json()
+        r = httpx.post(url + "/view/command", json={"resource_id": "A-ugv1", "node_id": "494955"}, timeout=30).json()
+        assert r["verdict"] == "ACCEPT", r
+        tid = r["task_id"]
+        end = time.time() + 90
+        st = None
+        while time.time() < end:
+            st = httpx.get(f"{url}/ugv/A-ugv1/task/{tid}").json()
+            if st["status"] in ("COMPLETED", "FAILED"):
+                break
+            time.sleep(0.5)
+        assert st and st["status"] == "COMPLETED", st
+        run = httpx.get(url + "/history/runs").json()["current"]
+        ev = httpx.get(f"{url}/history/runs/{run}").json()["events"]
+        types = [e["type"] for e in ev]
+        assert ev[0]["data"]["ugv_agent"] == "ON:function_calling"
+        for t in ("AGENT_REQUEST", "AGENT_TOOL", "AGENT_DECISION", "UGV_WAITING", "UGV_REROUTED"):
+            assert t in types, t
+        dec = next(e for e in ev if e["type"] == "AGENT_DECISION")["data"]
+        assert dec["decision"] == "WAIT" and dec["article_ids"] == ["N1"]
+        rr = next(e for e in ev if e["type"] == "UGV_REROUTED")
+        assert rr["data"]["ai"]["reopened"] is True and rr["sim_time_s"] >= 50 * 60 - 120   # 열릴 때까지 기다렸다
+        route = [e for e in ev if e["type"] == "ROUTE"][-1]["data"]
+        assert "682501434" in [l["road_id"] for l in route["legs"]]                      # 원래 길로
+        assert any(c["rest"].endswith(":generateContent") for c in calls)
+    finally:
+        _stop(p)
+        gem.should_exit = True
+
+
+def test_server_route2_follows_alternative(tmp_path):
+    """AI 가 2순위를 고르면 그 경로로 간다 (1순위와 다른 길)."""
+    from tests.test_ugv_road_view import _start, _stop
+    gem, url_g, _ = _fake_gemini("ROUTE_2")
+    scen = tmp_path / "block.csv"
+    scen.write_text("kind,target,start,end,value,note\nroad,682501434,00:20,,,시험 통제\n", encoding="utf-8")
+    p, url = _start(tmp_path, str(scen), UGV_AGENT="1", UGV_AGENT_API_KEY="test-key", UGV_AGENT_BASE_URL=url_g,
+                    UGV_TIME_SCALE="400")
+    try:
+        tid = httpx.post(url + "/view/command", json={"resource_id": "A-ugv1", "node_id": "494955"}, timeout=30).json()["task_id"]
+        end, st = time.time() + 90, None
+        while time.time() < end:
+            st = httpx.get(f"{url}/ugv/A-ugv1/task/{tid}").json()
+            if st["status"] in ("COMPLETED", "FAILED"):
+                break
+            time.sleep(0.5)
+        assert st["status"] == "COMPLETED", st
+        run = httpx.get(url + "/history/runs").json()["current"]
+        ev = httpx.get(f"{url}/history/runs/{run}").json()["events"]
+        req = next(e for e in ev if e["type"] == "AGENT_REQUEST")["data"]
+        names = [o["name"] for o in req["options"]]
+        rr = next(e for e in ev if e["type"] == "UGV_REROUTED")["data"]
+        if "ROUTE_2" in names:
+            alt = next(o for o in req["options"] if o["name"] == "ROUTE_2")["road_ids"]
+            legs = [l["road_id"] for l in [e for e in ev if e["type"] == "ROUTE"][-1]["data"]["legs"]]
+            assert rr["ai"]["decision"] == "ROUTE_2" and all(r in legs for r in alt)
+        else:                                  # 2순위가 없으면 1순위로 (사유 남김)
+            assert rr["ai"]["decision"] == "ROUTE_1" and rr["ai"]["fallback"]
+        assert "682501434" not in [l["road_id"] for l in [e for e in ev if e["type"] == "ROUTE"][-1]["data"]["legs"]]
+    finally:
+        _stop(p)
+        gem.should_exit = True

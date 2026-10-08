@@ -25,6 +25,7 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 | `UGV_TARGET_SNAP_M` | `2000` | 화재에서 가장 가까운 도로 노드가 이보다 멀면 `TARGET_UNREACHABLE` |
 | `UGV_APPROACH_FALLBACK` | `0` | `1` 이면 가장 가까운 노드로 못 갈 때 다음 노드로 접근 |
 | `UGV_ENV_URL` | `http://127.0.0.1:8300` | 환경 서버. UGV 시계가 환경 시각(`/health` simulation_time_s)을 따라가고, 상황판은 시나리오 시각(scenario_start_kst + 초)으로 보인다. 처음 연결하면 환경 시각에 멈춰 있다가 환경이 한 스텝 나아가거나 차가 처음 출발하면 흐른다. 비우면 혼자 (서버 시작 = 0) |
+| `UGV_AGENT` | `0` | **도로 AI (봉인)**. `1` 이면 주행 중 앞길이 막힐 때 우회·대기를 LLM(Gemini)이 판단 (sim 차량만). 아래 "도로 AI" 절 |
 | `UGV_TARGET_MODE` | `node` | `road_point` 이면 `target`(좌표)을 노드 대신 가장 가까운 **도로 위 점**에 붙여 거기 선다. 요청마다 `target_mode` 로도 고른다 |
 | `UGV_APPROACH_MAX_M` | `500` | fallback 접근 노드의 화재 거리 상한 |
 | `UGV_TIME_SCALE` | `1` | 시뮬레이션 초 / 벽시계 초. PX4 쪽 `PX4_SIM_SPEED_FACTOR`(px4-start.sh 의 `SPEED`)와 같은 값. sim 차량도 이 배율로 달린다 |
@@ -300,6 +301,49 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 | 우회로 없음 | 멈추고 가장 가까운 노드에서 `READY` (고장이 아니므로 `UNAVAILABLE` 아님) | `FAILED`, `error: "ROAD_BLOCKED: ..."` |
 
 `progress` 에 `remaining_m`, `eta_remaining_sec`, `current_road_id`, `sim_time_s` 가 붙는다.
+
+## 도로 AI — 막혔을 때 우회·대기 판단 (`ugv/road_ai.py`, 봉인 · 기본 꺼짐)
+
+총괄 LLM 과 별개인 UGV 전용 AI. 시연·화면에서는 쓰지 않는 봉인 기능이다 (`UGV_AGENT=1` 일 때만).
+
+**언제**: 주행 중 남은 경로에 막힌 도로가 생겼을 때 ("주행 중 도로 차단" 절의 재탐색 자리). 차를 세우고 묻는다 (sim 차량만).
+
+**선택지**
+| 이름 | 뜻 |
+|---|---|
+| `ROUTE_1` | 지금 가장 빠른 우회 (AI 를 끈 때와 같은 경로) |
+| `ROUTE_2` | 1순위와 겹치는 도로 길이가 70% 미만인 다른 우회 — Yen k-최단 경로를 짧은 순으로 40개까지 보고 첫 번째 (`ugv/route_alt.py`). 없으면 선택지에서 빠진다 |
+| `WAIT` | 막힌 도로가 곧 열린다고 보고 그 자리에서 대기. `wait_until`(HH:MM)까지, 그 전에 열리면 바로 원래 길로. 상한 `UGV_AGENT_MAX_WAIT_S`(45분) |
+
+**근거 — 교통 기사 검색 (RAG, `ugv/road_news.py`)**: 기사 묶음 `ugv/scenarios/road_news.json` (**직접 만든 가상 기사**, 실제 보도 아님).
+1. 메타데이터로 거름 — 지금 시각까지 나온 기사만(미래 기사는 못 읽음), 도로 id 를 주면 그 도로를 다룬 기사만 (없으면 시각만 거름)
+2. BM25(낱말 + 글자 두 개 묶음)와 임베딩(`gemini-embedding-001`) 코사인 유사도를 반씩 섞어 상위 3개. 임베딩이 안 되면 BM25 만. 계산은 numpy, UGV 서버 안에서
+
+**방식** (`UGV_AGENT_MODE`, 시스템 프롬프트는 같음 — "기사가 주어지지 않았으면 search_road_news 로 먼저 찾아라")
+- `function_calling` (기본): 모델이 `search_road_news(query, road_ids)` 도구로 기사를 찾고 `submit_decision(decision, wait_until, reason, article_ids)` 로 결정. 매 턴 함수 호출 강제(`mode: ANY`), 최대 4턴
+- `inline`: 서버가 막힌 도로·우회 경로 도로로 기사를 먼저 찾아 프롬프트에 넣고, 모델은 `submit_decision` 만 부른다
+
+**실패하면 항상 `ROUTE_1`** (키 없음·호출 한도·HTTP 오류·결정 없음·선택지에 없는 결정·잘못된 시각). 결과의 `fallback` 에 사유. 주행은 멈추지 않는다.
+
+**기록**: 실행 기록에 `AGENT_REQUEST`(상황·선택지·프롬프트) → `AGENT_TOOL`(검색어·찾은 기사) → `AGENT_DECISION`(결정·이유·근거 기사·대기 시각·fallback) → `UGV_WAITING`(대기 시) → `UGV_REROUTED`(`ai` 에 결정 요약). 상황판 기록에 한 줄씩 나온다.
+
+**설정**
+| 환경변수 | 기본값 | 설명 |
+|---|---|---|
+| `UGV_AGENT_API_KEY` | (없음) | Gemini 키. 총괄 키와 따로. 저장소 루트 `.env` 의 `UGV_*` 줄도 읽는다 |
+| `UGV_AGENT_MODE` | `function_calling` | `inline` 이면 기사를 프롬프트에 넣는 방식 |
+| `UGV_AGENT_MODEL` | `gemini-2.5-flash` | 판단 모델 |
+| `UGV_AGENT_EMBED_MODEL`, `UGV_AGENT_EMBED` | `gemini-embedding-001`, `1` | 기사 임베딩. `0` 이면 BM25 만 |
+| `UGV_AGENT_TIMEOUT_S`, `UGV_AGENT_MAX_CALLS` | `20`, `30` | 호출 하나의 제한 시간(실제 초), 서버 1회 실행당 호출 한도 |
+| `UGV_AGENT_MAX_WAIT_S` | `2700` | WAIT 상한 (시뮬레이션 초) |
+| `UGV_AGENT_NEWS` | `ugv/scenarios/road_news.json` | 기사 묶음 |
+| `UGV_AGENT_BASE_URL` | Gemini v1beta | 시험에서 가짜 서버로 바꿀 때 |
+
+**시연 시나리오**: `UGV_SCENARIO=ugv/scenarios/agent_block.csv` — 14:52(00:07)~15:30(00:45) 설악로 682501434 통제, 기사 N1(00:05, "약 40분, 15시 30분 재개 예정")·N4(00:20, "조기 해제", 그 전엔 안 보임)와 맞춰 놓았다.
+
+**연결 확인 (서버 없이)**: `python -m ugv.tools.road_ai_probe [--mode inline] [--no-embed]` — 같은 상황을 실제 Gemini 에 넣고 결정·검색·호출 수를 찍는다.
+
+**알려진 한계**: 판단하는 동안 차는 서 있고 시뮬레이션 시계는 흐른다 — 100배속에서 LLM 응답 3초 = 시뮬레이션 5분. 시험(가짜 Gemini)만 돌렸고 실제 Gemini 연결은 `road_ai_probe` 로 따로 확인해야 한다.
 
 ## 시나리오 파일 (도로 환경)
 

@@ -80,6 +80,7 @@ RESTART_CLOSED = STORE.reconcile_after_restart(
     lambda t: t["status"] in ("STARTED", "IN_PROGRESS"), _close_after_restart,
     basis="SIM_DRIVER_RESET" if DRIVER == "sim" else "PHYSICAL_STATE_FROM_TELEMETRY_AFTER_RESTART")
 _watchers: dict[str, asyncio.Task] = {}
+road_ai = None                                        # ugv/road_ai.py RoadAI — UGV_AGENT=1 일 때만 (봉인)
 history: History | None = None                       # 실행 기록 (lifespan 에서 만든다)             # task_id → 도착 감시 태스크
 
 
@@ -162,7 +163,7 @@ async def _refresh_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global fleet, roads, clock, scenario, reporter, history
+    global fleet, roads, clock, scenario, reporter, history, road_ai
     clock = SimClock(config.TIME_SCALE, config.SECONDS_PER_ENV_STEP)
     history = History(os.getenv("UGV_HISTORY_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".state", "history")),
                       clock, enabled=os.getenv("UGV_HISTORY", "1") != "0",
@@ -172,6 +173,7 @@ async def lifespan(app: FastAPI):
     fleet = GroundFleet(use_px4=(DRIVER == "px4"), graph_data=graph_gpkg,   # 실제 도로망
                         time_scale=config.TIME_SCALE)
     roads = RoadStatus(fleet.graph, ROAD_CELLS)
+    road_ai = _make_road_ai() if config.AGENT_ENABLED else None
     if config.SCENARIO_FILE:
         scenario = Scenario.load(config.SCENARIO_FILE, config.SECONDS_PER_ENV_STEP)
         scenario.validate(roads)                    # 없는 도로 id 면 여기서 바로 실패
@@ -182,7 +184,7 @@ async def lifespan(app: FastAPI):
     history.record("RUN_START", driver=DRIVER, time_scale=config.TIME_SCALE,
                    scenario=None if scenario is None else scenario.name,
                    scenario_source=None if scenario is None else scenario.source,
-                   ugv_agent="SEALED",
+                   ugv_agent="SEALED" if road_ai is None else f"ON:{road_ai.mode}",
                    resources=[{"resource_id": rid, "resource_type": a.resource.resource_type,
                                "base": a.resource.base, "home_node": a.resource.home_node,
                                "position": {"lat": a.resource.lat, "lon": a.resource.lon},
@@ -591,7 +593,8 @@ async def _drive_leg(task_id: str, agent: GroundResourceAgent, node: str, dlog, 
             last_road = road
             _report("UGV_PROGRESS", agent, task_id, **t["progress"])
         if agent.resource.state == "RUNNING" and agent.blocked_ahead():
-            res = await agent.reroute()
+            res = (await _ai_detour(task_id, agent, t) if road_ai is not None and _driver_kind(agent) == "sim"
+                   else await agent.reroute())
             t.setdefault("reroutes", []).append({"sim_time_s": round(clock.now(), 1), **res,
                                                  "eta_s": None if res["eta_s"] is None else round(res["eta_s"])})
             if res["result"] == "NO_ROUTE":
@@ -602,7 +605,8 @@ async def _drive_leg(task_id: str, agent: GroundResourceAgent, node: str, dlog, 
                 return False
             log.info("task %s 재탐색 — %s 차단, 남은 ETA %.0fs", task_id, res["blocked_road_id"], res["eta_s"])
             _report("UGV_REROUTED", agent, task_id, blocked_road_id=res["blocked_road_id"],
-                    eta_remaining_sec=round(res["eta_s"]), reroutes=agent.reroutes)
+                    eta_remaining_sec=round(res["eta_s"]), reroutes=agent.reroutes,
+                    **({"ai": res["ai"]} if res.get("ai") else {}))
             w.update(mark_t=clock.now(), mark_wp=-1)
             continue
         fault = _check_run(agent, w, clock.now())
@@ -611,6 +615,132 @@ async def _drive_leg(task_id: str, agent: GroundResourceAgent, node: str, dlog, 
             _fail_task(agent, task_id, t, fault.split(":")[0], fault, "FAULT", {"waypoint": cur, "total": total})
             return False
         await asyncio.sleep(0.5)
+
+
+# --- 도로 AI (ugv/road_ai.py, 봉인) --------------------------------------------
+
+def _make_road_ai():
+    from . import road_ai as ra
+    from .road_news import RoadNews
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    from pathlib import Path
+    ra.load_env_keys(Path(root) / ".env")
+    client = ra.GeminiClient(os.getenv("UGV_AGENT_API_KEY"), config.AGENT_MODEL, config.AGENT_EMBED_MODEL,
+                             config.AGENT_BASE_URL, config.AGENT_TIMEOUT_S)
+    news_path = config.AGENT_NEWS if os.path.isabs(config.AGENT_NEWS) else os.path.join(root, config.AGENT_NEWS)
+    news = RoadNews.load(news_path, config.SECONDS_PER_ENV_STEP,
+                         embed=client.embed if (config.AGENT_EMBED and client.key) else None)
+    ai = ra.RoadAI(client, news, config.AGENT_MODE, config.AGENT_MAX_CALLS)
+    log.info("도로 AI 켜짐: %s, 모델 %s, 기사 %d건%s", ai.mode, client.model, len(news.articles),
+             "" if client.key else " — 키 없음(UGV_AGENT_API_KEY), 판단은 규칙(1순위 우회)으로")
+    return ai
+
+
+def _kst(sim_s: float) -> str:
+    """시뮬레이션 초 → 'HH:MM' (환경 시나리오 시작 시각을 알면 실제 시각, 모르면 시뮬레이션 시:분)."""
+    from datetime import datetime, timedelta
+    start = _env_clock.get("scenario_start_kst")
+    if start:
+        try:
+            return (datetime.fromisoformat(start) + timedelta(seconds=sim_s)).strftime("%H:%M")
+        except ValueError:
+            pass
+    return f"{int(sim_s) // 3600:02d}:{int(sim_s) % 3600 // 60:02d}"
+
+
+def _from_kst(text: str) -> float:
+    """'HH:MM' → 시뮬레이션 초 (_kst 의 반대). 시작 시각보다 이르면 다음 날로 본다."""
+    from datetime import datetime, timedelta
+    h, m = (int(x) for x in text.strip().split(":")[:2])
+    start = _env_clock.get("scenario_start_kst")
+    if start:
+        try:
+            st = datetime.fromisoformat(start)
+            t = st.replace(hour=h, minute=m, second=0, microsecond=0)
+            if t < st:
+                t += timedelta(days=1)
+            return (t - st).total_seconds()
+        except ValueError:
+            pass
+    return h * 3600 + m * 60
+
+
+async def _ai_detour(task_id: str, agent: GroundResourceAgent, t: dict) -> dict:
+    """앞길이 막혔다 — 차를 세우고 도로 AI 에 우회(1·2순위)·대기를 묻고 그대로 따른다. 반환은 agent.reroute 와 같은
+    모양 + ai(결정 요약). AI 가 못 쓰이면(키·한도·오류) 1순위 우회 = AI 를 끈 때와 같다."""
+    from . import route_alt
+    from .road_ai import RoadAI
+    blocked = agent.blocked_ahead()
+    cur, _ = agent.driver.progress()
+    eta_before = (_remaining(agent, cur).get("eta_remaining_sec") or 0)
+    await agent.pause()
+    t["progress"] = {**(t.get("progress") or {}), "phase": "DECIDING", "blocked_road_id": blocked}
+    _save()
+    start_node, lead, here = agent.detour_start()
+    lead_s = sum(l["distance_m"] / l["speed_mps"] for l in lead)
+    target = agent._target_node
+    best, alt = await asyncio.to_thread(route_alt.best_and_alternative, fleet.graph, start_node, target,
+                                        agent.max_speed_mps)
+    if best is None:                               # 우회로가 아예 없다 — AI 없이 하던 대로 (실패 처리)
+        return await agent.reroute()
+    tail_s = agent.tail_s(target)
+
+    def opt(name, o):
+        names = []
+        for r in o.roads:
+            n = fleet.graph.get_road(r).name or r
+            if not names or names[-1] != n:
+                names.append(n)
+        return {"name": name, "eta_s": lead_s + o.travel_s + tail_s, "distance_m": o.distance_m,
+                "road_ids": o.roads, "road_names": names, "path": o.path}
+
+    options = [opt("ROUTE_1", best)] + ([opt("ROUTE_2", alt)] if alt else [])
+    r = agent.resource
+    now = clock.now()
+    s = {"now_s": now, "now_text": _kst(now), "resource_id": r.resource_id, "resource_type": r.resource_type,
+         "target": _node_name(target) or target, "blocked_road_id": blocked,
+         "blocked_name": fleet.graph.get_road(blocked).name or blocked,
+         "here_name": fleet.graph.get_road(lead[0]["road_id"]).name or lead[0]["road_id"],
+         "eta_before_s": eta_before, "options": options, "to_sim": _from_kst}
+    if history is not None:
+        history.record("AGENT_REQUEST", r.resource_id, task_id, roads=[blocked], mode=road_ai.mode,
+                       model=road_ai.client.model, prompt=RoadAI.situation_text(s),
+                       options=[{k: o[k] for k in ("name", "eta_s", "distance_m", "road_ids")} for o in options])
+    res = await asyncio.to_thread(road_ai.decide, s)
+    for e in res["trace"]:
+        if e["type"] == "AGENT_REQUEST" or history is None:
+            continue
+        data = {k: v for k, v in e.items() if k != "type"}
+        if e["type"] == "AGENT_DECISION":
+            chosen = next((o for o in options if o["name"] == res["decision"]), None)
+            data["roads"] = chosen["road_ids"] if chosen else [blocked]
+        history.record(e["type"], r.resource_id, task_id, **data)
+    ai = {k: res.get(k) for k in ("decision", "reason", "article_ids", "mode", "fallback", "latency_s")}
+    log.info("task %s 도로 AI: %s (%s)%s", task_id, res["decision"], res["reason"][:80],
+             f" — fallback {res['fallback']}" if res.get("fallback") else "")
+    if res["decision"] == "WAIT":
+        until = min(res["wait_until_s"], clock.now() + config.AGENT_MAX_WAIT_S)
+        ai["wait_until_s"] = round(until, 1)
+        t["progress"] = {**(t.get("progress") or {}), "phase": "WAITING", "blocked_road_id": blocked,
+                         "wait_until_sim_s": round(until, 1)}
+        _save()
+        _report("UGV_WAITING", agent, task_id, blocked_road_id=blocked, wait_until_sim_s=round(until, 1),
+                reason=res["reason"])
+        while clock.now() < until and fleet.graph.get_road(blocked).blocked:
+            await asyncio.sleep(0.5)
+        ai["waited_s"] = round(clock.now() - now, 1)
+        ai["reopened"] = not fleet.graph.get_road(blocked).blocked
+        out = await agent.reroute()                 # 열렸으면 원래 길, 아니면 1순위 우회
+    elif res["decision"] == "ROUTE_2" and alt is not None:
+        out = await agent.reroute(path=alt.path)
+        if out["result"] == "NO_ROUTE":            # 그 사이 2순위도 막혔다
+            ai["fallback"] = "ROUTE_2_BLOCKED"
+            out = await agent.reroute()
+    else:
+        out = await agent.reroute()
+    out["blocked_road_id"] = out.get("blocked_road_id") or blocked
+    out["ai"] = ai
+    return out
 
 
 async def _load(task_id: str, agent: GroundResourceAgent, stage: str) -> None:

@@ -245,11 +245,9 @@ class GroundResourceAgent:
         ahead = self.plan.road_ahead(passed)[1:]
         return next((rid for rid in ahead if self.graph.get_road(rid).blocked), None)
 
-    async def reroute(self) -> dict:
-        """남은 경로가 막혔을 때 지금 달리는 도로의 끝 노드에서 다시 탐색해 이어 달린다.
-        반환: {"result": "REROUTED"|"NO_ROUTE", "blocked_road_id", "eta_s"}"""
+    def detour_start(self) -> tuple[str, list[dict], tuple[float, float]]:
+        """재탐색 출발점: (지금 달리는 도로의 끝 노드, 그 끝까지의 앞 구간, 지금 위치)."""
         passed, _ = self.driver.progress()
-        blocked = self.blocked_ahead()
         leg = self.plan.current_leg(passed)
         # 지금 달리는 도로의 남은 점 (다음 웨이포인트부터 도로 끝까지)
         remaining = [self.plan.waypoints[i] for i in range(passed, len(self.plan.waypoints))
@@ -258,7 +256,46 @@ class GroundResourceAgent:
         pts = [here] + remaining
         lead = [{**leg, "points": pts,
                  "distance_m": sum(distance_m(a, b) for a, b in zip(pts, pts[1:]))}]
-        plan = self._plan(leg["to"], self._target_node, here, lead)
+        return leg["to"], lead, here
+
+    def tail_s(self, end_node: str) -> float:
+        """도로 위 지점 주행이면 끝 노드 → 지점 꼬리 구간 시간, 아니면 0."""
+        if self.stop_point is None:
+            return 0.0
+        t = road_point.tail_leg(self.graph, self.stop_point, end_node, self.max_speed_mps)
+        return t["distance_m"] / t["speed_mps"]
+
+    def _plan_path(self, path: list[str], start: tuple[float, float], lead: list[dict]) -> RoutePlan | None:
+        """정해진 노드 경로로 계획 (도로 AI 가 2순위 경로를 고른 경우)."""
+        try:
+            legs = self.graph.legs(path, self.max_speed_mps)
+        except KeyError:
+            return None
+        if any(self.graph.get_road(l["road_id"]).blocked for l in legs):
+            return None
+        tail = []
+        if self.stop_point is not None:
+            if self.graph.get_road(self.stop_point.road_id).blocked:
+                return None
+            tail = [road_point.tail_leg(self.graph, self.stop_point, path[-1], self.max_speed_mps)]
+        all_legs = lead + legs + tail
+        eta = sum(l["distance_m"] / l["speed_mps"] for l in all_legs)
+        return route_plan.build(all_legs, start, path[-1], path, eta)
+
+    async def pause(self) -> None:
+        """주행을 잠시 멈춘다 (도로 AI 판단·대기 중). 상태는 RUNNING 그대로, 계획도 유지 — reroute 로 이어 간다."""
+        if self.driver is not None:
+            await self.driver.stop()
+        self.refresh()
+
+    async def reroute(self, path: list[str] | None = None) -> dict:
+        """남은 경로가 막혔을 때 지금 달리는 도로의 끝 노드에서 다시 탐색해 이어 달린다.
+        path 를 주면 탐색 대신 그 노드 경로로 (도로 AI 의 2순위 선택). path[0] 은 지금 도로의 끝 노드.
+        반환: {"result": "REROUTED"|"NO_ROUTE", "blocked_road_id", "eta_s"}"""
+        blocked = self.blocked_ahead()
+        start_node, lead, here = self.detour_start()
+        plan = (self._plan(start_node, self._target_node, here, lead) if path is None
+                else self._plan_path(path, here, lead))
         if plan is None:
             return {"result": "NO_ROUTE", "blocked_road_id": blocked, "eta_s": None}
         if not await self.driver.goto(plan.waypoints, self._speeds(plan)):
