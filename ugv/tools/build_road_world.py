@@ -7,10 +7,10 @@
 #   반대로 도로 데이터로 주행 면을 만든다.
 #
 # 만드는 것 (ugv/gazebo/ 아래, UAV 파일은 건드리지 않는다)
-#   models/kangwon_ugv/roads.obj             도로 면 (폭 ROAD_WIDTH_M, 교차로 패드 포함) — 시각·충돌 공용
-#   models/kangwon_ugv/heightmap.png         도로 밑을 도로보다 낮게 깎은 지형 (지형이 도로를 뚫고 올라오지 않게)
-#   models/kangwon_ugv/texture.png, normal.png   UAV 것 복사
-#   kangwon_ugv.sdf                          월드 (지형 + 도로 모델)
+#   models/kangwon_ugv2/roads.obj            도로 면 (폭 ROAD_WIDTH_M, 교차로 패드 포함) — 시각·충돌 공용
+#   models/kangwon_ugv2/heightmap.png        도로 밑을 도로보다 낮게 깎은 지형 (지형이 도로를 뚫고 올라오지 않게)
+#   models/kangwon_ugv2/texture.png, normal.png   UAV 것 복사
+#   kangwon_ugv2.sdf                         월드 (지형 + 도로 모델)
 #   ugv/data/road_network.json 의 world·spawn 갱신 (스폰 높이 = 도로 면 + SPAWN_Z_OFFSET_M)
 #
 # 도로 높이
@@ -21,9 +21,8 @@
 #   월드 z = 해발 − DATUM_ALT − 곡률 보정(d²/2R). build_world.py 와 같은 규칙이라 GPS 고도 = 해발.
 #
 # 실행 (build_road_network.py 다음에):
-#   python3 -m ugv.tools.build_road_world          # v1: kangwon_ugv  (road_network.json 의 world·spawn 갱신 = 기본 월드)
-#   python3 -m ugv.tools.build_road_world --v2     # v2: kangwon_ugv2 (아래 차이. world·spawn 은 건드리지 않는다)
-#   px4-start.sh 에서 WORLD=kangwon_ugv2 로 고른다.
+#   python3 -m ugv.tools.build_road_world          # v2: kangwon_ugv2 (기본, road_network.json 의 world 갱신)
+#   python3 -m ugv.tools.build_road_world --v1     # v1: kangwon_ugv  (옛 월드 — 2026-10-08 저장소에서 삭제. 비교용으로만)
 #
 # v2 (2026-10-03, WSL 주행 뒤): 교차로·코너에서 아슬아슬하던 곳을 넓히고, 길가에서 바로 떨어지지 않게 한다
 #   도로 양옆에 SHOULDER_W_M 폭 갓길이 SHOULDER_DROP_M 만큼 비스듬히 내려간다 — 코너를 질러 도로 끝을 넘어도
@@ -797,4 +796,4 @@ def build(v2: bool = False):
 
 if __name__ == "__main__":
     import sys
-    build(v2="--v2" in sys.argv[1:])
+    build(v2="--v1" not in sys.argv[1:])

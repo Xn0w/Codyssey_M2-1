@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# UGV 3대: Gazebo 월드 1개(kangwon_ugv = UAV 와 같은 강원 지형 + 도로 면) + PX4 SITL 인스턴스 3개.
+# UGV 3대: Gazebo 월드 1개(kangwon_ugv2 = UAV 와 같은 강원 지형 + 도로 면) + PX4 SITL 인스턴스 3개.
 # Gazebo/PX4 를 돌리는 기계(현재 Windows WSL)에서 저장소 루트 기준으로 실행한다.
 #
 #   UGV_HOST=192.168.0.23 ./ugv/tools/px4-start.sh           # 3대 모두 (UGV_HOST = UGV 서버가 도는 Mac 의 IP)
@@ -43,7 +43,7 @@ REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 PX4_DIR="${PX4_DIR:-$HOME/PX4-Autopilot}"
 BUILD="$PX4_DIR/build/px4_sitl_default"
 # 월드는 ugv/data/road_network.json 의 world 를 따른다 (기본: ugv/tools/build_road_world.py 가 만든
-# ugv/gazebo/kangwon_ugv.sdf — 강원 지형 + 도로 면). 값이 없으면 UAV 월드(uav/gazebo/kangwon.sdf).
+# ugv/gazebo/kangwon_ugv2.sdf — 강원 지형 + 도로 면). 값이 없으면 UAV 월드(uav/gazebo/kangwon.sdf).
 if [ -n "${WORLD:-}" ]; then
     WORLD_REL="ugv/gazebo/$WORLD.sdf"; WORLD_NAME="$WORLD"
 else

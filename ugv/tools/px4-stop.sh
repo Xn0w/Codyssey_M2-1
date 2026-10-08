@@ -3,7 +3,7 @@
 # --params 를 붙이면 UGV 인스턴스(1~3)의 저장된 파라미터·미션도 지운다(오염 복구용).
 #
 # pkill -f "gz sim" 처럼 이름으로 훑지 않는다 — 같은 기계의 UAV(인스턴스 0, Docker 포함) Gazebo·PX4 까지
-# 죽인다 (ugv/etc/px4-stop.sh 와 같은 이유). 기동 때 기록한 PID 만 끈다.
+# 죽인다. 기동 때 기록한 PID 만 끈다.
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
 LOG_DIR="${LOG_DIR:-$REPO/ugv/.state/px4}"   # px4-start.sh 와 같게

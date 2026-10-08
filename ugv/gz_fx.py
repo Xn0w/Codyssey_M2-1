@@ -27,8 +27,8 @@ WALL_T_M = 0.6
 def _world() -> tuple[str, dict]:
     net = json.load(open(os.path.join(ROOT, "ugv/data/road_network.json"), encoding="utf-8"))
     w = net.get("world", {})
-    name = os.getenv("UGV_GZ_WORLD", w.get("name", "kangwon_ugv"))
-    marks_path = os.path.join(ROOT, os.path.dirname(w.get("sdf", "ugv/gazebo/kangwon_ugv.sdf")),
+    name = os.getenv("UGV_GZ_WORLD", w.get("name", "kangwon_ugv2"))
+    marks_path = os.path.join(ROOT, os.path.dirname(w.get("sdf", "ugv/gazebo/kangwon_ugv2.sdf")),
                               "models", name, "road_marks.json")
     try:
         marks = json.load(open(marks_path, encoding="utf-8"))

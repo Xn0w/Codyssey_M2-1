@@ -1,5 +1,5 @@
 # ugv/drivers/px4.py — PX4(SITL/실기체) MAVSDK 드라이버
-# 흐름은 tools/try_move.py 에서 검증한 것과 같다: 업로드 -> arm -> 2초 대기 -> 미션 시작.
+# 흐름: 업로드 -> arm -> 2초 대기 -> 미션 시작 (초기 단독 시험 스크립트로 검증).
 # 텔레메트리는 백그라운드 태스크가 구독해 snapshot 을 갱신하고, 조회 메서드는 snapshot 만 읽는다.
 
 import asyncio

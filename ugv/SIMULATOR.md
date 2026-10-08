@@ -39,7 +39,7 @@ curl -s -X POST localhost:8100/ugv/A-ugv1/execute -H 'content-type: application/
      -d '{"task_id":"T1","decision_id":"D1","target_node":"B"}'
 watch -n2 'curl -s localhost:8100/ugv/A-ugv1/task/T1'
 ```
-200배속이면 A→B 약 2분, 도로 환경 시나리오(`ugv/scenarios/inje_girin.csv`)의 통제 때문에 `reroutes` 에 재탐색이 찍힌다.
+200배속이면 A→B 약 2분. `UGV_SCENARIO=ugv/scenarios/inje_girin.csv` 로 도로 환경 시나리오를 켜면 통제 때문에 `reroutes` 에 재탐색이 찍힌다 (기본은 시나리오 없음).
 도로·노드를 직접 막아 보려면 `POST /roads/{road_id}/block`, `POST /roads/nodes/{node_id}/block` (Swagger `/docs`).
 
 ## 2. WSL — Gazebo + PX4 3대
@@ -101,7 +101,9 @@ Gazebo 배속은 상한이라 CPU 가 밀리면 흔들린다 (실측 30초 평�
   다르게 보간해서 생기는 표시 차이다. 차의 z 가 스폰 높이 근처에서 유지되고 주행하면 물리상으로는 땅 위에 있는 것이다.
   확인: `GZ_PARTITION=ugv GZ_IP=127.0.0.1 gz topic -e -t /stats -n 1` 의 real_time_factor, 서버 `/ugv/{id}/state` 위치 변화.
 
-## UGV 전용 월드 — 강원 지형 + 도로 면 (`ugv/gazebo/kangwon_ugv.sdf`)
+## UGV 전용 월드 — 강원 지형 + 도로 면 (`ugv/gazebo/kangwon_ugv2.sdf`)
+
+> 첫 버전 v1(`kangwon_ugv`)은 2026-10-08 삭제했다 (v2 가 표준이 된 뒤 아무도 쓰지 않음). 아래 v1 설명·비교는 v2 가 왜 그렇게 생겼는지의 기록이다.
 
 UAV 월드의 지형은 90 m DEM 을 56 m heightmap 으로 보간한 것이라 도로를 모른다. 원본 DEM 에서는 같은 칸(경사 0)인 곳에
 보간 때문에 62 m 에 8 m 오르는 가짜 오르막이 생겨 r1_rover 가 같은 지점에서 두 번 멈췄다 (2026-10-02).
@@ -109,7 +111,7 @@ UAV 월드의 지형은 90 m DEM 을 56 m heightmap 으로 보간한 것이라 �
 
 | 항목 | 값 |
 |---|---|
-| 도로 면 | 모든 도로를 폭 10 m 띠로, 교차로는 반지름 7 m 패드. 시각·충돌 공용 `models/kangwon_ugv/roads.obj` |
+| 도로 면 | 모든 도로를 폭 10 m 띠로, 교차로는 반지름 7 m 패드. 시각·충돌 공용 `models/kangwon_ugv2/roads.obj` |
 | 도로 높이 | 원본 DEM → 도로 따라 150 m 이동평균 → 교차로 높이 일치 → 경사 상한 8% (최대 8.4%) |
 | 지형 | 도로 면보다 0.6 m 이상 높던 곳을 깎은 heightmap 사본 (터널 구간은 100 m 넘게 깎인 곳도 있다) |
 | 스폰 | 도로 면 위 + 0.4 m. 같은 거점 두 번째 차량은 도로를 따라 8 m 앞 |
@@ -117,14 +119,14 @@ UAV 월드의 지형은 90 m DEM 을 56 m heightmap 으로 보간한 것이라 �
 다시 만들기 (도로망을 다시 만들었으면 반드시 뒤이어 실행 — `build_road_network` 가 spawn·world 를 지형 기준으로 되돌린다):
 ```bash
 python3 -m ugv.tools.build_road_network     # 도로망이 바뀐 경우만
-python3 -m ugv.tools.build_road_world       # numpy scipy pillow rasterio pyproj 필요
+python3 -m ugv.tools.build_road_world       # v2 (기본). numpy scipy pillow rasterio pyproj 필요
 ```
 UAV 월드로 돌아가려면 `road_network.json` 의 `world` 를 지우거나 `build_road_network` 만 다시 실행한다.
 
 ### v2 월드 (`kangwon_ugv2`, 기본) — 갓길 + 교차로 턱 줄임 + 산불 표시
 
 v1 과 같은 도로 높이·폭·스폰에 갓길·턱 줄임을 더했다. 2026-10-03 WSL 주행 비교 뒤 **기본 월드**다
-(`road_network.json` 의 world). v1 은 `WORLD=kangwon_ugv`. 산불(UAV 월드와 같은 자리·배치의 파티클 불꽃 8·연기 3)과
+(`road_network.json` 의 world). v1 은 삭제됨. 산불(UAV 월드와 같은 자리·배치의 파티클 불꽃 8·연기 3)과
 도로 차단 벽 위치(`models/kangwon_ugv2/road_marks.json`)도 이 빌드가 만든다.
 
 | 항목 | v1 | v2 |

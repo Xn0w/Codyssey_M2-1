@@ -63,8 +63,9 @@ SECONDS_PER_ENV_STEP = float(os.getenv("UGV_SECONDS_PER_ENV_STEP", "60"))
 # 꺼져 있어도 GET /reports 에 기록은 남는다.
 REPORT_URL = os.getenv("UGV_REPORT_URL", "")
 
-# 도로 환경 시나리오(차단 도로·경유 불가 노드·혼잡의 시간대, CSV 또는 JSON). 비우면 시나리오 없음
-SCENARIO_FILE = os.getenv("UGV_SCENARIO", "ugv/scenarios/inje_girin.csv")
+# 도로 환경 시나리오(차단 도로·경유 불가 노드·혼잡의 시간대, CSV 또는 JSON). 기본은 시나리오 없음(도로 전부 열림)
+# — 2026-10-08 발표 범위에서 길막·혼잡 제외. 켜기: UGV_SCENARIO=ugv/scenarios/inje_girin.csv
+SCENARIO_FILE = os.getenv("UGV_SCENARIO", "")
 
 # 주행 파라미터 — 실측 보정 필요
 CRUISE_SPEED_MPS = 2.0

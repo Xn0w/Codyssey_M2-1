@@ -10,7 +10,7 @@
 # 문서: http://localhost:8100/docs
 #
 # 시간: 모든 시각·ETA·속도는 시뮬레이션 초 기준 (ugv/sim_clock.py). 환경 스텝을 POST /clock/env 로 받으면 그에 맞춘다.
-# 도로: 차단·혼잡은 시나리오 타임라인(ugv/scenario.py, 기본 ugv/scenarios/inje_girin.csv)이 시간대별로 정한다.
+# 도로: 차단·혼잡은 시나리오 타임라인(ugv/scenario.py, UGV_SCENARIO — 기본 없음)이 시간대별로 정한다.
 #       주행 중 남은 경로가 막히면 지금 달리는 도로 끝에서 다시 탐색해 이어 달린다. 길이 없으면 멈추고 task FAILED.
 #
 # 호출 순서: state → evaluate → (총괄·Safety 판단) → execute → task 폴링

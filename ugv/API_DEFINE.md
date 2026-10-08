@@ -28,7 +28,7 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 | `UGV_TIME_SCALE` | `1` | 시뮬레이션 초 / 벽시계 초. PX4 쪽 `PX4_SIM_SPEED_FACTOR`(px4-start.sh 의 `SPEED`)와 같은 값. sim 차량도 이 배율로 달린다 |
 | `UGV_SECONDS_PER_ENV_STEP` | `60` | 환경 CA 1스텝이 몇 시뮬레이션 초인가. **잠정값 (INT-05 미정)** |
 | `UGV_REPORT_URL` | (빈 값 = 끔) | 총괄 주소(예 `http://127.0.0.1:8200`). 주면 이벤트마다 `POST {URL}/events` 로 보고. 기본은 총괄 조회(polling)만 쓴다 |
-| `UGV_SCENARIO` | `ugv/scenarios/inje_girin.csv` | 도로 환경 시나리오 (CSV/JSON). 빈 값이면 시나리오 없음 |
+| `UGV_SCENARIO` | (없음) | 도로 환경 시나리오 (CSV/JSON). 기본은 시나리오 없음 — 도로 전부 열림. 예) `ugv/scenarios/inje_girin.csv` |
 
 ## 구조
 
@@ -278,7 +278,7 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 | `start`, `end` | 초(`600`) / 시:분(`00:10`) / 환경 스텝(`step:10`). end 비우면 끝까지 |
 | `value` | congestion 배율 (2.0 = 통과시간 2배) |
 
-기본 `inje_girin.csv`:
+예시 `inje_girin.csv` (`UGV_SCENARIO=ugv/scenarios/inje_girin.csv` 로 켤 때):
 
 | 시간대 | 대상 | 내용 |
 |---|---|---|
