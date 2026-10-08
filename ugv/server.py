@@ -357,7 +357,11 @@ def _check_run(agent: GroundResourceAgent, w: dict, now: float) -> str | None:
     pos = (r.lat, r.lon)
 
     # 1) 멈춤 — STALL_MOVE_M 이상 움직이거나 웨이포인트를 넘기면 기준점을 새로 잡는다
-    if cur != w["mark_wp"] or distance_m(pos, w["mark_pos"]) >= config.STALL_MOVE_M:
+    #    마지막 웨이포인트에 닿은 차(cur >= total)는 도착해 서 있는 것이지 멈춘 것이 아니다.
+    total = agent.driver.progress()[1]
+    if total > 0 and cur >= total:
+        w.update(mark_t=now, mark_pos=pos, mark_wp=cur)
+    elif cur != w["mark_wp"] or distance_m(pos, w["mark_pos"]) >= config.STALL_MOVE_M:
         w.update(mark_t=now, mark_pos=pos, mark_wp=cur)
     elif now - w["mark_t"] > config.STALL_TIMEOUT_S:
         return (f"STALLED: {config.STALL_TIMEOUT_S:.0f}초간 이동 "
@@ -435,6 +439,11 @@ async def _drive_leg(task_id: str, agent: GroundResourceAgent, node: str, dlog, 
         if changed:                         # 파일 저장은 웨이포인트가 바뀔 때만 (남은 거리·시각은 매번 바뀐다)
             _save()
         if agent.resource.state == "READY" and agent.resource.current_node == node:
+            return True
+        if total > 0 and cur >= total and agent.resource.state not in ("RUNNING", "UNAVAILABLE"):
+            # 마지막 웨이포인트에 닿았는데 다른 경로로 READY 가 아닌 상태(WORKING 등)가 됐다 — 도착으로 본다.
+            # (이걸 놓치면 서 있는 차를 멈춤 감시가 STALLED 로 잡아 UNAVAILABLE 로 만든다)
+            agent.resource.current_node = node
             return True
         road = t["progress"].get("current_road_id")
         if road and road != last_road:          # 진행 보고는 도로가 바뀔 때마다 한 번
