@@ -148,9 +148,9 @@ def test_server_waits_then_continues_original_road(tmp_path):
     from tests.test_ugv_road_view import _start, _stop
     gem, url_g, calls = _fake_gemini()
     scen = tmp_path / "block.csv"
-    scen.write_text("kind,target,start,end,value,note\nroad,682501434,00:20,00:50,,시험 통제\n", encoding="utf-8")
+    scen.write_text("kind,target,start,end,value,note\nroad,682501434,00:02,00:20,,시험 통제\n", encoding="utf-8")
     p, url = _start(tmp_path, str(scen), UGV_AGENT="1", UGV_AGENT_API_KEY="test-key", UGV_AGENT_BASE_URL=url_g,
-                    UGV_TIME_SCALE="400")
+                    UGV_TIME_SCALE="50")
     try:
         assert httpx.get(url + "/history/runs").json()
         r = httpx.post(url + "/view/command", json={"resource_id": "A-ugv1", "node_id": "494955"}, timeout=30).json()
@@ -173,7 +173,7 @@ def test_server_waits_then_continues_original_road(tmp_path):
         dec = next(e for e in ev if e["type"] == "AGENT_DECISION")["data"]
         assert dec["decision"] == "WAIT" and dec["article_ids"] == ["N1"]
         rr = next(e for e in ev if e["type"] == "UGV_REROUTED")
-        assert rr["data"]["ai"]["reopened"] is True and rr["sim_time_s"] >= 50 * 60 - 120   # 열릴 때까지 기다렸다
+        assert rr["data"]["ai"]["reopened"] is True and rr["sim_time_s"] >= 20 * 60 - 120   # 열릴 때까지 기다렸다
         route = [e for e in ev if e["type"] == "ROUTE"][-1]["data"]
         assert "682501434" in [l["road_id"] for l in route["legs"]]                      # 원래 길로
         assert any(c["rest"].endswith(":generateContent") for c in calls)
@@ -187,9 +187,9 @@ def test_server_route2_follows_alternative(tmp_path):
     from tests.test_ugv_road_view import _start, _stop
     gem, url_g, _ = _fake_gemini("ROUTE_2")
     scen = tmp_path / "block.csv"
-    scen.write_text("kind,target,start,end,value,note\nroad,682501434,00:20,,,시험 통제\n", encoding="utf-8")
+    scen.write_text("kind,target,start,end,value,note\nroad,682501434,00:02,,,시험 통제\n", encoding="utf-8")
     p, url = _start(tmp_path, str(scen), UGV_AGENT="1", UGV_AGENT_API_KEY="test-key", UGV_AGENT_BASE_URL=url_g,
-                    UGV_TIME_SCALE="400")
+                    UGV_TIME_SCALE="50")
     try:
         tid = httpx.post(url + "/view/command", json={"resource_id": "A-ugv1", "node_id": "494955"}, timeout=30).json()["task_id"]
         end, st = time.time() + 90, None

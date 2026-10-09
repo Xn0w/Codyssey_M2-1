@@ -337,7 +337,7 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 | `UGV_AGENT_NEWS` | `ugv/scenarios/road_news.json` | 기사 묶음 |
 | `UGV_AGENT_BASE_URL` | Gemini v1beta | 시험에서 가짜 서버로 바꿀 때 |
 
-**시연 시나리오**: `UGV_SCENARIO=ugv/scenarios/agent_block.csv` — 14:52(00:07)~15:30(00:45) 설악로 682501434 통제, 기사 N1(00:05, "약 40분, 15시 30분 재개 예정")·N4(00:20, "조기 해제", 그 전엔 안 보임)와 맞춰 놓았다.
+**시연 시나리오**: `UGV_SCENARIO=ugv/scenarios/agent_block.csv` — 14:48(00:03)~15:30(00:45) 설악로 682501434 통제 (약 70 km/h 차가 설악로에 닿기 전), 기사 N1(00:02, "약 40분, 15시 30분 재개 예정")·N4(00:20, "조기 해제", 그 전엔 안 보임)와 맞춰 놓았다.
 
 **연결 확인 (서버 없이)**: `python -m ugv.tools.road_ai_probe [--mode inline] [--no-embed]` — 같은 상황을 실제 Gemini 에 넣고 결정·검색·호출 수를 찍는다.
 

@@ -4,7 +4,7 @@
 #   python -m ugv.tools.road_ai_probe --mode inline    # 기사를 프롬프트에 넣는 방식(A)
 #   python -m ugv.tools.road_ai_probe --no-embed       # 임베딩 없이 BM25 만
 # 키: UGV_AGENT_API_KEY (환경변수 또는 저장소 루트 .env). 모델: UGV_AGENT_MODEL (기본 gemini-2.5-flash)
-# 시연 시나리오(agent_block.csv)와 같은 상황 — 14:52 설악로 통제(기사 N1: 15:30 해제 예정), 우회 +3분 — 을 넣고
+# 시연 시나리오(agent_block.csv)와 같은 상황 — 14:48 설악로 통제(기사 N1: 15:30 해제 예정), 우회 +3분 — 을 넣고
 # 모델이 기사를 찾아 무엇을 고르는지, 몇 번 불렀는지, 얼마나 걸렸는지 찍는다.
 
 import argparse
@@ -33,7 +33,7 @@ def main():
     news = RoadNews.load(ROOT / config.AGENT_NEWS, embed=None if a.no_embed else client.embed)
     ai = RoadAI(client, news, a.mode)
     start = 14 * 3600 + 45 * 60
-    s = {"now_s": 7 * 60, "now_text": "14:52", "resource_id": "A-ugv1", "resource_type": "UGV",
+    s = {"now_s": 3 * 60, "now_text": "14:48", "resource_id": "A-ugv1", "resource_type": "UGV",
          "target": "설악로(화점 부근)", "blocked_road_id": "682501434", "blocked_name": "설악로", "here_name": "설악로",
          "eta_before_s": 540,
          "options": [{"name": "ROUTE_1", "eta_s": 720, "distance_m": 1200, "road_ids": ["682501397", "682502600", "682502598"],
