@@ -3,7 +3,7 @@
 #   python -m ugv.tools.road_ai_probe                  # function calling(B)
 #   python -m ugv.tools.road_ai_probe --mode inline    # 기사를 프롬프트에 넣는 방식(A)
 #   python -m ugv.tools.road_ai_probe --no-embed       # 임베딩 없이 BM25 만
-# 키: UGV_AGENT_API_KEY (환경변수 또는 저장소 루트 .env). 모델: UGV_AGENT_MODEL (기본 gemini-2.5-flash)
+# 키: UGV_AGENT_API_KEY (환경변수 또는 저장소 루트 .env). 모델: UGV_AGENT_MODEL (기본 gemini-3.5-flash-lite, 소문자로 맞춘다)
 # 시연 시나리오(agent_block.csv)와 같은 상황 — 14:48 설악로 통제(기사 N1: 15:30 해제 예정), 우회 +3분 — 을 넣고
 # 모델이 기사를 찾아 무엇을 고르는지, 몇 번 불렀는지, 얼마나 걸렸는지 찍는다.
 
@@ -28,7 +28,7 @@ def main():
     key = os.getenv("UGV_AGENT_API_KEY")
     if not key:
         raise SystemExit("UGV_AGENT_API_KEY 가 없습니다 (.env 에 UGV_AGENT_API_KEY=... 한 줄)")
-    client = GeminiClient(key, os.getenv("UGV_AGENT_MODEL", config.AGENT_MODEL), config.AGENT_EMBED_MODEL,
+    client = GeminiClient(key, os.getenv("UGV_AGENT_MODEL", config.AGENT_MODEL).strip().lower().replace(" ", "-"), config.AGENT_EMBED_MODEL,
                           config.AGENT_BASE_URL, config.AGENT_TIMEOUT_S)
     news = RoadNews.load(ROOT / config.AGENT_NEWS, embed=None if a.no_embed else client.embed,
                          cache_dir=ROOT / config.AGENT_RAG_CACHE, embed_model=config.AGENT_EMBED_MODEL)

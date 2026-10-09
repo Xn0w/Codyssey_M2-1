@@ -156,13 +156,43 @@ def test_fallbacks():
     assert lim.decide(_situation())["fallback"] == "NO_DECISION"
 
 
+def test_last_turn_only_allows_submit():
+    """검색만 되풀이하는 모델도 마지막 차례에는 판단 제출만 고를 수 있다 (실측: 검색 4번 뒤 NO_DECISION)."""
+    seen = []
+
+    def http(url, headers, body, timeout):
+        names = body["toolConfig"]["functionCallingConfig"]["allowedFunctionNames"]
+        seen.append(names)
+        if names == ["submit_decision"]:
+            return 200, _fc("submit_decision", {"decision": "ROUTE_1", "reason": "r", "article_ids": ["N1"]})
+        return 200, _fc("search_road_news", {"query": "q"})
+
+    out = RoadAI(GeminiClient(None, "m", "e", http=http), RoadNews.load(NEWS), max_turns=3).decide(_situation())
+    assert [len(x) for x in seen] == [2, 2, 1] and out["decision"] == "ROUTE_1" and not out.get("fallback")
+
+
+def test_thinking_level_sent_and_dropped_on_400():
+    """생각 정도(thinkingLevel)를 실어 보내고, 모델이 400 으로 거부하면 빼고 다시 부른 뒤 이후로도 뺀다."""
+    seen = []
+
+    def http(url, headers, body, timeout):
+        tc = body.get("generationConfig", {}).get("thinkingConfig")
+        seen.append(tc)
+        return (400, {"error": {"message": "thinking not supported"}}) if tc else (200, {"ok": 1})
+
+    c = GeminiClient(None, "m", "e", http=http, thinking="low")
+    assert c.generate({"generationConfig": {"temperature": 0}}) == {"ok": 1}
+    assert c.generate({"generationConfig": {"temperature": 0}}) == {"ok": 1}
+    assert seen == [{"thinkingLevel": "low"}, None, None] and c.thinking is None
+
+
 # --- 서버 연동: 가짜 Gemini 서버 + UGV 서버 ----------------------------------------------
 
 def _port():
     s = socket.socket(); s.bind(("127.0.0.1", 0)); p = s.getsockname()[1]; s.close(); return p
 
 
-def _fake_gemini(decision="WAIT"):
+def _fake_gemini(decision="WAIT", delay_s=0.0):
     """첫 호출: 기사 검색, 다음: WAIT(15:40 까지 = 시뮬레이션 00:55 — 시각은 기사 묶음의 scenario_start_kst 14:45 기준)."""
     import uvicorn
     from fastapi import FastAPI, Request
@@ -176,6 +206,9 @@ def _fake_gemini(decision="WAIT"):
             return {"embeddings": [{"values": [float(len(r["content"]["parts"][0]["text"]) % 7), 1.0, 0.5]}
                                    for r in body["requests"]]}
         last = body["contents"][-1]["parts"][0]
+        if delay_s:
+            import asyncio
+            await asyncio.sleep(delay_s)                # 느린 모델 흉내
         if "functionResponse" in last:
             return _fc("submit_decision", {"decision": decision, "wait_until": "15:40",
                                            "reason": "기사 N1 근거", "article_ids": ["N1"]})
@@ -230,6 +263,44 @@ def test_server_waits_then_continues_original_road(tmp_path):
         route = [e for e in ev if e["type"] == "ROUTE"][-1]["data"]
         assert "682501434" in [l["road_id"] for l in route["legs"]]                      # 원래 길로
         assert any(c["rest"].endswith(":generateContent") for c in calls)
+        # 기다리는 자리 = 막힌 도로 입구: 대기를 정하면 거기까지 가서 서고, 열리면 바로 막혔던 도로로 들어간다
+        first = next(e for e in ev if e["type"] == "ROUTE")["data"]
+        entrance = next(l["from"] for l in first["legs"] if l["road_id"] == "682501434")
+        wait = next(e for e in ev if e["type"] == "UGV_WAITING")["data"]
+        assert wait["hold_node"] == entrance, (wait, entrance)
+        moving = [l for l in route["legs"] if l.get("distance_m", 0) > 5]
+        assert moving[0]["road_id"] == "682501434", route["legs"][:3]
+    finally:
+        _stop(p)
+        gem.should_exit = True
+
+
+def test_server_reopen_before_answer_goes_original_road(tmp_path):
+    """답이 오기 전에 길이 먼저 열리면 답을 기다리지 않고 원래 길로 간다 (실측: 판단 64초 동안 열린 길 앞에서 대기)."""
+    from tests.test_ugv_road_view import _start, _stop
+    gem, url_g, _ = _fake_gemini(delay_s=15)
+    scen = tmp_path / "block.csv"
+    scen.write_text("kind,target,start,end,value,note\nroad,682501434,00:02,00:06,,시험 통제\n", encoding="utf-8")
+    p, url = _start(tmp_path, str(scen), UGV_AGENT="1", UGV_AGENT_API_KEY="test-key", UGV_AGENT_BASE_URL=url_g,
+                    UGV_AGENT_NEWS_URL="http://127.0.0.1:{port}", UGV_TIME_SCALE="50")
+    try:
+        r = httpx.post(url + "/view/command", json={"resource_id": "A-ugv1", "node_id": "494955"}, timeout=30).json()
+        assert r["verdict"] == "ACCEPT", r
+        tid, end, st = r["task_id"], time.time() + 90, None
+        while time.time() < end:
+            st = httpx.get(f"{url}/ugv/A-ugv1/task/{tid}").json()
+            if st["status"] in ("COMPLETED", "FAILED"):
+                break
+            time.sleep(0.5)
+        assert st and st["status"] == "COMPLETED", st
+        run = httpx.get(url + "/history/runs").json()["current"]
+        ev = httpx.get(f"{url}/history/runs/{run}").json()["events"]
+        dec = next(e for e in ev if e["type"] == "AGENT_DECISION")
+        assert dec["data"]["decision"] == "REOPENED", dec
+        rr = next(e for e in ev if e["type"] == "UGV_REROUTED")
+        assert rr["data"]["ai"]["reopened"] is True and rr["sim_time_s"] < 8 * 60     # 15초(=12.5분) 답을 기다리지 않았다
+        route = [e for e in ev if e["type"] == "ROUTE"][-1]["data"]
+        assert "682501434" in [l["road_id"] for l in route["legs"]]
     finally:
         _stop(p)
         gem.should_exit = True

@@ -5,7 +5,7 @@
 # 무엇을 고르나
 #   ROUTE_1  지금 가장 빠른 우회 (AI 를 끈 때와 같은 경로)
 #   ROUTE_2  1순위와 겹치는 도로가 70% 미만인 다른 우회 (ugv/route_alt.py, 없으면 선택지에서 빠짐)
-#   WAIT     막힌 도로가 곧 열린다고 보고 그 자리에서 기다림 (wait_until 까지, 열리면 바로 출발)
+#   WAIT     막힌 도로가 곧 열린다고 보고 그 자리에서 기다림 (wait_until = 해제 예정 시각 + 여유 UGV_AGENT_WAIT_GRACE_S 까지, 열리면 바로 출발)
 # 근거: 상황(막힌 도로·선택지별 ETA) + 지식 베이스(ugv/road_news.py, ugv/knowledge — 가상 교통 기사·도로 운영 지침)
 # 방식 (UGV_AGENT_MODE)
 #   function_calling (기본, B): 모델이 search_road_news 도구로 기사·지침을 직접 찾고 submit_decision 으로 결정을 낸다
@@ -29,7 +29,7 @@ SYSTEM_PROMPT = """너는 산불 현장으로 가는 무인 지상차량(UGV)의
 선택지는 상황에 적힌 것만 고를 수 있다.
 - ROUTE_1: 지금 가장 빠른 우회 경로
 - ROUTE_2: 1순위와 많이 다른 다른 우회 경로 (상황에 없으면 고를 수 없다)
-- WAIT: 막힌 도로가 곧 다시 열린다고 볼 근거가 있을 때 그 자리에서 기다린다. wait_until(시각, HH:MM)을 반드시 적는다
+- WAIT: 막힌 도로가 곧 다시 열린다고 볼 근거가 있을 때 그 자리에서 기다린다. wait_until 에는 자료에 나온 통제 해제(재개) 예정 시각(HH:MM)을 그대로 적는다 — 늦어질 때를 위한 여유는 서버가 더한다
 판단 근거는 주어진 상황과 검색한 자료(교통 기사 N…, 도로 운영 지침 G…)뿐이다.
 자료가 주어지지 않았으면 search_road_news 로 먼저 찾아라. 막힌 도로의 통제·해제 소식과 대기·우회 기준 지침을 함께 확인한다.
 자료에 없는 사실을 지어내지 마라. 기사와 지침이 다르면 더 최근의 현장 기사를 우선한다. 근거가 부족하면 ROUTE_1 을 고른다.
@@ -51,7 +51,7 @@ TOOL_DECIDE = {
     "description": "우회·대기 결정을 낸다. 이 호출로 판단이 끝난다.",
     "parameters": {"type": "object", "properties": {
         "decision": {"type": "string", "enum": list(DECISIONS)},
-        "wait_until": {"type": "string", "description": "WAIT 일 때 기다릴 마지막 시각 HH:MM"},
+        "wait_until": {"type": "string", "description": "WAIT 일 때 자료에 나온 통제 해제 예정 시각 HH:MM (여유는 서버가 더한다)"},
         "reason": {"type": "string"},
         "article_ids": {"type": "array", "items": {"type": "string"}}},
         "required": ["decision", "reason"]},
@@ -76,9 +76,10 @@ class GeminiClient:
     """Gemini REST (generateContent·batchEmbedContents). http(url, headers, body, timeout) → (status, dict) 로 바꿔 끼워 시험한다."""
 
     def __init__(self, api_key: str | None, model: str, embed_model: str, base_url: str = GEMINI_BASE,
-                 timeout_s: float = 20.0, http=None):
+                 timeout_s: float = 60.0, http=None, thinking: str | None = None):
         self.key, self.model, self.embed_model = api_key, model, embed_model
         self.base, self.timeout_s, self._http = base_url.rstrip("/"), timeout_s, http
+        self.thinking = thinking or None   # 생각 정도 (thinkingLevel: low 등). 모델이 거부(400)하면 끄고 다시 부른다
 
     def _post(self, url: str, body: dict) -> dict:
         if self._http is not None:
@@ -97,7 +98,17 @@ class GeminiClient:
         return data
 
     def generate(self, body: dict) -> dict:
-        return self._post(f"{self.base}/models/{self.model}:generateContent", body)
+        url = f"{self.base}/models/{self.model}:generateContent"
+        if not self.thinking:
+            return self._post(url, body)
+        gen = {**body.get("generationConfig", {}), "thinkingConfig": {"thinkingLevel": self.thinking}}
+        try:
+            return self._post(url, {**body, "generationConfig": gen})
+        except RuntimeError as e:
+            if not str(e).startswith("GEMINI_HTTP_400"):
+                raise
+            self.thinking = None                      # 이 모델은 생각 정도 설정을 받지 않는다 → 이후로는 빼고 부른다
+            return self._post(url, body)
 
     def embed(self, texts: list[str], task: str) -> list[list[float]]:
         body = {"requests": [{"model": f"models/{self.embed_model}", "content": {"parts": [{"text": t}]},
@@ -185,13 +196,14 @@ class RoadAI:
             tools = [TOOL_DECIDE]
         contents = [{"role": "user", "parts": [{"text": user}]}]
         trace.append({"type": "AGENT_REQUEST", "mode": self.mode, "model": self.client.model, "prompt": user})
-        for _ in range(self.max_turns):
+        for turn in range(self.max_turns):
             if self.calls >= self.max_calls:
                 return fallback("CALL_LIMIT_REACHED")
+            # 마지막 차례에는 판단 제출만 허용한다 — 모델이 검색만 되풀이하다 판단 없이 끝나는 일(NO_DECISION)을 막는다
+            names = ["submit_decision"] if turn == self.max_turns - 1 else [t["name"] for t in tools]
             body = {"systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]}, "contents": list(contents),
                     "tools": [{"functionDeclarations": tools}],
-                    "toolConfig": {"functionCallingConfig": {"mode": "ANY",
-                                                             "allowedFunctionNames": [t["name"] for t in tools]}},
+                    "toolConfig": {"functionCallingConfig": {"mode": "ANY", "allowedFunctionNames": names}},
                     "generationConfig": {"temperature": 0}}
             self.calls += 1
             try:

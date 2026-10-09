@@ -369,7 +369,7 @@ function stateAt(t){
     if (e.type === "ROUTE"){ routes[rid] = {path: d.path, legs: d.legs, target: d.target_node, task: e.task_id}; v.task = e.task_id; v.road = null; }
     if (e.type === "UGV_TASK_STARTED"){ v.parked = null; v.task = e.task_id; v.target = d.target_node; v.eta = d.eta_sec; v.phase = "STARTED"; v.reroutes = 0; v.started = e.sim_time_s; }
     if (e.type === "UGV_PROGRESS" && e.task_id === v.task){ v.phase = d.phase; v.eta = d.eta_remaining_sec; v.road = d.current_road_id; v.remaining = d.remaining_m; }
-    if (e.type === "UGV_REROUTED"){ v.reroutes = (v.reroutes || 0) + 1; v.eta = d.eta_remaining_sec ?? v.eta; }
+    if (e.type === "UGV_REROUTED"){ if (!isResume(e)) v.reroutes = (v.reroutes || 0) + 1; v.eta = d.eta_remaining_sec ?? v.eta; }
     if (["UGV_ARRIVED","UGV_TASK_FAILED","UGV_TASK_CANCELLED"].includes(e.type) && e.task_id === v.task){
       v.phase = e.type === "UGV_ARRIVED" ? "ARRIVED" : e.type === "UGV_TASK_FAILED" ? "FAILED" : "CANCELLED";
       v.eta = null; v.road = null; v.task = null; v.current_node = d.target_node || v.current_node; delete routes[rid];
@@ -703,6 +703,19 @@ function highlight(refs){
   layers.hl.clearLayers();
   if (!refs) return;
   const pts = [];
+  const geoOf = id => { let g = roadInfo[id]?.geometry; if (!g) return null;
+    if (S.view === "graph"){ const c = CHAINS[CHAIN_OF[id]]; if (c && NODE[c.a] && NODE[c.b]) g = [[NODE[c.a].lat, NODE[c.a].lon], [NODE[c.b].lat, NODE[c.b].lon]]; }
+    return g; };
+  for (const id of refs.ghost || []){             // 재탐색으로 버린 원래 계획 (점선)
+    const g = geoOf(id); if (!g) continue;
+    L.polyline(g, {color: css("--hl"), weight: 3, opacity: .55, dashArray: "6 7", renderer, interactive: false}).addTo(layers.hl);
+    pts.push(...g);
+  }
+  for (const id of refs.bad || []){               // 막혀서 재탐색하게 만든 도로
+    const g = geoOf(id); if (!g) continue;
+    L.polyline(g, {color: css("--bad"), weight: 7, opacity: .95, renderer, interactive: false}).addTo(layers.hl);
+    pts.push(...g);
+  }
   for (const id of refs.roads || []){
     let g = roadInfo[id]?.geometry; if (!g) continue;
     if (S.view === "graph"){ const c = CHAINS[CHAIN_OF[id]]; if (c && NODE[c.a] && NODE[c.b]) g = [[NODE[c.a].lat, NODE[c.a].lon], [NODE[c.b].lat, NODE[c.b].lon]]; }
@@ -729,6 +742,7 @@ function highlight(refs){
 }
 
 // ---------------------------------------------------------------- 차량 목록
+const DECISION_KO = {WAIT: "입구에서 대기", ROUTE_1: "우회", ROUTE_2: "2순위 우회"};
 const STATE_KO = {READY: "대기", RUNNING: "주행", UNAVAILABLE: "이상", WORKING: "작업"};
 const PHASE_KO = {STARTED: "출발", ENROUTE: "이동 중", ARRIVED: "도착", FAILED: "실패", CANCELLED: "중단", LOADING: "싣는 중", UNLOADING: "내리는 중"};
 const nodeLabel = (nid, name) => nid ? `${esc(name || NODE[nid]?.name || "노드")} <span style="color:var(--dim)">${esc(nid)}</span>` : "–";
@@ -814,7 +828,7 @@ const TYPE = {
   UGV_WORK_STARTED: ["작업 시작", "info"], UGV_WORK_ENDED: ["작업 끝", "info"], UGV_LOADING: ["싣기", "info"],
   // 도로 AI (봉인 — UGV_AGENT=1 일 때만 기록에 나온다)
   AGENT_REQUEST: ["도로 AI 판단 요청", "warn"], AGENT_TOOL: ["도로 AI 기사 검색", "info"],
-  AGENT_DECISION: ["도로 AI 결정", "warn"], UGV_WAITING: ["대기 (도로 열림 기다림)", "warn"],
+  AGENT_DECISION: ["도로 AI 지시", "warn"], UGV_WAITING: ["AI 지시 수행 · 입구 대기", "warn"],
 };
 const roadName = id => { const r = roadInfo[id]; return r ? `${r.name || "도로"}(${id})` : (id || "–"); };
 
@@ -829,8 +843,9 @@ function describe(e){
   switch (e.type){
     case "AGENT_REQUEST": return `막힘 ${esc(roadName((d.roads || [])[0]))} · 선택지 ${(d.options || []).map(o => `${esc(o.name)} ${durS(o.eta_s)}`).join(" / ")} · WAIT · ${esc(d.mode || "")}`;
     case "AGENT_TOOL": return `${d.by === "model" ? "모델이 검색" : "서버가 미리 검색"} "${esc(d.query || "")}" → ${esc((d.hits || []).join(", ") || "없음")} (${esc(d.method || "")})`;
-    case "AGENT_DECISION": return `<b>${esc(d.decision)}</b>${d.wait_until ? ` ~${esc(hms((d.wait_until_s ?? 0)))}` : ""} · ${esc(d.reason || "")}${(d.article_ids || []).length ? ` · 근거 ${esc(d.article_ids.join(", "))}` : ""}${d.fallback ? ` <span style="color:var(--warn)">[${esc(d.fallback)}]</span>` : ""}`;
-    case "UGV_WAITING": return `${esc(roadName(d.blocked_road_id))} 열릴 때까지 · 최대 ${hms(d.wait_until_sim_s)}`;
+    case "AGENT_DECISION": if (d.decision === "REOPENED") return `<b>판단 전 통제 해제</b> · ${esc(d.reason || "")}${d.waited_s != null ? ` · ${dur(d.waited_s)} 기다림` : ""}`;
+      return `<b>${esc(d.decision)}</b>${DECISION_KO[d.decision] ? ` (${DECISION_KO[d.decision]})` : ""}${d.decision === "WAIT" && d.wait_until_s != null ? ` · 해제 예정 ${esc(hms(d.wait_until_s))}` : ""} · ${esc(d.reason || "")}${(d.article_ids || []).length ? ` · 근거 ${esc(d.article_ids.join(", "))}` : ""}${d.fallback ? ` <span style="color:var(--warn)">[${esc(d.fallback)}]</span>` : ""}`;
+    case "UGV_WAITING": return `${esc(roadName(d.blocked_road_id))} 입구에서 대기${d.expected_open_sim_s != null ? ` · 해제 예정 ${hms(d.expected_open_sim_s)}` : ""} · 안 열리면 ${hms(d.wait_until_sim_s)}에 우회`;
     case "CLOCK": return `시나리오 시작 ${esc((d.scenario_start_kst || "?").replace("T", " "))} · 환경 실행 ${esc(d.env_run_id || "?")}`;
     case "RUN_START": return `${d.driver} · 배율 ${d.time_scale} · 시나리오 ${d.scenario || "없음"} · 차량 ${(d.resources||[]).length}대`;
     case "ROAD_STATE": {
@@ -849,11 +864,13 @@ function describe(e){
       return (parts.join(" · ") || "변화 없음") + (notes.length ? `<br>켜진 규칙: ${notes.map(esc).join(" / ")}` : "");
     }
     case "ROUTE": { const t = (d.legs||[]).reduce((a,l) => a + (l.travel_s||0), 0);
-      return `→ ${esc(d.target_node)} · 구간 ${(d.legs||[]).length}개 · ${km((d.legs||[]).reduce((a,l)=>a+(l.distance_m||0),0))} · ${dur(t)}${d.why === "UGV_REROUTED" ? " (우회 경로)" : ""}`; }
+      return `→ ${esc(d.target_node)} · 구간 ${(d.legs||[]).length}개 · ${km((d.legs||[]).reduce((a,l)=>a+(l.distance_m||0),0))} · ${dur(t)}${d.why === "UGV_REROUTED" ? (isResume(S.events.find(x => x.seq < e.seq && x.type === "UGV_REROUTED" && x.resource_id === e.resource_id && x.sim_time_s === e.sim_time_s)) ? " (원래 길)" : " (우회 경로)") : ""}`; }
     case "UGV_EVALUATED": return `${esc(d.verdict)}${d.eta_sec != null ? ` · ETA ${dur(d.eta_sec)}` : ""}${d.reason ? ` · ${esc(d.reason)}` : ""}${d.target_node ? ` · 목표 ${esc(d.target_node)}` : ""}`;
     case "UGV_TASK_STARTED": return `목표 ${d.stop_point ? esc(roadInfo[d.stop_point.road_id]?.name || d.stop_point.road_id) + " 위 지점 (" + esc(d.target_node) + " 로 진입)" : esc(d.target_node)} · ETA ${dur(d.eta_sec)}`;
     case "UGV_PROGRESS": return `${PHASE_KO[d.phase] || esc(d.phase)} · ${esc(roadName(d.current_road_id))} · 남은 ${km(d.remaining_m)} / ${dur(d.eta_remaining_sec)}`;
-    case "UGV_REROUTED": return `막힘 ${esc(roadName(d.blocked_road_id))} → 새 경로, 남은 ${dur(d.eta_remaining_sec)}`;
+    case "UGV_REROUTED": return isResume(e)
+      ? `${esc(roadName(d.blocked_road_id))} 열림${d.ai?.waited_s != null ? ` · ${dur(d.ai.waited_s)} 기다림` : ""} → 원래 길, 남은 ${dur(d.eta_remaining_sec)}`
+      : `막힘 ${esc(roadName(d.blocked_road_id))} → 새 경로, 남은 ${dur(d.eta_remaining_sec)}`;
     case "UGV_ARRIVED": {
       const st = S.events.find(x => x.type === "UGV_TASK_STARTED" && x.task_id === e.task_id);
       const el = st && e.sim_time_s != null ? ` · 경과 ${durS(e.sim_time_s - st.sim_time_s)}` : "";
@@ -871,6 +888,9 @@ function describe(e){
   }
 }
 
+// 대기하다 통제가 풀려 원래 길로 다시 가는 경우 — 서버는 같은 재탐색 이벤트로 알리지만 우회가 아니다
+const isResume = e => e?.type === "UGV_REROUTED" && !!e.data?.ai?.reopened;
+const typeOf = e => isResume(e) ? ["통제 해제 → 원래 길로", "ok"] : (TYPE[e.type] || [e.type, "info"]);
 function refsOf(e){
   const d = e.data || {}, roads = new Set(d.roads || []), points = [], lines = [];
   if (d.blocked_road_id) roads.add(d.blocked_road_id);
@@ -896,6 +916,32 @@ function refsOf(e){
   if (sp) add(sp, e.type === "UGV_ARRIVED" ? "도착 (도로 위)" : "목적지 (도로 위)");
   else if (d.target_node && NODE[d.target_node]) add(NODE[d.target_node], e.type === "UGV_ARRIVED" ? "도착" : "목적지");
   return {roads: [...roads], lines, points, fly: true};
+}
+// 출동 묶음 전체: 처음 경로를 재탐색 지점까지 달린 구간 + 새 경로를 이어 붙인다 (마지막 ROUTE 만 그리면 출발지와 끊겨 보인다)
+function tripRefs(g){
+  const ev = g.events, routes = ev.filter(e => e.type === "ROUTE" && e.data?.legs?.length);
+  const points = [], lines = [], ghost = new Set(), bad = new Set();
+  let plan = routes[0] ? [...routes[0].data.legs] : [];
+  for (const r of routes.slice(1)){
+    const legs = r.data.legs, k = plan.findIndex(l => l.road_id === legs[0].road_id);
+    const dropped = k >= 0 ? plan.slice(k) : plan;
+    plan = k >= 0 ? [...plan.slice(0, k), ...legs] : [...legs];
+    dropped.forEach(l => ghost.add(l.road_id));
+  }
+  const roads = new Set();
+  for (const l of plan){ if (l.to_point){ const t = tailGeo(l); if (t) lines.push(t); } else roads.add(l.road_id); }
+  roads.forEach(id => ghost.delete(id));
+  const start = ev.find(e => e.type === "UGV_TASK_STARTED"), arr = ev.find(e => e.type === "UGV_ARRIVED");
+  if (start?.data?.position) points.push({...start.data.position, label: "출발"});
+  ev.filter(e => e.type === "UGV_REROUTED" && !isResume(e)).forEach((e, i, a) => {
+    if (e.data?.blocked_road_id){ bad.add(e.data.blocked_road_id); ghost.delete(e.data.blocked_road_id); }
+    if (e.data?.position) points.push({...e.data.position, label: a.length > 1 ? `재탐색 ${i + 1}` : "재탐색"});
+  });
+  ev.filter(e => e.type === "UGV_WAITING" && e.data?.position).forEach(e => points.push({...e.data.position, label: "AI 지시: 대기"}));
+  const last = routes[routes.length - 1]?.data, tail = plan[plan.length - 1];
+  const end = arr?.data?.stop_point || tail?.to_point || (arr?.data?.position) || NODE[last?.target_node || start?.data?.target_node];
+  if (end) points.push({lat: end.lat, lon: end.lon, label: arr ? "도착" : "목적지"});
+  return {roads: [...roads], lines, points, ghost: [...ghost], bad: [...bad], fly: true};
 }
 const focusRefs = () => { const e = S.events.find(x => x.seq === S.focusSeq); return e ? {...refsOf(e), fly: false} : null; };
 
@@ -945,7 +991,7 @@ function summarize(g, now){
   const target = sp ? null : start?.data?.target_node || cmd?.data?.node_id || evals[0]?.data?.target_node || disp?.data?.node_id || arr?.data?.target_node;
   const targetText = sp ? `${esc(roadInfo[sp.road_id]?.name || sp.road_id)} 위 지점` : null;
   const endE = ev.find(e => ["UGV_ARRIVED","UGV_TASK_FAILED","UGV_TASK_CANCELLED"].includes(e.type));
-  const rr = by("UGV_REROUTED");
+  const rr = by("UGV_REROUTED").filter(e => !isResume(e));
   let status, cls;
   if (endE?.type === "UGV_ARRIVED"){ status = "도착 완료"; cls = "ok"; }
   else if (endE?.type === "UGV_TASK_FAILED"){ status = endE.data?.reason === "OPERATOR_OVERRIDE" ? "변경됨 (운영자 명령)" : `실패 ${endE.data?.reason || ""}`; cls = endE.data?.reason === "OPERATOR_OVERRIDE" ? "warn" : "bad"; }
@@ -971,7 +1017,7 @@ function drawLog(t){
   lastLogSig = sig;
   const box = $("#tabLog"), atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
   const evRow = e => {
-    const [k, cls] = TYPE[e.type] || [e.type, "info"];
+    const [k, cls] = typeOf(e);
     const fut = t != null && e.sim_time_s > t;
     return `<div class="ev ${fut ? "future" : ""} ${S.focusSeq === e.seq ? "on" : ""}" data-seq="${e.seq}">
       <div class="h"><span class="t">${hms(e.sim_time_s)}</span><span class="k ${cls}">${esc(k)}</span><span class="r">${esc(e.resource_id || "")}</span></div>
@@ -1005,8 +1051,7 @@ function toggleGroup(key){
     if (g){
       const rid = g.events.find(e => e.resource_id)?.resource_id;
       if (rid && S.open.has(key)) S.sel = rid;
-      const route = [...g.events].reverse().find(e => e.type === "ROUTE");
-      highlight(route ? {...refsOf(route), fly: true} : null);
+      highlight(S.open.has(key) ? tripRefs(g) : null);
       if (S.mode === "past" && S.open.has(key)){ S.t = g.t0; pausePlay(); }
     }
     lastLogSig = ""; render();
@@ -1058,13 +1103,13 @@ function drawAi(t){
     const tools = c.tools.map(e => { const x = e.data || {};
       return `<div class="q">${x.by === "model" ? "모델이 검색" : "서버가 미리 검색"} “${esc(x.query || "")}”${x.kind ? ` · ${x.kind === "guide" ? "지침" : "기사"}만` : ""} <span>(${esc(x.method || "")}${x.fusion === "rrf" ? " · RRF" : ""}${x.source && x.source !== "local" ? " · " + esc(x.source) : ""})</span>
         ${(x.hits || []).map((h, i) => `<a class="hit" href="/news#/${encodeURIComponent(h)}" target="_blank" style="text-decoration:none">[${esc(h)}] ${esc((x.titles || [])[i] || "")}</a>`).join("") || `<span class="hit">결과 없음</span>`}</div>`; }).join("");
-    const dec = d ? `<div class="dec ${d.fallback ? "fb" : ""}"><b>${esc(pick)}</b>${pick === "WAIT" && d.wait_until ? ` ~${esc(d.wait_until)}` : ""} · ${esc(d.reason || "")}
+    const dec = d ? `<div class="dec ${d.fallback ? "fb" : ""}"><b>${pick === "REOPENED" ? "판단 전 통제 해제" : `AI 지시 ${esc(pick)}${DECISION_KO[pick] ? ` (${DECISION_KO[pick]})` : ""}`}</b>${pick === "WAIT" && d.wait_until ? ` · 해제 예정 ${esc(d.wait_until)}` : ""} · ${esc(d.reason || "")}
         ${(d.article_ids || []).length ? `<div class="row">근거 자료 <b>${esc(d.article_ids.join(", "))}</b></div>` : ""}
-        <div class="row">응답 ${d.latency_s != null ? d.latency_s.toFixed(1) + "초" : "–"}${d.fallback ? ` · <span style="color:var(--bad)">규칙 판단으로 넘어감: ${esc(d.fallback)}</span>` : ""}</div></div>`
+        <div class="row">응답 ${d.latency_s != null ? d.latency_s.toFixed(1) + "초" : pick === "REOPENED" ? "기다리지 않음 (답보다 길이 먼저 열림)" : "–"}${d.fallback ? ` · <span style="color:var(--bad)">규칙 판단으로 넘어감: ${esc(d.fallback)}</span>` : ""}</div></div>`
       : `<div class="dec">판단 중…</div>`;
     const ai = c.out?.data?.ai;
-    const res = c.wait && !c.out ? `<div class="row">대기 중 — ${esc(roadName(c.wait.data?.blocked_road_id))} 열릴 때까지 (최대 ${hms(c.wait.data?.wait_until_sim_s)})</div>`
-      : c.out ? `<div class="row">결과: ${ai?.waited_s != null ? `${durS(ai.waited_s)} 기다림 · ${ai.reopened ? "도로 열려 원래 길로" : "안 열려 1순위 우회"} · ` : ""}재탐색, 남은 ${durS(c.out.data?.eta_remaining_sec)}</div>` : "";
+    const res = c.wait && !c.out ? `<div class="row">AI 지시 수행 중 — ${esc(roadName(c.wait.data?.blocked_road_id))} 입구에서 대기 (안 열리면 ${hms(c.wait.data?.wait_until_sim_s)}에 우회)</div>`
+      : c.out ? `<div class="row">결과: ${ai?.waited_s != null ? `${durS(ai.waited_s)} 기다림 · ${ai.reopened ? "도로 열려 원래 길로" : "안 열려 1순위 우회"} · ` : ""}${ai?.reopened ? "원래 길" : "재탐색"}, 남은 ${durS(c.out.data?.eta_remaining_sec)}</div>` : "";
     const focus = c.dec?.seq ?? c.req.seq;
     return `<div class="ai ${S.focusSeq === focus ? "on" : ""}" data-seq="${focus}">
       <div class="h"><b>${esc(c.rid)} · ${esc(roadName((q.roads || [])[0]))} 막힘</b><span class="t">${hms(c.req.sim_time_s)}</span></div>
@@ -1225,7 +1270,13 @@ function focusEvent(seq){
   if (S.focusSeq && e.resource_id && e.type !== "ROAD_STATE") S.sel = e.resource_id;
   lastLogSig = "";
   render();
-  highlight(S.focusSeq ? refsOf(e) : null);
+  let refs = S.focusSeq ? refsOf(e) : null;
+  if (refs && (e.type === "UGV_TASK_STARTED" || e.type === "UGV_REROUTED")){
+    const r = S.events.find(x => x.seq > e.seq && x.type === "ROUTE" && x.resource_id === e.resource_id && x.task_id === e.task_id);
+    if (r){ const rr = refsOf(r); refs = {...refs, roads: [...new Set([...refs.roads, ...rr.roads])], lines: [...refs.lines, ...rr.lines]};
+      if (e.type === "UGV_REROUTED" && !isResume(e) && e.data?.blocked_road_id){ refs.roads = refs.roads.filter(x => x !== e.data.blocked_road_id); refs.bad = [e.data.blocked_road_id]; } }
+  }
+  highlight(refs);
 }
 
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
@@ -1288,10 +1339,10 @@ function drawTicks(){
   const bar = $("#bar"); bar.querySelectorAll(".tick").forEach(x => x.remove());
   const span = Math.max(1, S.tMax - S.tMin);
   for (const e of S.events){
-    const c = TICK_COL[e.type]; if (!c || e.sim_time_s == null) continue;
+    const c = isResume(e) ? "--ok" : TICK_COL[e.type]; if (!c || e.sim_time_s == null) continue;
     const d = document.createElement("div"); d.className = "tick";
     d.style.left = ((e.sim_time_s - S.tMin) / span * 100) + "%"; d.style.background = css(c);
-    d.title = `${hms(e.sim_time_s)} ${(TYPE[e.type] || [e.type])[0]}`;
+    d.title = `${hms(e.sim_time_s)} ${typeOf(e)[0]}`;
     bar.insertBefore(d, bar.querySelector("input"));
   }
 }

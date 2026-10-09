@@ -311,7 +311,7 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 |---|---|
 | `ROUTE_1` | 지금 가장 빠른 우회 (AI 를 끈 때와 같은 경로) |
 | `ROUTE_2` | 1순위와 겹치는 도로 길이가 70% 미만인 다른 우회 — Yen k-최단 경로를 짧은 순으로 40개까지 보고 첫 번째 (`ugv/route_alt.py`). 없으면 선택지에서 빠진다 |
-| `WAIT` | 막힌 도로가 곧 열린다고 보고 그 자리에서 대기. `wait_until`(HH:MM)까지, 그 전에 열리면 바로 원래 길로. 상한 `UGV_AGENT_MAX_WAIT_S`(45분) |
+| `WAIT` | 막힌 도로가 곧 열린다고 보고 그 자리에서 대기. `wait_until`(해제 예정 시각 HH:MM) + 여유 `UGV_AGENT_WAIT_GRACE_S`(10분, 지침 G1)까지 막힌 도로 입구에서 기다리고, 그 전에 열리면 바로 원래 길로. 상한 `UGV_AGENT_MAX_WAIT_S`(45분) |
 
 **근거 — 지식 베이스 검색 (RAG, `ugv/road_news.py`)**: `ugv/knowledge/` (**직접 만든 가상 자료**, 실제 보도·실제 지침 아님)
 - `news/N*.md` 교통 기사 11건 — `published`(시나리오 시각) 이후에만 보이고 `road_ids` 로 도로와 묶인다
@@ -359,10 +359,12 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 |---|---|---|
 | `UGV_AGENT_API_KEY` | (없음) | Gemini 키. 총괄 키와 따로. 저장소 루트 `.env` 의 `UGV_*` 줄도 읽는다 |
 | `UGV_AGENT_MODE` | `function_calling` | `inline` 이면 서버가 자료를 찾아 프롬프트에 넣는 방식 |
-| `UGV_AGENT_MODEL` | `gemini-3.8-flash` | 판단 모델 (`gemini-2.5-flash` 는 새 사용자에게 막혀 2026-10-09 교체). 서버는 `.env` 가 아니라 셸 환경변수로 줘야 한다 |
+| `UGV_AGENT_MODEL` | `gemini-3.5-flash-lite` | 판단 모델. 소문자 id (대문자는 400). 2026-10-09 probe: 3.5-flash-lite 3.5초, 3.8-flash 14.5초(시연 중 4~64초), 같은 판단. 2.5 계열은 새 사용자에게 404. 서버는 `.env` 가 아니라 셸 환경변수로 줘야 한다 |
 | `UGV_AGENT_EMBED_MODEL`, `UGV_AGENT_EMBED` | `gemini-embedding-001`, `1` | 조각 임베딩. `0` 이면 BM25 만 |
-| `UGV_AGENT_TIMEOUT_S`, `UGV_AGENT_MAX_CALLS` | `20`, `30` | 호출 하나의 제한 시간(실제 초), 서버 1회 실행당 호출 한도 |
+| `UGV_AGENT_TIMEOUT_S`, `UGV_AGENT_MAX_CALLS` | `60`, `30` | 호출 하나의 제한 시간(실제 초), 서버 1회 실행당 호출 한도 |
+| `UGV_AGENT_THINKING` | `low` | 판단 호출의 생각 정도 (Gemini `thinkingLevel`). 모델이 거부하면 빼고 다시 부른다. 비우면 모델 기본값. 판단을 기다리는 동안 길이 먼저 열리면 답을 기다리지 않고 원래 길로 간다 (`AGENT_DECISION.decision = REOPENED`) |
 | `UGV_AGENT_MAX_WAIT_S` | `2700` | WAIT 상한 (시뮬레이션 초) |
+| `UGV_AGENT_WAIT_GRACE_S` | `600` | WAIT 마감 여유 (시뮬레이션 초): 해제 예정 시각에 더해 기다린다 |
 | `UGV_AGENT_NEWS` | `ugv/knowledge` | 지식 베이스 폴더 (예전 기사 묶음 JSON 도 읽는다) |
 | `UGV_AGENT_RAG_CACHE` | `ugv/.state/rag_cache` | 조각 임베딩 디스크 캐시 (git 제외) |
 | `UGV_AGENT_RAG_K` | `3` | 검색 한 번에 돌려줄 문서 수 |

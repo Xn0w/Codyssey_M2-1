@@ -88,12 +88,20 @@ MIN_ROAD_SPEED_KMH = float(os.getenv("UGV_MIN_ROAD_SPEED_KMH", "50"))
 #   실패하면 항상 1순위 우회 (끈 때와 같다). 시연 시나리오: ugv/scenarios/agent_block.csv + 지식 베이스 ugv/knowledge (가상 기사·지침)
 AGENT_ENABLED = os.getenv("UGV_AGENT", "0") == "1"
 AGENT_MODE = os.getenv("UGV_AGENT_MODE", "function_calling")
-AGENT_MODEL = os.getenv("UGV_AGENT_MODEL", "gemini-3.8-flash")   # 2026-10-09: gemini-2.5-flash 는 새 사용자에게 막혀(404) 교체
+AGENT_MODEL = os.getenv("UGV_AGENT_MODEL", "gemini-3.5-flash-lite").strip().lower().replace(" ", "-")
+# ↑ 2026-10-09: gemini-2.5-flash(-lite) 는 새 사용자에게 막혀(404) 교체. 3.8-flash 는 판단은 맞지만 응답 4~64초로 들쭉날쭉,
+#   3.5-flash-lite 는 같은 probe 에서 3.5초·호출 2회·같은 판단(ROUTE_1, N1·G1) → 기본값. API 는 소문자 id 만 받아(Gemini-3.5-Flash-Lite → 400) 소문자로 맞춘다
 AGENT_EMBED_MODEL = os.getenv("UGV_AGENT_EMBED_MODEL", "gemini-embedding-001")
 AGENT_EMBED = os.getenv("UGV_AGENT_EMBED", "1") == "1"       # 0 이면 지식 검색을 BM25 만으로
 AGENT_BASE_URL = os.getenv("UGV_AGENT_BASE_URL", "https://generativelanguage.googleapis.com/v1beta")
-AGENT_TIMEOUT_S = float(os.getenv("UGV_AGENT_TIMEOUT_S", "20"))       # 실제 초
+AGENT_TIMEOUT_S = float(os.getenv("UGV_AGENT_TIMEOUT_S", "60"))       # 실제 초 (2026-10-09: 20초는 검색 뒤 판단 호출이 끊겨 60초로)
+# 판단 호출의 생각 정도 (Gemini thinkingLevel). 기사 하나 보고 대기·우회를 고르는 일이라 낮게 둔다 —
+#   기본값이면 판단 한 번에 수십 초가 걸려 10배속에서 시뮬레이션 수 분이 된다 (2026-10-09 실측 20~64초). 비우면 모델 기본값
+AGENT_THINKING = os.getenv("UGV_AGENT_THINKING", "low")
 AGENT_MAX_CALLS = int(os.getenv("UGV_AGENT_MAX_CALLS", "30"))          # 서버 1회 실행당 LLM 호출 한도
+# WAIT 마감 여유 (시뮬레이션 초): 모델이 준 재개 예정 시각에 이만큼 더 기다린 뒤에야 우회한다 (지침 G1 의 '재개 예정 + 10분').
+#   모델이 wait_until 을 재개 예정 시각 그대로 주면 1초 늦게 열려도 우회해 버린다 (2026-10-09 실측: 14:57:00 마감, 14:57:01 해제 → 33분 우회)
+AGENT_WAIT_GRACE_S = float(os.getenv("UGV_AGENT_WAIT_GRACE_S", "600"))
 AGENT_MAX_WAIT_S = float(os.getenv("UGV_AGENT_MAX_WAIT_S", "2700"))    # WAIT 상한 (시뮬레이션 초, 45분)
 AGENT_NEWS = os.getenv("UGV_AGENT_NEWS", "ugv/knowledge")                 # 지식 베이스 폴더 (ugv/road_news.py)
 AGENT_RAG_CACHE = os.getenv("UGV_AGENT_RAG_CACHE", "ugv/.state/rag_cache")   # 조각 임베딩 디스크 캐시 (바뀐 조각만 다시 만든다)

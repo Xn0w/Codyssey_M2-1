@@ -8,13 +8,16 @@
 #
 #   ugv/tools/demo_agent_dispatch.sh            # 저장소 루트에서. 끄기: Ctrl+C
 # 키: 저장소 루트 .env 의 UGV_AGENT_API_KEY. 배속 UGV_TIME_SCALE (기본 10 — LLM 응답 9초 = 시뮬레이션 1.5분)
-# 화면: 상황판 http://localhost:8100/view (도로 AI 탭), 교통 소식 http://localhost:8100/news, 총괄 http://localhost:8200/board
+# 화면: 상황판 http://localhost:8100/view (도로 AI 탭), 교통 소식 http://localhost:8100/news, 총괄 http://localhost:8200/board,
+#       3D http://localhost:8080/inje3d → '실시간 연결 LIVE' (UGV 위치만 — 환경·드론 서버는 이 시연에서 띄우지 않는다)
+# tools/run_twin.sh 와 같은 포트(8100·8200·8080)를 쓰므로 동시에 돌리지 않는다.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 PY="${PY:-.venv/bin/python}"; [ -x "$PY" ] || PY=python3
 LOG="logs/agent_dispatch/$(date +%Y%m%d_%H%M%S)"; mkdir -p "$LOG"
 pkill -f "uvicorn ugv.server:app" 2>/dev/null || true
 pkill -f "orchestrator.api" 2>/dev/null || true
+pkill -f "uvicorn web.app:app" 2>/dev/null || true
 sleep 1
 UGV_AGENT=1 UGV_SCENARIO=ugv/scenarios/agent_dispatch.csv UGV_TIME_SCALE="${UGV_TIME_SCALE:-10}" UGV_ENV_URL="" \
   "$PY" -m uvicorn ugv.server:app --host 127.0.0.1 --port 8100 --log-level warning > "$LOG/ugv.log" 2>&1 &
@@ -22,8 +25,10 @@ UGV_PID=$!
 ORCH_ENV_FIXTURE=orchestrator/tests/scenarios/smoke_ugv_support/fixture.json ORCH_DB_PATH="$LOG/orchestrator.sqlite3" \
   "$PY" -m orchestrator.api > "$LOG/orchestrator.log" 2>&1 &
 ORCH_PID=$!
-trap 'echo; echo "종료 중…"; kill $UGV_PID $ORCH_PID 2>/dev/null; wait 2>/dev/null; echo "로그: $LOG"' EXIT INT TERM
-for u in http://127.0.0.1:8100/health http://127.0.0.1:8200/health; do
+"$PY" -m uvicorn web.app:app --host 127.0.0.1 --port 8080 --log-level warning > "$LOG/web.log" 2>&1 &
+WEB_PID=$!
+trap 'echo; echo "종료 중…"; kill $UGV_PID $ORCH_PID $WEB_PID 2>/dev/null; wait 2>/dev/null; echo "로그: $LOG"' EXIT INT TERM
+for u in http://127.0.0.1:8100/health http://127.0.0.1:8200/health http://127.0.0.1:8080/inje3d; do
   for _ in $(seq 1 60); do curl -s -o /dev/null "$u" && break; sleep 0.5; done
 done
 echo "▶ 총괄에 지상 지원 임무 (최초 정찰과 함께 배정된다)"
@@ -36,5 +41,6 @@ curl -s http://127.0.0.1:8100/view/vehicles | "$PY" -c 'import json,sys
 for v in json.load(sys.stdin): print("  ", v.get("resource_id"), (v.get("task") or {}).get("task_id") or "대기")'
 
 echo "✔ 상황판 http://localhost:8100/view (도로 AI 탭) · 교통 소식 http://localhost:8100/news · 총괄 http://localhost:8200/board"
+echo "  3D   http://localhost:8080/inje3d → '실시간 연결 LIVE' (UGV 위치)"
 echo "  끄기: Ctrl+C   로그: $LOG"
 wait

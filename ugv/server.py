@@ -627,7 +627,7 @@ def _make_road_ai():
     from pathlib import Path
     ra.load_env_keys(Path(root) / ".env")
     client = ra.GeminiClient(os.getenv("UGV_AGENT_API_KEY"), config.AGENT_MODEL, config.AGENT_EMBED_MODEL,
-                             config.AGENT_BASE_URL, config.AGENT_TIMEOUT_S)
+                             config.AGENT_BASE_URL, config.AGENT_TIMEOUT_S, thinking=config.AGENT_THINKING)
     news_path = config.AGENT_NEWS if os.path.isabs(config.AGENT_NEWS) else os.path.join(root, config.AGENT_NEWS)
     cache_dir = config.AGENT_RAG_CACHE if os.path.isabs(config.AGENT_RAG_CACHE) else os.path.join(root, config.AGENT_RAG_CACHE)
     news = RoadNews.load(news_path, config.SECONDS_PER_ENV_STEP,
@@ -703,7 +703,9 @@ async def _ai_detour(task_id: str, agent: GroundResourceAgent, t: dict) -> dict:
     blocked = agent.blocked_ahead()
     cur, _ = agent.driver.progress()
     eta_before = (_remaining(agent, cur).get("eta_remaining_sec") or 0)
-    await agent.pause()
+    base = agent.plan
+    # 판단하는 동안은 지금 도로의 끝(다음 교차로 — 우회로가 갈라지는 곳)까지 가서 선다
+    await agent.approach(base)
     t["progress"] = {**(t.get("progress") or {}), "phase": "DECIDING", "blocked_road_id": blocked}
     _save()
     start_node, lead, here = agent.detour_start()
@@ -736,7 +738,31 @@ async def _ai_detour(task_id: str, agent: GroundResourceAgent, t: dict) -> dict:
         history.record("AGENT_REQUEST", r.resource_id, task_id, roads=[blocked], mode=road_ai.mode,
                        model=road_ai.client.model, prompt=RoadAI.situation_text(s),
                        options=[{k: o[k] for k in ("name", "eta_s", "distance_m", "road_ids")} for o in options])
-    res = await asyncio.to_thread(road_ai.decide, s)
+    # 판단을 기다리는 동안 길이 먼저 열리면 더 고민할 것 없이 원래 길로 간다 (늦게 온 답은 기록만 남긴다)
+    job = asyncio.ensure_future(asyncio.to_thread(road_ai.decide, s))
+    while not job.done() and fleet.graph.get_road(blocked).blocked:
+        await asyncio.wait({job}, timeout=0.5)
+    if not job.done():
+        def _late(f, rid=r.resource_id):
+            try:
+                late = f.result()
+            except Exception:   # noqa: BLE001
+                return
+            log.info("task %s 도로 AI: 길이 먼저 열린 뒤 도착한 답 %s (무시)", task_id, late.get("decision"))
+        job.add_done_callback(_late)
+        reason = "판단이 나오기 전에 통제가 풀렸다 — 원래 길로 간다"
+        waited = round(clock.now() - now, 1)
+        if history is not None:
+            history.record("AGENT_DECISION", r.resource_id, task_id, decision="REOPENED", reason=reason,
+                           article_ids=[], mode=road_ai.mode, fallback=None, roads=[blocked],
+                           latency_s=None, waited_s=waited)
+        log.info("task %s 도로 AI: 답보다 길이 먼저 열림 (%.0f초 기다림)", task_id, waited)
+        out = await agent.reroute()
+        out["blocked_road_id"] = out.get("blocked_road_id") or blocked
+        out["ai"] = {"decision": "REOPENED", "reason": reason, "article_ids": [], "mode": road_ai.mode,
+                     "fallback": None, "latency_s": None, "waited_s": waited, "reopened": True}
+        return out
+    res = job.result()
     for e in res["trace"]:
         if e["type"] == "AGENT_REQUEST" or history is None:
             continue
@@ -749,13 +775,14 @@ async def _ai_detour(task_id: str, agent: GroundResourceAgent, t: dict) -> dict:
     log.info("task %s 도로 AI: %s (%s)%s", task_id, res["decision"], res["reason"][:80],
              f" — fallback {res['fallback']}" if res.get("fallback") else "")
     if res["decision"] == "WAIT":
-        until = min(res["wait_until_s"], clock.now() + config.AGENT_MAX_WAIT_S)
+        until = min(res["wait_until_s"] + config.AGENT_WAIT_GRACE_S, clock.now() + config.AGENT_MAX_WAIT_S)
         ai["wait_until_s"] = round(until, 1)
         t["progress"] = {**(t.get("progress") or {}), "phase": "WAITING", "blocked_road_id": blocked,
                          "wait_until_sim_s": round(until, 1)}
         _save()
+        hold = await agent.approach(base, blocked)  # 기다리는 자리 = 막힌 도로 입구. 거기까지 가서 선다
         _report("UGV_WAITING", agent, task_id, blocked_road_id=blocked, wait_until_sim_s=round(until, 1),
-                reason=res["reason"])
+                reason=res["reason"], hold_node=hold, expected_open_sim_s=round(res["wait_until_s"], 1))
         while clock.now() < until and fleet.graph.get_road(blocked).blocked:
             await asyncio.sleep(0.5)
         ai["waited_s"] = round(clock.now() - now, 1)
