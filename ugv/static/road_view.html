@@ -1103,7 +1103,7 @@ function drawAi(t){
     const tools = c.tools.map(e => { const x = e.data || {};
       return `<div class="q">${x.by === "model" ? "모델이 검색" : "서버가 미리 검색"} “${esc(x.query || "")}”${x.kind ? ` · ${x.kind === "guide" ? "지침" : "기사"}만` : ""} <span>(${esc(x.method || "")}${x.fusion === "rrf" ? " · RRF" : ""}${x.source && x.source !== "local" ? " · " + esc(x.source) : ""})</span>
         ${(x.hits || []).map((h, i) => `<a class="hit" href="/news#/${encodeURIComponent(h)}" target="_blank" style="text-decoration:none">[${esc(h)}] ${esc((x.titles || [])[i] || "")}</a>`).join("") || `<span class="hit">결과 없음</span>`}</div>`; }).join("");
-    const dec = d ? `<div class="dec ${d.fallback ? "fb" : ""}"><b>${pick === "REOPENED" ? "판단 전 통제 해제" : `AI 지시 ${esc(pick)}${DECISION_KO[pick] ? ` (${DECISION_KO[pick]})` : ""}`}</b>${pick === "WAIT" && d.wait_until ? ` · 해제 예정 ${esc(d.wait_until)}` : ""} · ${esc(d.reason || "")}
+    const dec = d ? `<div class="dec ${d.fallback ? "fb" : ""}"><b>${pick === "REOPENED" ? "판단 전 통제 해제" : `AI 지시 ${esc(pick)}${DECISION_KO[pick] ? ` (${DECISION_KO[pick]})` : ""}`}</b>${pick === "WAIT" && d.wait_until_s != null ? ` · 해제 예정 ${esc(hms(d.wait_until_s))}` : ""} · ${esc(d.reason || "")}
         ${(d.article_ids || []).length ? `<div class="row">근거 자료 <b>${esc(d.article_ids.join(", "))}</b></div>` : ""}
         <div class="row">응답 ${d.latency_s != null ? d.latency_s.toFixed(1) + "초" : pick === "REOPENED" ? "기다리지 않음 (답보다 길이 먼저 열림)" : "–"}${d.fallback ? ` · <span style="color:var(--bad)">규칙 판단으로 넘어감: ${esc(d.fallback)}</span>` : ""}</div></div>`
       : `<div class="dec">판단 중…</div>`;
