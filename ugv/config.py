@@ -73,10 +73,7 @@ REPORT_URL = os.getenv("UGV_REPORT_URL", "")
 # 비우면 UGV 서버 혼자 시계 (서버 시작 = 0). 환경이 없으면 조용히 혼자 간다.
 ENV_URL = os.getenv("UGV_ENV_URL", "http://127.0.0.1:8300")
 ENV_CLOCK_POLL_S = float(os.getenv("UGV_ENV_CLOCK_POLL_S", "1.0"))
-# 환경을 따라갈 때 마지막 환경 시각보다 최대 이만큼(시뮬레이션 초)만 앞서 간다 — 환경이 멈추면(트윈 시계가 총괄 LLM 을
-# 기다리는 동안) UGV 시계·sim 주행도 멈춘다. 기본: 시계 확인 두 번 사이에 환경이 나아가는 양의 2배 (100배속 1초 확인 → 200초).
-# 0 이면 끔 (예전처럼 벽시계 × 배속으로 계속 — 환경이 멈춰도 차는 달리고, 다시 맞출 때 시계가 뒤로 간다)
-ENV_LEAD_MAX_S = float(os.getenv("UGV_ENV_LEAD_MAX_S", str(max(60.0, 2 * ENV_CLOCK_POLL_S * TIME_SCALE))))
+# ENV_LEAD_MAX_S (환경 시계 멈춤 따라가기)는 도로 AI 설정 뒤에 정한다 — 도로 AI 시연일 때만 켜진다
 # 총괄 주소 — 도로 상황판의 노드 클릭 출동 요청을 여기 POST /tasks 로 전달한다 (ugv/server.py /view/dispatch)
 ORCH_URL = os.getenv("UGV_ORCH_URL", "http://127.0.0.1:8200")
 
@@ -91,6 +88,13 @@ MIN_ROAD_SPEED_KMH = float(os.getenv("UGV_MIN_ROAD_SPEED_KMH", "50"))
 #   UGV_AGENT_MODE: function_calling (모델이 지식 검색 도구를 부름, 기본) | inline (서버가 자료를 찾아 프롬프트에 넣음)
 #   실패하면 항상 1순위 우회 (끈 때와 같다). 시연 시나리오: ugv/scenarios/agent_block.csv + 지식 베이스 ugv/knowledge (가상 기사·지침)
 AGENT_ENABLED = os.getenv("UGV_AGENT", "0") == "1"
+# 환경 시계 멈춤 따라가기: 마지막 환경 시각보다 최대 이만큼(시뮬레이션 초)만 앞서 가고, 환경이 멈추면(트윈 시계가 총괄 LLM 을
+# 기다리는 동안) UGV 시계·sim 주행도 멈춘다. 뒤로 가지 않는다. 도로 시나리오 통제 시각을 환경 시각에 맞추려는 것이라
+# 도로 AI 시연(UGV_AGENT=1)일 때만 기본으로 켠다 (시계 확인 두 번 사이에 환경이 나아가는 양의 2배, 100배속 → 200초).
+# 평소에는 0 = 끔 — 드론 mock 처럼 벽시계 × 배속으로 계속 간다 (총괄 LLM 을 기다리는 동안에도 드론·UGV 가 같이 움직인다).
+# 직접 정하려면 UGV_ENV_LEAD_MAX_S (0 = 끔)
+ENV_LEAD_MAX_S = float(os.getenv("UGV_ENV_LEAD_MAX_S",
+                                 str(max(60.0, 2 * ENV_CLOCK_POLL_S * TIME_SCALE)) if AGENT_ENABLED else "0"))
 AGENT_MODE = os.getenv("UGV_AGENT_MODE", "function_calling")
 AGENT_MODEL = os.getenv("UGV_AGENT_MODEL", "gemini-3.5-flash-lite").strip().lower().replace(" ", "-")
 # ↑ 2026-10-09: gemini-2.5-flash(-lite) 는 새 사용자에게 막혀(404) 교체. 3.8-flash 는 판단은 맞지만 응답 4~64초로 들쭉날쭉,

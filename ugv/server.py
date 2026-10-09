@@ -181,9 +181,10 @@ async def lifespan(app: FastAPI):
         scenario.validate(roads)                    # 없는 도로 id 면 여기서 바로 실패
         log.info("시나리오 %s: 규칙 %d개 (%s)", scenario.name, len(scenario.rules), scenario.source)
     await fleet.connect_all()                       # PX4 는 연결될 때까지 대기
-    for a in fleet.agents.values():                 # sim 주행은 이 시계로 움직인다 — 환경 시계가 멈추면 차도 선다
-        if hasattr(a.driver, "sim_now"):
-            a.driver.sim_now = clock.now
+    if clock.env_lead_max_s is not None:            # 도로 AI 시연: sim 주행도 이 시계로 — 환경 시계가 멈추면 차도 선다
+        for a in fleet.agents.values():             # (평소에는 예전처럼 벽시계 × 배속, 드론 mock 과 같은 흐름)
+            if hasattr(a.driver, "sim_now"):
+                a.driver.sim_now = clock.now
     if CLOCK_FOLLOWS_PX4 and any(_driver_kind(a) == "px4" for a in fleet.agents.values()):
         clock.set_source(_px4_time)                 # 시계 흐름 = PX4(Gazebo) 시뮬레이션 시간 (ugv/sim_clock.py)
     history.record("RUN_START", driver=DRIVER, time_scale=config.TIME_SCALE,

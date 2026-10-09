@@ -63,3 +63,16 @@ def test_sim_driver_moves_with_clock():
         assert abs(d.position()[1] - 128.0) * 87_700 > moved + 200
         await d.stop()
     asyncio.run(run())
+
+
+def test_env_pause_follow_only_for_road_ai_demo():
+    """환경 시계 멈춤 따라가기는 도로 AI 시연(UGV_AGENT=1)일 때만 기본으로 켜진다 — 평소에는 드론 mock 처럼 계속 간다."""
+    import os
+    import subprocess
+    import sys
+    code = "import ugv.config as c; print(c.ENV_LEAD_MAX_S)"
+    run = lambda **env: float(subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True,
+                                             env={**os.environ, "UGV_AGENT": "0", "UGV_TIME_SCALE": "100", **env}).stdout)
+    assert run() == 0.0                                   # 평소 (AI 꺼짐)
+    assert run(UGV_AGENT="1") == 200.0                    # 도로 AI 시연
+    assert run(UGV_ENV_LEAD_MAX_S="0", UGV_AGENT="1") == 0.0   # 직접 끄기
