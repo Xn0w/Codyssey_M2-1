@@ -24,7 +24,7 @@ import time
 
 
 class SimClock:
-    def __init__(self, time_scale: float = 1.0, seconds_per_env_step: float = 60.0):
+    def __init__(self, time_scale: float = 1.0, seconds_per_env_step: float = 60.0, env_lead_max_s: float | None = None):
         if time_scale <= 0 or seconds_per_env_step <= 0:
             raise ValueError("time_scale, seconds_per_env_step 는 0 보다 커야 한다")
         self.time_scale = time_scale
@@ -40,6 +40,12 @@ class SimClock:
         self._src_last = None                     # (값, 벽시계) — 멈춤 판정용
         self.source_switches = 0
         self._last_value = 0.0
+        self._held: float | None = None           # 멈춘 시계 (환경 시계를 기다리는 동안). release() 로 다시 흐른다
+        # 환경 시계를 따라갈 때 마지막 환경 시각보다 이만큼(시뮬레이션 초)까지만 앞서 간다. 환경이 멈추면(트윈 시계는
+        # 총괄 LLM 을 기다리는 동안 /advance 를 멈춘다, ADAIR 2026-10-08) 우리 시계도 거기서 멈추고, 뒤로 가지 않는다.
+        # None 이면 예전처럼 벽시계 × TIME_SCALE 로 계속 간다.
+        self.env_lead_max_s = env_lead_max_s
+        self._env_last: float | None = None
 
     STALE_S = 10.0
 
@@ -76,8 +82,25 @@ class SimClock:
         else:
             self._src_key, self._src_anchor = src
 
+    def hold(self, sim_time_s: float = 0.0) -> None:
+        """시계를 sim_time_s 에 멈춘다. 디지털 트윈 기동 중 환경 시계가 아직 흐르지 않을 때 — 혼자 앞서 가면
+        시나리오 사건이 미리 발동한다. 환경 시각이 바뀌거나(follow_env) 차가 출발하거나(release) reset 하면 다시 흐른다."""
+        self._held = float(sim_time_s)
+        self._last_value = self._held
+
+    @property
+    def held(self) -> bool:
+        return self._held is not None
+
+    def release(self) -> None:
+        if self._held is not None:
+            v, self._held = self._held, None
+            self._rebase(v, self._read_source())
+
     def now(self) -> float:
         """현재 시뮬레이션 초. PX4 시각이 있으면 그 흐름, 없으면 벽시계 × TIME_SCALE. 뒤로 가지 않는다."""
+        if self._held is not None:
+            return self._held
         src = self._read_source()
         if src is None:
             if self._src_key is not None:         # 소스가 끊김 → 마지막 값에서 벽시계로 이어 간다
@@ -91,6 +114,9 @@ class SimClock:
                 self._rebase(base, (key, t))
                 self.source_switches += 1
             v = self._anchor_sim + (t - self._src_anchor)
+        if self._env_last is not None and self.env_lead_max_s is not None:
+            v = min(v, self._env_last + self.env_lead_max_s)   # 멈춘 환경보다 너무 앞서지 않는다
+            v = max(v, self._last_value)                       # 앞서 갔던 만큼은 기다린다 (뒤로 가지 않는다)
         self._last_value = v
         return v
 
@@ -107,7 +133,23 @@ class SimClock:
         self.env_step, self.env_synced_at = sim_step, self._anchor_wall
         return {"sim_time_s": env_s, "drift_s": self.last_drift_s, "reset": reset}
 
+    def follow_env(self, sim_time_s: float, restart: bool = False) -> dict:
+        """환경 서버의 시뮬레이션 초를 그대로 받는다 (스텝 번호가 아니라 초). 값이 바뀔 때마다 부른다.
+        환경은 스텝 단위로만 움직이므로 그 사이는 벽시계 × TIME_SCALE 로 이어 간다.
+        env_lead_max_s 가 있으면 우리 시계가 환경보다 앞서 있던 만큼은 환경이 따라올 때까지 기다린다 (뒤로 가지 않음).
+        restart=True (새 실행) 면 환경 시각으로 그대로 돌아간다."""
+        before = self.now()
+        self._held = None
+        self._rebase(float(sim_time_s), self._read_source())
+        self._env_last = float(sim_time_s)
+        if not restart and self.env_lead_max_s is not None:
+            self._last_value = max(before, float(sim_time_s))
+        self.env_synced_at = self._anchor_wall
+        self.last_drift_s = round(before - sim_time_s, 1)
+        return {"sim_time_s": sim_time_s, "drift_s": self.last_drift_s}
+
     def reset(self, sim_time_s: float = 0.0) -> None:
+        self._held = None
         self._rebase(sim_time_s, self._read_source())
         self.env_step = self.env_synced_at = self.last_drift_s = None
 

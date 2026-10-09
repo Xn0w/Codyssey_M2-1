@@ -24,11 +24,17 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 | `UGV_PX4_RESOURCES` | `A-ugv1` | px4 모드에서 PX4 에 연결할 자원 (쉼표 구분) |
 | `UGV_TARGET_SNAP_M` | `2000` | 화재에서 가장 가까운 도로 노드가 이보다 멀면 `TARGET_UNREACHABLE` |
 | `UGV_APPROACH_FALLBACK` | `0` | `1` 이면 가장 가까운 노드로 못 갈 때 다음 노드로 접근 |
+| `UGV_ENV_URL` | `http://127.0.0.1:8300` | 환경 서버. UGV 시계가 환경 시각(`/health` simulation_time_s)을 따라가고, 상황판은 시나리오 시각(scenario_start_kst + 초)으로 보인다. 처음 연결하면 환경 시각에 멈춰 있다가 환경이 한 스텝 나아가거나 차가 처음 출발하면 흐른다. 비우면 혼자 (서버 시작 = 0) |
+| `UGV_AGENT` | `0` | **도로 AI (봉인)**. `1` 이면 주행 중 앞길이 막힐 때 우회·대기를 LLM(Gemini)이 판단 (sim 차량만). 아래 "도로 AI" 절 |
+| `UGV_TARGET_MODE` | `node` | `road_point` 이면 `target`(좌표)을 노드 대신 가장 가까운 **도로 위 점**에 붙여 거기 선다. 요청마다 `target_mode` 로도 고른다 |
 | `UGV_APPROACH_MAX_M` | `500` | fallback 접근 노드의 화재 거리 상한 |
 | `UGV_TIME_SCALE` | `1` | 시뮬레이션 초 / 벽시계 초. PX4 쪽 `PX4_SIM_SPEED_FACTOR`(px4-start.sh 의 `SPEED`)와 같은 값. sim 차량도 이 배율로 달린다 |
 | `UGV_SECONDS_PER_ENV_STEP` | `60` | 환경 CA 1스텝이 몇 시뮬레이션 초인가. **잠정값 (INT-05 미정)** |
+| `UGV_ORCH_URL` | `http://127.0.0.1:8200` | 총괄 주소. 상황판 출동 요청을 여기 `POST /tasks` 로 전달 |
+| `UGV_HISTORY_DIR` | `ugv/.state/history` | 실행 기록 폴더. `UGV_STATE_DIR` 과 따로 둔다 (run_twin 은 실행마다 새 STATE_DIR) |
+| `UGV_HISTORY` | `1` | 실행 기록 (`{UGV_STATE_DIR}/history/<run_id>.jsonl`, 도로 상황판 재생용). `0` 이면 끔. 보관 개수 `UGV_HISTORY_KEEP`(30) |
 | `UGV_REPORT_URL` | (빈 값 = 끔) | 총괄 주소(예 `http://127.0.0.1:8200`). 주면 이벤트마다 `POST {URL}/events` 로 보고. 기본은 총괄 조회(polling)만 쓴다 |
-| `UGV_SCENARIO` | `ugv/scenarios/inje_girin.csv` | 도로 환경 시나리오 (CSV/JSON). 빈 값이면 시나리오 없음 |
+| `UGV_SCENARIO` | (없음) | 도로 환경 시나리오 (CSV/JSON). 기본은 시나리오 없음 — 도로 전부 열림. 예) `ugv/scenarios/inje_girin.csv` |
 
 ## 구조
 
@@ -58,7 +64,17 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 | POST | `/roads/closures/cells` | 격자 칸 묶음 구역 통제 (예전 `/env/fire_cells`, 출처 `cells`) |
 | POST | `/roads/congestion` | 혼잡 직접 설정 |
 | GET | `/roads/geometry?only_changed=true` | 시각화용 도로 선형 + 차단·혼잡 |
-| GET | `/ugv/{resource_id}/route` | 주행 중 경로 선형·남은 거리/시간·재탐색 횟수 |
+| GET | `/ugv/{resource_id}/route` | 주행 중 경로 선형·남은 거리/시간·재탐색 횟수 + `legs`(구간별 도로·거리·소요시간·혼잡·DONE/CURRENT/NEXT) |
+| GET | `/graph/bases` | 거점 노드 (상황판 표시용) |
+| GET | `/graph/edges` | 도로 전체 (양 끝 노드·이름·길이) — 상황판 그래프 보기 |
+| GET | `/graph/nodes` | 도로 노드 전체 + `degree`(닿은 도로 수, 2 가 아니면 교차로·끝점) |
+| GET | `/view/vehicles` | 상황판 차량 요약: 상태 + 지금 임무(목적지·단계·남은 시간·작전 이유) + 지금 자리(노드 또는 도로 A→B) |
+| POST | `/view/command` | 상황판에서 **차를 골라** 노드를 누른 경우 — 그 차에 직접 명령 `{"resource_id", "node_id", "replace"}`. 임무 중이면 `replace=true` 일 때만 세우고 바꾼다 (총괄 Safety 미경유). `node_id` 대신 `point: {lat, lon}` 이면 도로 위 지점에 선다 |
+| GET | `/view/terrain` | 지도 보기 배경용 지형 (환경 격자 고도·연료를 위경도 격자로) |
+| POST | `/view/dispatch` | 상황판 노드 클릭 출동 `{"node_id", "resource_type": "UGV"\|"FIRE_ENGINE"}` → **총괄 `POST /tasks` 로 전달** (UGV 를 직접 움직이지 않음) |
+| GET | `/view` | **UGV 도로 상황판** (브라우저로 연다) |
+| GET | `/history/runs` | 실행(서버 기동) 목록, 최신 먼저 |
+| GET | `/history/runs/{run_id}?after=seq` | 한 실행의 기록 (이어 받기) |
 | GET | `/reports?limit=30` | 총괄에 보낸 보고 최근 목록·전송 통계 |
 | GET | `/clock` | 시뮬레이션 시계 (시각, 배율, 환경 동기 상태) |
 | POST | `/clock/env` | 환경 스텝 알림 `{"sim_step": n}` → 시계 동기. 스텝이 줄면 시나리오 재시작 |
@@ -138,9 +154,26 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 
 `UGV_APPROACH_FALLBACK=1` 이면 3·4 에서 바로 거절하지 않고, 화재에서 `UGV_APPROACH_MAX_M` 안의 다음 노드를 가까운 순으로 시도한다. 성공하면 `detail` 에 접근 거리를 적는다.
 
-ETA(시뮬레이션 초)는 도로마다 `길이 ÷ min(도로등급별 속도, 차량 최고속도) × 혼잡 배율` 의 합이다.
-도로등급 속도(잠정): 고속국도 80, 일반국도 60, 지방도 50, 시군도 30 km/h. 차량 최고속도는 `ugv/config.py` `max_speed_mps`
-(Gazebo 차량 기준: UGV 2.0, 소방차 2.5 m/s) — 그래서 실제 ETA 는 사실상 차량 속도가 정한다 (A→B 29 km ≈ 4.1 h).
+### 도로 위 지점에 서기 (`target_mode: "road_point"`, `ugv/road_point.py`)
+
+교차로 사이 도로가 길면 노드 방식은 목표에서 먼 교차로에 선다. 도로 위 지점 방식은 목표 좌표를 가장 가까운 도로 선형에 투영한 점에 선다
+(긴 도로 중간 계측용). evaluate·execute 에 `"target_mode": "road_point"` 를 주거나 서버를 `UGV_TARGET_MODE=road_point` 로 띄운다
+(기본 `node` — 지금까지 동작 그대로. `cargo` 가 있거나 `target` 없이 `target_node` 만 주면 노드 방식.
+총괄은 평가에서 받은 `target_node` 를 실행 때 `target` 과 같이 돌려보내는데, 이때는 `target` 기준으로 다시 골라 평가와 같은 지점에 선다).
+
+1. 목표 좌표 → 가장 가까운 도로 위 점 (`TARGET_SNAP_M` 보다 멀면 `TARGET_UNREACHABLE`)
+2. 그 도로 양 끝 노드 중 (그 노드까지 + 도로를 따라 지점까지) 시간이 짧은 쪽으로 들어간다. ETA 에 꼬리 구간이 들어간다
+3. 응답의 `target_node` = 들어가는 끝 노드, 새 필드 `stop_point` = `{road_id, lat, lon, snap_m, along_m}` (실제로 설 곳). 노드 방식이면 `null`
+4. 도착하면 차는 지점에 서 있고 `current_node` 는 들어온 끝 노드다. 다음 출발은 도로 중간 출발 규칙(양 끝 중 빠른 쪽)
+5. 같은 지점(`NODE_ARRIVE_M` 20 m 안)으로 다시 보내면 움직이지 않고 바로 COMPLETED (`already_there`) — 붙박이 반복 관측
+6. 지점이 있는 도로가 막혀 있으면 `ROAD_BLOCKED`. 주행 중 막히면 재탐색이 실패해 task FAILED(ROAD_BLOCKED)
+
+경로(`/ugv/{id}/route` 의 `legs`, 실행 기록 `ROUTE`) 마지막에 꼬리 구간이 `to: null`, `to_point: {lat, lon}` 으로 붙는다.
+보고(`UGV_TASK_STARTED`·`UGV_ARRIVED`)와 task 상태에 `stop_point` 가 실린다. 총괄은 이 필드를 몰라도 된다 (노드 방식과 같은 흐름).
+
+ETA(시뮬레이션 초)는 도로마다 `길이 ÷ min(max(도로 제한속도, 50 km/h), 차량 속도) × 혼잡 배율` 의 합이다 (하한 `UGV_MIN_ROAD_SPEED_KMH`).
+차량 속도는 `ugv/config.py`: PX4 주행은 `max_speed_mps` (Gazebo r1_rover 2.0 m/s, A→B 29 km ≈ 4.1 h),
+sim 드라이버 주행은 `sim_speed_mps` — 세 대 모두 60 km/h(상한)라 도로마다 50~60 km/h. ETA 와 주행이 같은 값을 쓴다.
 PX4 차량도 같은 구간 속도로 달린다 (미션 항목별 속도).
 
 ## POST /ugv/{resource_id}/execute
@@ -267,6 +300,92 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 
 `progress` 에 `remaining_m`, `eta_remaining_sec`, `current_road_id`, `sim_time_s` 가 붙는다.
 
+## 도로 AI — 막혔을 때 우회·대기 판단 (`ugv/road_ai.py`, 봉인 · 기본 꺼짐)
+
+총괄 LLM 과 별개인 UGV 전용 AI. 시연·화면에서는 쓰지 않는 봉인 기능이다 (`UGV_AGENT=1` 일 때만).
+
+**언제**: 주행 중 남은 경로에 막힌 도로가 생겼을 때 ("주행 중 도로 차단" 절의 재탐색 자리). 차를 세우고 묻는다 (sim 차량만).
+
+**선택지**
+| 이름 | 뜻 |
+|---|---|
+| `ROUTE_1` | 지금 가장 빠른 우회 (AI 를 끈 때와 같은 경로) |
+| `ROUTE_2` | 1순위와 겹치는 도로 길이가 70% 미만인 다른 우회 — Yen k-최단 경로를 짧은 순으로 40개까지 보고 첫 번째 (`ugv/route_alt.py`). 없으면 선택지에서 빠진다 |
+| `WAIT` | 막힌 도로가 곧 열린다고 보고 그 자리에서 대기. `wait_until`(해제 예정 시각 HH:MM) + 여유 `UGV_AGENT_WAIT_GRACE_S`(10분, 지침 G1)까지 막힌 도로 입구에서 기다리고, 그 전에 열리면 바로 원래 길로. 상한 `UGV_AGENT_MAX_WAIT_S`(45분) |
+
+**근거 — 지식 베이스 검색 (RAG, `ugv/road_news.py`)**: `ugv/knowledge/` (**직접 만든 가상 자료**, 실제 보도·실제 지침 아님)
+- `news/N*.md` 교통 기사 11건 — `published`(시나리오 시각) 이후에만 보이고 `road_ids` 로 도로와 묶인다
+- `guides/G*.md` 도로 운영 지침 3건 — 언제나 보인다. G1 통제 구간 대기·우회 기준(해제 예정 시각 +10분 여유 등), G2 신상촌길·가넷고개길 대형차 통행
+- 헷갈리는 자료(검색 평가용, 판단에 쓰면 안 되는 것): N7 다른 구간(한계령) 설악로 통제, N8 같은 도로 '내일' 재포장 예고, N9 다른 도로 낙석 방지망 점검, G3 통신 두절 시 대기 요령
+- 문서 머리말(`---`): `id`, `kind`(news|guide), `published`, `road_ids`, `title`. `meta.json` 에 출처 표기와 `scenario_start_kst`
+
+1. **조각내기** — 문서를 문단 단위로 자르고 220자까지 이어 붙인다 (지금 14문서 → 17조각). 조각마다 제목을 앞에 붙여 검색
+2. **색인** — BM25(낱말 + 글자 두 개 묶음) 통계와 조각 임베딩(`gemini-embedding-001`). 임베딩은 디스크 캐시
+   (`UGV_AGENT_RAG_CACHE`, 모델별 파일, 조각 내용 해시 → 벡터)에 남겨 **바뀐 조각만** 다시 만든다
+3. **거르기** — 지금 시각까지 나온 자료만(미래 기사는 못 읽음), `kind`, 도로 id(그 도로를 다룬 자료 + 도로를 정하지 않은 일반 지침. 하나도 없으면 시각만 거름 `relaxed`)
+4. **순위** — 순위 합치기 RRF: BM25 순위와 임베딩 코사인 순위를 각각 매겨 점수 = 1/(60 + BM25 순위) + 1/(60 + 코사인 순위)
+   (BM25 가 0, 즉 낱말이 하나도 안 겹친 조각은 BM25 몫 0). 점수 범위가 달라도 두 검색이 같은 무게로 반영된다.
+   예전 '점수 반반 더하기'는 코사인 값이 좁은 범위(0.6~0.8)에 몰려 사실상 BM25 만 일했다 (2026-10-09 실측: 두 방식 점수가 같았음).
+   문서 단위로 묶어 상위 `UGV_AGENT_RAG_K`(3)개, 문서마다 맞은 조각 최대 2개를 본문으로. 임베딩이 안 되면 BM25 만. 계산은 numpy
+5. **근거 표기** — 결정의 `article_ids` 에 문서 id(N…, G…)
+
+**가상 뉴스 사이트 — 지식 베이스를 웹으로** (`GET /news`, `ugv/static/news.html`, 도로 AI 가 꺼져 있어도 열린다)
+- 화면: 교통 기사·운영 지침 목록(최신 먼저), 본문(`/news#/N1`), 검색창(순위·점수·BM25/임베딩 순위·맞은 조각), 시각 막대.
+  **지금 시각까지 나온 자료만** 보인다 — 미래 기사는 목록·본문·검색 모두에서 숨김 (도로 AI 와 같은 규칙)
+- API (`now_s` 를 안 주면 서버 시계의 지금):
+  - `GET /news/api/articles?now_s=&kind=` — 목록 `{now_kst, total, upcoming, articles:[{id, kind, title, published_kst, road_names, excerpt}]}`
+  - `GET /news/api/articles/{id}?now_s=` — 본문. 아직 나오지 않은 기사는 404
+  - `GET /news/api/search?q=&road_ids=a,b&kind=&k=&now_s=` — 검색 (`RoadNews.search` 와 같은 결과 + `published_kst`)
+- **도로 AI 의 검색 도구 `search_road_news` 는 이 웹 API 를 부른다** (`UGV_AGENT_NEWS_URL`, 기본 `http://127.0.0.1:8100`).
+  기록 `AGENT_TOOL.source` 가 `news_api GET /news/api/search`. API 가 안 되면 서버 안에서 직접 찾고 source 에 사유 (판단은 멈추지 않음)
+- 상황판 상단 "교통 소식 ↗", 도로 AI 탭의 검색 결과 기사 id 를 누르면 그 기사가 열린다
+
+**점검·평가 도구**
+- `python -m ugv.tools.rag_index [--chunks] [--embed]` — 문서·조각 목록, 캐시 상태. `--embed` 는 캐시에 없는 조각만 임베딩해 저장
+- `python -m ugv.tools.rag_eval [--embed]` — `ugv/knowledge/eval.json` 20문항(그 시각·그 도로 조건)으로 hit@3·MRR. BM25 만 / BM25+임베딩 비교.
+  easy 10 (도로명·낱말이 그대로 겹침), hard 10 (뜻으로 묻거나 헷갈리는 자료가 있음). BM25 만: easy hit@3 1.0 · MRR 0.95, hard hit@3 0.9 · MRR 0.8
+  (놓친 문항: 도로 id 없이 '설악로 통제 해제 시각' → 다른 구간 N7 이 끼어듦 — 도로 필터가 필요한 이유)
+
+**방식** (`UGV_AGENT_MODE`, 시스템 프롬프트는 같음 — "자료가 주어지지 않았으면 search_road_news 로 먼저 찾아라", 기사와 지침이 다르면 최근 현장 기사 우선)
+- `function_calling` (기본): 모델이 `search_road_news(query, road_ids, kind)` 도구로 기사·지침을 찾고 `submit_decision(decision, wait_until, reason, article_ids)` 로 결정. 매 턴 함수 호출 강제(`mode: ANY`), 최대 4턴
+- `inline`: 서버가 세 갈래로 먼저 찾아 프롬프트에 넣는다 — 막힌 도로 기사, 대기·우회 기준과 우회로 지침, 우회로 기사(각 2건, 중복 제거). 모델은 `submit_decision` 만 부른다
+
+**실패하면 항상 `ROUTE_1`** (키 없음·호출 한도·HTTP 오류·결정 없음·선택지에 없는 결정·잘못된 시각). 결과의 `fallback` 에 사유. 주행은 멈추지 않는다.
+
+**기록**: 실행 기록에 `AGENT_REQUEST`(상황·선택지·프롬프트) → `AGENT_TOOL`(검색어·종류·찾은 문서와 조각 id·검색 방식) → `AGENT_DECISION`(결정·이유·근거 기사·대기 시각·fallback) → `UGV_WAITING`(대기 시) → `UGV_REROUTED`(`ai` 에 결정 요약). 상황판 기록에 한 줄씩 나온다.
+
+**설정**
+| 환경변수 | 기본값 | 설명 |
+|---|---|---|
+| `UGV_AGENT_API_KEY` | (없음) | Gemini 키. 총괄 키와 따로. 저장소 루트 `.env` 의 `UGV_*` 줄도 읽는다 |
+| `UGV_AGENT_MODE` | `function_calling` | `inline` 이면 서버가 자료를 찾아 프롬프트에 넣는 방식 |
+| `UGV_AGENT_MODEL` | `gemini-3.5-flash-lite` | 판단 모델. 소문자 id (대문자는 400). 2026-10-09 probe: 3.5-flash-lite 3.5초, 3.8-flash 14.5초(시연 중 4~64초), 같은 판단. 2.5 계열은 새 사용자에게 404. 서버는 `.env` 가 아니라 셸 환경변수로 줘야 한다 |
+| `UGV_AGENT_EMBED_MODEL`, `UGV_AGENT_EMBED` | `gemini-embedding-001`, `1` | 조각 임베딩. `0` 이면 BM25 만 |
+| `UGV_AGENT_TIMEOUT_S`, `UGV_AGENT_MAX_CALLS` | `60`, `30` | 호출 하나의 제한 시간(실제 초), 서버 1회 실행당 호출 한도 |
+| `UGV_AGENT_THINKING` | `low` | 판단 호출의 생각 정도 (Gemini `thinkingLevel`). 모델이 거부하면 빼고 다시 부른다. 비우면 모델 기본값. 판단을 기다리는 동안 길이 먼저 열리면 답을 기다리지 않고 원래 길로 간다 (`AGENT_DECISION.decision = REOPENED`) |
+| `UGV_AGENT_MAX_WAIT_S` | `2700` | WAIT 상한 (시뮬레이션 초) |
+| `UGV_AGENT_WAIT_GRACE_S` | `600` | WAIT 마감 여유 (시뮬레이션 초): 해제 예정 시각에 더해 기다린다 |
+| `UGV_AGENT_NEWS` | `ugv/knowledge` | 지식 베이스 폴더 (예전 기사 묶음 JSON 도 읽는다) |
+| `UGV_AGENT_RAG_CACHE` | `ugv/.state/rag_cache` | 조각 임베딩 디스크 캐시 (git 제외) |
+| `UGV_AGENT_RAG_K` | `3` | 검색 한 번에 돌려줄 문서 수 |
+| `UGV_AGENT_NEWS_URL` | `http://127.0.0.1:8100` | 도로 AI 가 지식 베이스를 찾는 웹 API 주소 (이 서버의 `/news/api/search`). 다른 포트로 띄우면 맞춘다. 비우면 서버 안에서 직접 |
+| `UGV_AGENT_BASE_URL` | Gemini v1beta | 시험에서 가짜 서버로 바꿀 때 |
+
+**시연 시나리오 1 (화면 명령)**: `UGV_SCENARIO=ugv/scenarios/agent_block.csv` — 14:48(00:03)~15:30(00:45) 설악로 682501434 통제 (시속 50~60 km 차가 설악로에 닿기 전), 기사 N1(00:02, "약 40분, 15시 30분 재개 예정")·N4(00:20, "조기 해제", 그 전엔 안 보임), 지침 G1(대기·우회 기준)과 맞춰 놓았다.
+
+**시연 시나리오 2 (총괄 요청, 대기와 우회 비교)**: `ugv/tools/demo_agent_dispatch.sh` — UGV 서버(도로 AI 켬, `ugv/scenarios/agent_dispatch.csv`)와
+총괄(기존 시연 시험 환경 `orchestrator/tests/scenarios/smoke_ugv_support`, 남전리 119 신고)을 띄우고 지상 지원 임무
+(`ugv/scenarios/agent_dispatch/task.json`)를 보낸다. 총괄이 최초 정찰은 가장 가까운 A-ugv1(인제119), 지상 지원은 B-ugv1(기린119)에 배정한다.
+| 차량 | 막히는 도로 (시각) | 우회하면 | 기사 | 기대 판단 |
+|---|---|---|---|---|
+| A-ugv1 | 설악로 682501557 남전리 아랫마을 14:49~14:57 (8분, 낙석 잔해 정리) | +24분 | N10 | **WAIT** → 14:57 열리면 원래 길로 |
+| B-ugv1 | 내린천로 683400994 14:48~16:00 (산사태 우려) | +8분 | N11 | **ROUTE_1** 우회 (대조군) |
+가짜 Gemini 로 끝까지 확인 (A 약 7.8분 대기 후 도착, B 우회). 실제 판단은 모델에 따라 다를 수 있다.
+
+**연결 확인 (서버 없이)**: `python -m ugv.tools.road_ai_probe [--mode inline] [--no-embed]` — 같은 상황을 실제 Gemini 에 넣고 결정·검색·호출 수를 찍는다.
+
+**알려진 한계**: 판단하는 동안 차는 서 있고 시뮬레이션 시계는 흐른다 — 100배속에서 LLM 응답 3초 = 시뮬레이션 5분. 시험(가짜 Gemini)만 돌렸고 실제 Gemini 연결은 `road_ai_probe` 로 따로 확인해야 한다.
+
 ## 시나리오 파일 (도로 환경)
 
 `ugv/scenarios/*.csv` 또는 `*.json` — 한 줄 = "이 대상은 start 부터 end 전까지 이렇다". 형식 상세는 `ugv/scenario.py` 머리말.
@@ -278,7 +397,7 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 | `start`, `end` | 초(`600`) / 시:분(`00:10`) / 환경 스텝(`step:10`). end 비우면 끝까지 |
 | `value` | congestion 배율 (2.0 = 통과시간 2배) |
 
-기본 `inje_girin.csv`:
+예시 `inje_girin.csv` (`UGV_SCENARIO=ugv/scenarios/inje_girin.csv` 로 켤 때):
 
 | 시간대 | 대상 | 내용 |
 |---|---|---|
@@ -316,3 +435,29 @@ UGV 자원도 UAV 처럼 총괄이 개별로 지휘한다 (현장 지휘 역할 
 
 총괄 쪽 처리: `RESOURCE_CHANGED` 는 재배정, `UGV_*` 는 현재 장부(`EXTERNAL_EVENT`)에 기록만 된다.
 보고 실패는 주행에 영향 없다 (3회 재시도 후 버리고 로그). A→B 29 km 한 번에 진행 보고가 약 70~90건 나온다.
+
+## 도로 상황판 (`GET /view`, `ugv/static/road_view.html`)
+
+UGV 서버가 직접 내주는 화면. 이 서버 API 만 폴링하고 총괄·관제판과는 무관하다 (`http://<UGV 서버>:8100/view`).
+
+| 영역 | 내용 |
+|---|---|
+| 보기 | 상단 **지도 / 그래프** 전환. 지도 = 환경 격자 지형(LIVE 화면과 같은 고도·연료 자료, 언덕 음영) 위 실제 도로 선형. 그래프 = 교차로 사이 도로를 한 간선(직선)으로 묶은 단순 그래프, 노드를 크게 — 알고리즘 설명용 |
+| 지도 | 도로망 전체. 차단 = 빨간 점선, 혼잡 = 주황(배율이 클수록 굵게), 경유 불가 노드 = 빨간 원. 도로에 마우스를 올리면 이름·차단 출처·혼잡 배율. 교차로 노드는 늘 보이고, 길이 휘는 점은 확대(14 이상)하면 보인다 |
+| 차량 | 소방차·UGV 모양 아이콘. 같은 자리에 겹치면 둘레로 벌려 둘 다 보인다. 위치 보고 사이(실시간 1초 조회, 재생은 약 50 시뮬레이션 초 간격)는 달리는 경로의 도로 모양을 따라 메워 움직인다 — 고속(소방차)에서도 끊기거나 산길을 가로지르지 않게. 목록에 지금 임무·자리(노드 / 도로 A→B)·목적지·남은 시간·경과·작전 이유 |
+| 도로 표시 | 마우스를 올리면 도로명·혼잡 배율·교통 상황(기준속도 대비 80% 이상 원활 / 50% 이상 서행 / 그 밑 정체 / 통제)·차단 출처. 상단에 통제·서행/정체 도로 수 |
+| 직접 명령 | 차를 고른 채 노드를 누르면 그 차의 현재 임무(목적지·남은 시간·작전 이유)를 보여 주고 "바꾸시겠습니까?" → 바꾸기 = 정지 후 평가·출발. 총괄이 맡긴 임무를 바꾸면 그 임무는 FAILED(OPERATOR_OVERRIDE) 로 닫혀 총괄이 인계한다 |
+| 출동 | 노드를 누르면 `UGV 출동 요청` / `소방차 출동 요청` → 총괄에 그 지점까지 **이동 임무**(sensor 없음, 도착으로 완료)를 요청. 어느 차가 갈지·Safety 는 총괄이 정한다. 실시간에서만 |
+| 도로 위 지점 | (지도 보기) 도로를 누르면 그 도로 위 점에 대해 같은 메뉴 — 차를 골랐으면 그 차를 지점에 세우는 직접 명령, 아니면 총괄 출동 요청(총괄은 90 m 칸 중심으로 보내므로 지점에 서는 건 `UGV_TARGET_MODE=road_point` 일 때). 경로 끝 꼬리 구간과 `도착(도로 위)` 라벨, 차량 목록 `○○ 위 지점에 정차` |
+| 차량 | 상태·진행·남은 시간·재탐색 횟수. 누르면 그 차만 강조하고 경로·구간 소요시간 라벨을 지도에 그린다 |
+| 경로 표 | 이름이 같은 도로 구간을 한 줄로 묶어 거리·소요시간(지금 혼잡 기준)·혼잡. 지나온/달리는/남은 구간 구분. 줄에 올리면 지도에서 강조 |
+| 기록 | 출동 하나를 한 묶음(▶)으로 — 대표 줄에 task_id·출처·ETA(재탐색 시 바뀐 ETA)·경과 시간·상태(진행/도착/중단/변경/실패). 누르면 펼쳐 평가·출발·재탐색·도착을 본다. 그 밖에 실행 기록 시각순 — 평가·출동·재탐색·도착·실패·도로 상황 변화(무엇이 막히고 풀렸는지·켜진 시나리오 규칙). 누르면 관련 도로·위치를 지도에 강조 |
+| 도로 상황 | 켜진 시나리오 규칙·예정 규칙, 막힌 도로·노드·혼잡 개수. 시나리오가 아닌 출처(API 직접 = 수동 통제, 격자 칸 = 구역 통제)로 막힌 도로는 "규칙 밖 통제"로 따로 |
+| 과거 실행 | 상단 목록에서 지난 실행을 고르면 기록 전체로 그 시각의 상태(차량 위치·경로·도로 상태)를 다시 만든다. 시간 막대·재생(10~1200배), 막대의 눈금 = 출동·재탐색·실패·도로 변화 |
+
+실행 기록 (`ugv/history.py`): 서버 한 번 기동 = 실행 하나. 총괄 보고와 같은 이벤트에 더해 `RUN_START`(자원·시나리오),
+`ROAD_STATE`(바뀔 때만), `ROUTE`(출발·재탐색 때 경로와 구간 소요시간)를 적는다. 화면 전용이며 총괄로 보내지 않는다.
+지도 라이브러리(Leaflet)는 CDN 에서 받으므로 화면을 여는 브라우저는 인터넷이 필요하다. 배경 지도(OSM)는 `배경` 버튼으로 켠다.
+
+상황판 출동이 sensor 없는 이동 임무인 이유 (2026-10-08 확인): `WEATHER` 는 총괄이 목표 칸이 화재·위험 칸 목록에 있을 때만
+'목표 달성'으로 쳐서 임의 도로 노드로는 도착·측정·재출동이 반복되고, `ROAD_STATUS` 는 총괄 능력표에 소방차가 없어 후보에서 빠진다.

@@ -10,7 +10,7 @@
 # 문서: http://localhost:8100/docs
 #
 # 시간: 모든 시각·ETA·속도는 시뮬레이션 초 기준 (ugv/sim_clock.py). 환경 스텝을 POST /clock/env 로 받으면 그에 맞춘다.
-# 도로: 차단·혼잡은 시나리오 타임라인(ugv/scenario.py, 기본 ugv/scenarios/inje_girin.csv)이 시간대별로 정한다.
+# 도로: 차단·혼잡은 시나리오 타임라인(ugv/scenario.py, UGV_SCENARIO — 기본 없음)이 시간대별로 정한다.
 #       주행 중 남은 경로가 막히면 지금 달리는 도로 끝에서 다시 탐색해 이어 달린다. 길이 없으면 멈추고 task FAILED.
 #
 # 호출 순서: state → evaluate → (총괄·Safety 판단) → execute → task 폴링
@@ -22,6 +22,8 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from . import config
 from .agent import GroundResourceAgent
@@ -31,12 +33,15 @@ from .api_models import (
 )
 from .fleet import GroundFleet
 from .geo import distance_m
+from . import road_point
+from .api_models import StopPoint
 from . import graph_gpkg
 from .graph_gpkg import ROAD_CELLS
 from .road_status import RoadStatus
 from .scenario import Scenario
 from .sim_clock import SimClock
 from .reporter import Reporter
+from .history import History
 from .gz_fx import fx as gz_fx
 from .drive_log import DriveLog, ENABLED as DRIVE_LOG_ENABLED
 from .api_models import BlockRequest, EnvClockRequest
@@ -74,7 +79,73 @@ def _close_after_restart(t: dict) -> None:
 RESTART_CLOSED = STORE.reconcile_after_restart(
     lambda t: t["status"] in ("STARTED", "IN_PROGRESS"), _close_after_restart,
     basis="SIM_DRIVER_RESET" if DRIVER == "sim" else "PHYSICAL_STATE_FROM_TELEMETRY_AFTER_RESTART")
-_watchers: dict[str, asyncio.Task] = {}             # task_id → 도착 감시 태스크
+_watchers: dict[str, asyncio.Task] = {}
+road_ai = None                                        # ugv/road_ai.py RoadAI — UGV_AGENT=1 일 때만 (봉인)
+_kb = None                                            # 도로 지식 베이스 (ugv/road_news.py) — 뉴스 사이트 /news 와 도로 AI 가 같이 쓴다
+history: History | None = None                       # 실행 기록 (lifespan 에서 만든다)             # task_id → 도착 감시 태스크
+
+
+def _road_snapshot() -> dict:
+    active = [] if scenario is None else [
+        {k: rule.get(k) for k in ("no", "kind", "targets", "start", "end", "value", "note")}
+        for rule in scenario.active(clock.now())]
+    return {"blocked": sorted(roads.blocked()), "blocked_by": roads.blocked_by(),
+            "blocked_nodes": roads.blocked_nodes(), "congested": roads.congested(), "active_rules": active}
+
+
+_last_road_snapshot: dict | None = None
+
+
+def _record_road_state() -> None:
+    """막힌 도로·혼잡·켜진 시나리오 규칙이 바뀌었으면 실행 기록에 남긴다 (도로 상황판 재생용)."""
+    global _last_road_snapshot
+    if history is None:
+        return
+    snap = _road_snapshot()
+    if snap != _last_road_snapshot:
+        _last_road_snapshot = snap
+        history.record("ROAD_STATE", **snap)
+
+
+ENV_WAIT_S = 10.0          # 환경 서버를 이만큼(벽시계 초) 못 만나면 시계를 혼자 흐르게 둔다
+_env_clock: dict = {"url": None, "run_id": None, "sim_time_s": None, "scenario_start_kst": None, "synced": False}
+
+
+async def _env_clock_loop() -> None:
+    """환경 시계 따라가기 (config.ENV_URL). 환경 시각이 바뀔 때만 UGV 시계를 맞춘다 — 그대로면 손대지 않는다.
+    처음 연결하면 환경 시각에 멈춰 둔다(트윈 기동 중 환경은 아직 안 흐른다): 환경이 한 스텝 나아가거나 차가 처음
+    출발하면 흐르기 시작한다. 환경이 ENV_WAIT_S 안에 안 뜨면 혼자 흐른다.
+    실행이 바뀌거나 시각이 줄면 시나리오를 처음부터. 시나리오 시작 시각이 들어오면 실행 기록에 CLOCK."""
+    import httpx
+    _env_clock["url"] = config.ENV_URL
+    last, t0 = None, time.monotonic()
+    async with httpx.AsyncClient(timeout=1.0) as cx:
+        while True:
+            try:
+                h = (await cx.get(f"{config.ENV_URL.rstrip('/')}/health")).json()
+                run, t = h.get("run_id"), h.get("simulation_time_s")
+                start = (h.get("assumptions") or {}).get("scenario_start_kst")
+                if t is not None and (last is None or (run, t) != last):
+                    restart = last is not None and (run != last[0] or t < last[1])
+                    if last is None and clock.held:
+                        clock.hold(float(t))
+                        res = {"drift_s": None}
+                    else:
+                        res = clock.follow_env(float(t), restart=restart)
+                    if scenario is not None:
+                        if restart:
+                            scenario.reset(roads)
+                        scenario.tick(clock.now(), roads)
+                    if (run, start) != (_env_clock["run_id"], _env_clock["scenario_start_kst"]) and history is not None:
+                        history.record("CLOCK", None, None, source="environment", env_run_id=run,
+                                       scenario_start_kst=start, env_sim_time_s=t)
+                    _env_clock.update(run_id=run, sim_time_s=t, scenario_start_kst=start, synced=True,
+                                      drift_s=res["drift_s"])
+                    last = (run, t)
+            except Exception:   # noqa: BLE001 — 환경이 없으면 혼자 간다
+                if last is None and time.monotonic() - t0 > ENV_WAIT_S:
+                    clock.release()
+            await asyncio.sleep(config.ENV_CLOCK_POLL_S)
 
 
 async def _refresh_loop() -> None:
@@ -84,6 +155,7 @@ async def _refresh_loop() -> None:
             fleet.refresh_all()
             if scenario is not None:
                 scenario.tick(clock.now(), roads)
+            _record_road_state()
             gz_fx.sync_walls(roads.blocked())       # Gazebo 빨간 벽 (UGV_GZ_FX=1 일 때만)
         except Exception:
             log.exception("refresh 실패")
@@ -92,26 +164,51 @@ async def _refresh_loop() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global fleet, roads, clock, scenario, reporter
-    clock = SimClock(config.TIME_SCALE, config.SECONDS_PER_ENV_STEP)
+    global fleet, roads, clock, scenario, reporter, history, road_ai
+    clock = SimClock(config.TIME_SCALE, config.SECONDS_PER_ENV_STEP,
+                     env_lead_max_s=config.ENV_LEAD_MAX_S if config.ENV_LEAD_MAX_S > 0 else None)
+    history = History(os.getenv("UGV_HISTORY_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".state", "history")),
+                      clock, enabled=os.getenv("UGV_HISTORY", "1") != "0",
+                      keep=int(os.getenv("UGV_HISTORY_KEEP", "30")))
     reporter = Reporter(config.REPORT_URL, clock)
     await reporter.start()
     fleet = GroundFleet(use_px4=(DRIVER == "px4"), graph_data=graph_gpkg,   # 실제 도로망
                         time_scale=config.TIME_SCALE)
     roads = RoadStatus(fleet.graph, ROAD_CELLS)
+    road_ai = _make_road_ai() if config.AGENT_ENABLED else None
     if config.SCENARIO_FILE:
         scenario = Scenario.load(config.SCENARIO_FILE, config.SECONDS_PER_ENV_STEP)
         scenario.validate(roads)                    # 없는 도로 id 면 여기서 바로 실패
         log.info("시나리오 %s: 규칙 %d개 (%s)", scenario.name, len(scenario.rules), scenario.source)
     await fleet.connect_all()                       # PX4 는 연결될 때까지 대기
+    if clock.env_lead_max_s is not None:            # 도로 AI 시연: sim 주행도 이 시계로 — 환경 시계가 멈추면 차도 선다
+        for a in fleet.agents.values():             # (평소에는 예전처럼 벽시계 × 배속, 드론 mock 과 같은 흐름)
+            if hasattr(a.driver, "sim_now"):
+                a.driver.sim_now = clock.now
     if CLOCK_FOLLOWS_PX4 and any(_driver_kind(a) == "px4" for a in fleet.agents.values()):
         clock.set_source(_px4_time)                 # 시계 흐름 = PX4(Gazebo) 시뮬레이션 시간 (ugv/sim_clock.py)
+    history.record("RUN_START", driver=DRIVER, time_scale=config.TIME_SCALE,
+                   scenario=None if scenario is None else scenario.name,
+                   scenario_source=None if scenario is None else scenario.source,
+                   ugv_agent="SEALED" if road_ai is None else f"ON:{road_ai.mode}",
+                   resources=[{"resource_id": rid, "resource_type": a.resource.resource_type,
+                               "base": a.resource.base, "home_node": a.resource.home_node,
+                               "position": {"lat": a.resource.lat, "lon": a.resource.lon},
+                               "state": a.resource.state} for rid, a in fleet.agents.items()],
+                   bases=_bases())
+    _record_road_state()
     loop = asyncio.create_task(_refresh_loop())
+    if config.ENV_URL:
+        clock.hold(0.0)                             # 환경 시계를 받을 때까지 (또는 첫 출발까지) 멈춰 둔다
+    env_loop = asyncio.create_task(_env_clock_loop()) if config.ENV_URL else None
     log.info("UGV 서버 준비: driver=%s, 자원 %s, 시간배율 %.0f, 환경 1스텝=%.0fs", DRIVER, list(fleet.agents),
              config.TIME_SCALE, config.SECONDS_PER_ENV_STEP)
     yield
     loop.cancel()
+    if env_loop:
+        env_loop.cancel()
     await reporter.stop()
+    history.close()
 
 
 app = FastAPI(
@@ -135,6 +232,12 @@ def _report(type_: str, agent: GroundResourceAgent, task_id: str | None = None, 
     r = agent.resource
     reporter.report(type_, r.resource_id, task_id, state=r.state,
                     position={"lat": r.lat, "lon": r.lon}, fuel_pct=r.fuel_pct, **payload)
+    if history is not None:
+        history.record(type_, r.resource_id, task_id, state=r.state,
+                       position={"lat": r.lat, "lon": r.lon}, **payload)
+        if type_ in ("UGV_TASK_STARTED", "UGV_REROUTED") and agent.plan is not None:
+            history.record("ROUTE", r.resource_id, task_id, target_node=agent.plan.target_node,
+                           path=agent.plan.path, legs=_route_legs(agent), why=type_)
 
 
 def _resource_changed(agent: GroundResourceAgent, why: str) -> None:
@@ -207,7 +310,7 @@ async def get_state(resource_id: str):
 
 
 def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str | None,
-            cargo=None, via_node: str | None = None) -> dict:
+            cargo=None, via_node: str | None = None, target_mode: str | None = None) -> dict:
     """목적지 도로 노드를 고르고 갈 수 있는지 판단한다. evaluate·execute 가 같은 규칙을 쓴다.
 
     target(화재 좌표)을 주면 화재에서 가장 가까운 도로 노드를 목적지로 삼는다.
@@ -216,12 +319,20 @@ def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str 
         APPROACH_MAX_M 안의 다음 노드들을 가까운 순으로 시도한다 (ugv/config.py)
     cargo(짐)가 있으면 적재 한도를 먼저 보고, via_node(싣는 곳)가 있으면 지금 → 경유지 → 목적지로 판단한다.
     ETA 에는 싣기 시간(LOAD_S)이 들어간다. 내리기는 도착 뒤 작업이라 ETA 에 넣지 않는다.
-    반환: verdict, eta_sec, reason, detail, target_node(TargetNode|None), path
+    target_mode="road_point"(또는 UGV_TARGET_MODE) 이고 target 을 주면 노드 대신 가장 가까운 도로 위 점에 선다
+    (ugv/road_point.py). 짐 싣기(cargo)와는 같이 쓰지 않는다.
+    반환: verdict, eta_sec, reason, detail, target_node(TargetNode|None), path, stop_point(StopPoint|None), at_target
     """
     rid = agent.resource.resource_id
 
-    def reject(reason, detail, tn=None):
-        return dict(verdict="REJECT", eta_sec=None, reason=reason, detail=detail, target_node=tn, path=None)
+    def reject(reason, detail, tn=None, sp=None):
+        return dict(verdict="REJECT", eta_sec=None, reason=reason, detail=detail, target_node=tn, path=None,
+                    stop_point=sp, at_target=False)
+
+    # 총괄은 평가에서 받은 target_node 를 실행 때 target 과 같이 돌려보낸다 (engine._approve_and_send) —
+    # 도로 위 지점 방식이면 target 기준으로 다시 고른다 (평가와 같은 규칙이라 같은 끝 노드·지점이 나온다)
+    if target is not None and cargo is None and (target_mode or config.TARGET_MODE) == "road_point":
+        return _decide_point(agent, target, reject)
 
     if cargo is not None:
         eq = agent.resource.equipment
@@ -278,7 +389,7 @@ def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str 
         if result["response"] == "ACCEPT":
             return dict(verdict="ACCEPT", eta_sec=round(result["eta_s"]), reason=None,
                         detail=None if first_reject is None else f"가장 가까운 노드는 도달 불가, {snap_m:.0f} m 지점으로 접근",
-                        target_node=tn, path=result["path"])
+                        target_node=tn, path=result["path"], stop_point=None, at_target=len(result["path"]) == 1)
         if result["reason"] == "BUSY":
             return reject("BUSY", f"수행 중 task {_task_of.get(rid)}")
         if result.get("fault"):                 # UNAVAILABLE — 주행 중 이상, /stop 으로 해제
@@ -293,15 +404,53 @@ def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str 
                   + (f", 차단 도로 {blocked}" if blocked else ""), tn)
 
 
+def _decide_point(agent: GroundResourceAgent, target: LatLon, reject) -> dict:
+    """도로 위 지점 목적지. 이미 그 지점(NODE_ARRIVE_M 안)에 서 있으면 움직이지 않고 도착 (붙박이 반복 관측)."""
+    rp = road_point.nearest(fleet.graph, target.lat, target.lon)
+    if rp is None or rp.snap_m > config.TARGET_SNAP_M:
+        return reject("TARGET_UNREACHABLE", "가까운 도로 없음" if rp is None else
+                      f"가장 가까운 도로가 {rp.snap_m:.0f} m 떨어짐 (허용 {config.TARGET_SNAP_M:.0f} m)")
+    sp = StopPoint(**rp.to_dict())
+    r = agent.resource
+    if r.state == "READY" and r.current_node is not None \
+            and distance_m((r.lat, r.lon), (rp.lat, rp.lon)) <= config.NODE_ARRIVE_M:
+        n = fleet.graph.node(r.current_node)
+        return dict(verdict="ACCEPT", eta_sec=0, reason=None, detail="이미 그 지점에 서 있다",
+                    target_node=TargetNode(node_id=n.node_id, lat=n.lat, lon=n.lon, snap_m=round(rp.snap_m, 1)),
+                    path=[n.node_id], stop_point=sp, at_target=True)
+    res = agent.evaluate_point(rp)
+    if res is None or res["response"] != "ACCEPT":
+        res = res or {}
+        if res.get("reason") == "BUSY":
+            return reject("BUSY", f"수행 중 task {_task_of.get(agent.resource.resource_id)}", sp=sp)
+        if res.get("fault"):
+            return reject(res["reason"], f"자원 이상 [{res['fault']}] — 확인 후 /stop 으로 복귀", sp=sp)
+        blocked = res.get("blocked_road_id")
+        return reject(res.get("reason") or "TARGET_UNREACHABLE",
+                      f"도로 {rp.road_id} 위 지점 도달 불가" + (f", 차단 도로 {blocked}" if blocked else ""), sp=sp)
+    n = fleet.graph.node(res["end_node"])
+    return dict(verdict="ACCEPT", eta_sec=round(res["eta_s"]), reason=None,
+                detail=f"도로 {rp.road_id} 위 지점 (도로에서 {rp.snap_m:.0f} m)",
+                target_node=TargetNode(node_id=n.node_id, lat=n.lat, lon=n.lon, snap_m=round(rp.snap_m, 1)),
+                path=res["path"], stop_point=sp, at_target=False)
+
+
+def _rp(sp: StopPoint | None):
+    return None if sp is None else road_point.RoadPoint(sp.road_id, sp.lat, sp.lon, sp.snap_m, sp.along_m)
+
+
 @app.post("/ugv/{resource_id}/evaluate", response_model=EvaluateResponse)
 async def evaluate(resource_id: str, req: EvaluateRequest):
     """수행 가능성 판단. 차를 움직이지 않는다. 목적지 선정 규칙은 _decide 참고."""
     agent = _agent(resource_id)
-    d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node)
+    d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node, req.target_mode)
+    sp = d["stop_point"]
     _report("UGV_EVALUATED", agent, req.task_id, decision_id=req.decision_id, verdict=d["verdict"],
             eta_sec=d["eta_sec"], reason=d["reason"], detail=d["detail"],
-            target_node=None if d["target_node"] is None else d["target_node"].node_id)
-    return EvaluateResponse(task_id=req.task_id, decision_id=req.decision_id, resource_id=resource_id, **d)
+            target_node=None if d["target_node"] is None else d["target_node"].node_id,
+            **({} if sp is None else {"stop_point": sp.model_dump()}))
+    return EvaluateResponse(task_id=req.task_id, decision_id=req.decision_id, resource_id=resource_id,
+                            **{k: v for k, v in d.items() if k != "at_target"})
 
 
 @app.get("/ugv/{resource_id}/observation")
@@ -357,7 +506,11 @@ def _check_run(agent: GroundResourceAgent, w: dict, now: float) -> str | None:
     pos = (r.lat, r.lon)
 
     # 1) 멈춤 — STALL_MOVE_M 이상 움직이거나 웨이포인트를 넘기면 기준점을 새로 잡는다
-    if cur != w["mark_wp"] or distance_m(pos, w["mark_pos"]) >= config.STALL_MOVE_M:
+    #    마지막 웨이포인트에 닿은 차(cur >= total)는 도착해 서 있는 것이지 멈춘 것이 아니다.
+    total = agent.driver.progress()[1]
+    if total > 0 and cur >= total:
+        w.update(mark_t=now, mark_pos=pos, mark_wp=cur)
+    elif cur != w["mark_wp"] or distance_m(pos, w["mark_pos"]) >= config.STALL_MOVE_M:
         w.update(mark_t=now, mark_pos=pos, mark_wp=cur)
     elif now - w["mark_t"] > config.STALL_TIMEOUT_S:
         return (f"STALLED: {config.STALL_TIMEOUT_S:.0f}초간 이동 "
@@ -436,12 +589,18 @@ async def _drive_leg(task_id: str, agent: GroundResourceAgent, node: str, dlog, 
             _save()
         if agent.resource.state == "READY" and agent.resource.current_node == node:
             return True
+        if total > 0 and cur >= total and agent.resource.state not in ("RUNNING", "UNAVAILABLE"):
+            # 마지막 웨이포인트에 닿았는데 다른 경로로 READY 가 아닌 상태(WORKING 등)가 됐다 — 도착으로 본다.
+            # (이걸 놓치면 서 있는 차를 멈춤 감시가 STALLED 로 잡아 UNAVAILABLE 로 만든다)
+            agent.resource.current_node = node
+            return True
         road = t["progress"].get("current_road_id")
         if road and road != last_road:          # 진행 보고는 도로가 바뀔 때마다 한 번
             last_road = road
             _report("UGV_PROGRESS", agent, task_id, **t["progress"])
         if agent.resource.state == "RUNNING" and agent.blocked_ahead():
-            res = await agent.reroute()
+            res = (await _ai_detour(task_id, agent, t) if road_ai is not None and _driver_kind(agent) == "sim"
+                   else await agent.reroute())
             t.setdefault("reroutes", []).append({"sim_time_s": round(clock.now(), 1), **res,
                                                  "eta_s": None if res["eta_s"] is None else round(res["eta_s"])})
             if res["result"] == "NO_ROUTE":
@@ -452,7 +611,8 @@ async def _drive_leg(task_id: str, agent: GroundResourceAgent, node: str, dlog, 
                 return False
             log.info("task %s 재탐색 — %s 차단, 남은 ETA %.0fs", task_id, res["blocked_road_id"], res["eta_s"])
             _report("UGV_REROUTED", agent, task_id, blocked_road_id=res["blocked_road_id"],
-                    eta_remaining_sec=round(res["eta_s"]), reroutes=agent.reroutes)
+                    eta_remaining_sec=round(res["eta_s"]), reroutes=agent.reroutes,
+                    **({"ai": res["ai"]} if res.get("ai") else {}))
             w.update(mark_t=clock.now(), mark_wp=-1)
             continue
         fault = _check_run(agent, w, clock.now())
@@ -461,6 +621,187 @@ async def _drive_leg(task_id: str, agent: GroundResourceAgent, node: str, dlog, 
             _fail_task(agent, task_id, t, fault.split(":")[0], fault, "FAULT", {"waypoint": cur, "total": total})
             return False
         await asyncio.sleep(0.5)
+
+
+# --- 도로 AI (ugv/road_ai.py, 봉인) --------------------------------------------
+
+def _make_road_ai():
+    from . import road_ai as ra
+    from .road_news import RoadNews
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    from pathlib import Path
+    ra.load_env_keys(Path(root) / ".env")
+    client = ra.GeminiClient(os.getenv("UGV_AGENT_API_KEY"), config.AGENT_MODEL, config.AGENT_EMBED_MODEL,
+                             config.AGENT_BASE_URL, config.AGENT_TIMEOUT_S, thinking=config.AGENT_THINKING)
+    news_path = config.agent_news_paths(root)
+    cache_dir = config.AGENT_RAG_CACHE if os.path.isabs(config.AGENT_RAG_CACHE) else os.path.join(root, config.AGENT_RAG_CACHE)
+    news = RoadNews.load(news_path, config.SECONDS_PER_ENV_STEP,
+                         embed=client.embed if (config.AGENT_EMBED and client.key) else None,
+                         cache_dir=cache_dir, embed_model=config.AGENT_EMBED_MODEL)
+    global _kb
+    _kb = news                                       # 뉴스 사이트도 같은 지식 베이스(임베딩 포함)를 쓴다
+    # 도로 AI 는 지식 베이스를 웹 API(뉴스 사이트 /news/api/search)로 찾는다. 비우면 서버 안에서 직접
+    source = ra_news = news
+    if config.AGENT_NEWS_URL:
+        from .road_news import NewsApiClient
+        ra_news = NewsApiClient(config.AGENT_NEWS_URL, local=news)
+        source = f"{config.AGENT_NEWS_URL}/news/api/search"
+    ai = ra.RoadAI(client, ra_news, config.AGENT_MODE, config.AGENT_MAX_CALLS, k=config.AGENT_RAG_K)
+    st = news.stats()
+    log.info("도로 AI 켜짐: %s, 모델 %s, 지식 %d건(기사 %d, 지침 %d) 조각 %d개 (임베딩 캐시 %d), 검색 %s%s", ai.mode,
+             client.model, st["documents"], st["news"], st["guide"], st["chunks"], st["cached_vectors"],
+             source if source is not news else "서버 안", "" if client.key else
+             " — 키 없음(UGV_AGENT_API_KEY), 판단은 규칙(1순위 우회)으로")
+    return ai
+
+
+def _knowledge():
+    """뉴스 사이트용 지식 베이스. 도로 AI 가 꺼져 있으면 처음 쓸 때 임베딩 없이(BM25 만) 읽는다."""
+    global _kb
+    if _kb is None:
+        from .road_news import RoadNews
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        _kb = RoadNews.load(config.agent_news_paths(root), config.SECONDS_PER_ENV_STEP)
+    return _kb
+
+
+def _start_kst() -> str | None:
+    """시뮬레이션 0초의 실제 시각: 환경 서버 값, 없으면 도로 AI 지식 베이스의 scenario_start_kst (자료 본문 시각과 맞춘다)."""
+    return _env_clock.get("scenario_start_kst") or (getattr(road_ai.news, "start_kst", None) if road_ai else None)
+
+
+def _kst(sim_s: float, start: str | None = None) -> str:
+    """시뮬레이션 초 → 'HH:MM' (시작 시각을 알면 실제 시각, 모르면 시뮬레이션 시:분)."""
+    from datetime import datetime, timedelta
+    start = start or _start_kst()
+    if start:
+        try:
+            return (datetime.fromisoformat(start) + timedelta(seconds=sim_s)).strftime("%H:%M")
+        except ValueError:
+            pass
+    return f"{int(sim_s) // 3600:02d}:{int(sim_s) % 3600 // 60:02d}"
+
+
+def _from_kst(text: str) -> float:
+    """'HH:MM' → 시뮬레이션 초 (_kst 의 반대). 시작 시각보다 이르면 다음 날로 본다."""
+    from datetime import datetime, timedelta
+    h, m = (int(x) for x in text.strip().split(":")[:2])
+    start = _start_kst()
+    if start:
+        try:
+            st = datetime.fromisoformat(start)
+            t = st.replace(hour=h, minute=m, second=0, microsecond=0)
+            if t < st:
+                t += timedelta(days=1)
+            return (t - st).total_seconds()
+        except ValueError:
+            pass
+    return h * 3600 + m * 60
+
+
+async def _ai_detour(task_id: str, agent: GroundResourceAgent, t: dict) -> dict:
+    """앞길이 막혔다 — 차를 세우고 도로 AI 에 우회(1·2순위)·대기를 묻고 그대로 따른다. 반환은 agent.reroute 와 같은
+    모양 + ai(결정 요약). AI 가 못 쓰이면(키·한도·오류) 1순위 우회 = AI 를 끈 때와 같다."""
+    from . import route_alt
+    from .road_ai import RoadAI
+    blocked = agent.blocked_ahead()
+    cur, _ = agent.driver.progress()
+    eta_before = (_remaining(agent, cur).get("eta_remaining_sec") or 0)
+    base = agent.plan
+    # 판단하는 동안은 지금 도로의 끝(다음 교차로 — 우회로가 갈라지는 곳)까지 가서 선다
+    await agent.approach(base)
+    t["progress"] = {**(t.get("progress") or {}), "phase": "DECIDING", "blocked_road_id": blocked}
+    _save()
+    start_node, lead, here = agent.detour_start()
+    lead_s = sum(l["distance_m"] / l["speed_mps"] for l in lead)
+    target = agent._target_node
+    best, alt = await asyncio.to_thread(route_alt.best_and_alternative, fleet.graph, start_node, target,
+                                        agent.max_speed_mps)
+    if best is None:                               # 우회로가 아예 없다 — AI 없이 하던 대로 (실패 처리)
+        return await agent.reroute()
+    tail_s = agent.tail_s(target)
+
+    def opt(name, o):
+        names = []
+        for r in o.roads:
+            n = fleet.graph.get_road(r).name or r
+            if not names or names[-1] != n:
+                names.append(n)
+        return {"name": name, "eta_s": lead_s + o.travel_s + tail_s, "distance_m": o.distance_m,
+                "road_ids": o.roads, "road_names": names, "path": o.path}
+
+    options = [opt("ROUTE_1", best)] + ([opt("ROUTE_2", alt)] if alt else [])
+    r = agent.resource
+    now = clock.now()
+    s = {"now_s": now, "now_text": _kst(now), "resource_id": r.resource_id, "resource_type": r.resource_type,
+         "target": _node_name(target) or target, "blocked_road_id": blocked,
+         "blocked_name": fleet.graph.get_road(blocked).name or blocked,
+         "here_name": fleet.graph.get_road(lead[0]["road_id"]).name or lead[0]["road_id"],
+         "eta_before_s": eta_before, "options": options, "to_sim": _from_kst}
+    if history is not None:
+        history.record("AGENT_REQUEST", r.resource_id, task_id, roads=[blocked], mode=road_ai.mode,
+                       model=road_ai.client.model, prompt=RoadAI.situation_text(s),
+                       options=[{k: o[k] for k in ("name", "eta_s", "distance_m", "road_ids")} for o in options])
+    # 판단을 기다리는 동안 길이 먼저 열리면 더 고민할 것 없이 원래 길로 간다 (늦게 온 답은 기록만 남긴다)
+    job = asyncio.ensure_future(asyncio.to_thread(road_ai.decide, s))
+    while not job.done() and fleet.graph.get_road(blocked).blocked:
+        await asyncio.wait({job}, timeout=0.5)
+    if not job.done():
+        def _late(f, rid=r.resource_id):
+            try:
+                late = f.result()
+            except Exception:   # noqa: BLE001
+                return
+            log.info("task %s 도로 AI: 길이 먼저 열린 뒤 도착한 답 %s (무시)", task_id, late.get("decision"))
+        job.add_done_callback(_late)
+        reason = "판단이 나오기 전에 통제가 풀렸다 — 원래 길로 간다"
+        waited = round(clock.now() - now, 1)
+        if history is not None:
+            history.record("AGENT_DECISION", r.resource_id, task_id, decision="REOPENED", reason=reason,
+                           article_ids=[], mode=road_ai.mode, fallback=None, roads=[blocked],
+                           latency_s=None, waited_s=waited)
+        log.info("task %s 도로 AI: 답보다 길이 먼저 열림 (%.0f초 기다림)", task_id, waited)
+        out = await agent.reroute()
+        out["blocked_road_id"] = out.get("blocked_road_id") or blocked
+        out["ai"] = {"decision": "REOPENED", "reason": reason, "article_ids": [], "mode": road_ai.mode,
+                     "fallback": None, "latency_s": None, "waited_s": waited, "reopened": True}
+        return out
+    res = job.result()
+    for e in res["trace"]:
+        if e["type"] == "AGENT_REQUEST" or history is None:
+            continue
+        data = {k: v for k, v in e.items() if k != "type"}
+        if e["type"] == "AGENT_DECISION":
+            chosen = next((o for o in options if o["name"] == res["decision"]), None)
+            data["roads"] = chosen["road_ids"] if chosen else [blocked]
+        history.record(e["type"], r.resource_id, task_id, **data)
+    ai = {k: res.get(k) for k in ("decision", "reason", "article_ids", "mode", "fallback", "latency_s")}
+    log.info("task %s 도로 AI: %s (%s)%s", task_id, res["decision"], res["reason"][:80],
+             f" — fallback {res['fallback']}" if res.get("fallback") else "")
+    if res["decision"] == "WAIT":
+        until = min(res["wait_until_s"] + config.AGENT_WAIT_GRACE_S, clock.now() + config.AGENT_MAX_WAIT_S)
+        ai["wait_until_s"] = round(until, 1)
+        t["progress"] = {**(t.get("progress") or {}), "phase": "WAITING", "blocked_road_id": blocked,
+                         "wait_until_sim_s": round(until, 1)}
+        _save()
+        hold = await agent.approach(base, blocked)  # 기다리는 자리 = 막힌 도로 입구. 거기까지 가서 선다
+        _report("UGV_WAITING", agent, task_id, blocked_road_id=blocked, wait_until_sim_s=round(until, 1),
+                reason=res["reason"], hold_node=hold, expected_open_sim_s=round(res["wait_until_s"], 1))
+        while clock.now() < until and fleet.graph.get_road(blocked).blocked:
+            await asyncio.sleep(0.5)
+        ai["waited_s"] = round(clock.now() - now, 1)
+        ai["reopened"] = not fleet.graph.get_road(blocked).blocked
+        out = await agent.reroute()                 # 열렸으면 원래 길, 아니면 1순위 우회
+    elif res["decision"] == "ROUTE_2" and alt is not None:
+        out = await agent.reroute(path=alt.path)
+        if out["result"] == "NO_ROUTE":            # 그 사이 2순위도 막혔다
+            ai["fallback"] = "ROUTE_2_BLOCKED"
+            out = await agent.reroute()
+    else:
+        out = await agent.reroute()
+    out["blocked_road_id"] = out.get("blocked_road_id") or blocked
+    out["ai"] = ai
+    return out
 
 
 async def _load(task_id: str, agent: GroundResourceAgent, stage: str) -> None:
@@ -522,7 +863,8 @@ async def _run_task(task_id: str, agent: GroundResourceAgent, stages: list, eta_
             "fuel_pct": r.fuel_pct,
         }
         _report("UGV_ARRIVED", agent, task_id, target_node=target_node, observation=t["observation"],
-                reroutes=len(t.get("reroutes") or []))
+                reroutes=len(t.get("reroutes") or []),
+                **({"stop_point": t["stop_point"]} if t.get("stop_point") else {}))
         _after_arrival(agent, task_id)
         if agent.resource.state == "READY":
             _resource_changed(agent, "ARRIVED")
@@ -537,7 +879,8 @@ async def _run_task(task_id: str, agent: GroundResourceAgent, stages: list, eta_
             dlog.sample(t.get("progress") or {}, force=True)
             t["timing"] = dlog.close(eta_sec)
         _save()
-        _task_of[rid] = None
+        if _task_of.get(rid) == task_id:      # 정지 직후 새 임무가 들어왔으면 그 연결은 지우지 않는다
+            _task_of[rid] = None
         _watchers.pop(task_id, None)
 
 
@@ -667,42 +1010,46 @@ async def execute(resource_id: str, req: ExecuteRequest):
     if _task_of.get(resource_id):
         raise HTTPException(409, f"{resource_id} 는 task {_task_of[resource_id]} 수행 중")
 
-    d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node)
+    d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node, req.target_mode)
+    sp = d["stop_point"]
+    spd = {} if sp is None else {"stop_point": sp.model_dump()}
     if d["verdict"] != "ACCEPT":
         raise HTTPException(409, f"실행 불가: {d['reason']} — {d['detail']}")   # 실행 안 함 → 키를 쓰지 않는다
     node_id = d["target_node"].node_id
     url = f"/ugv/{resource_id}/task/{req.task_id}"
     cargo = None if req.cargo is None else {"name": req.cargo.name, "kg": req.cargo.kg, "via_node": req.via_node}
     stages = _stages(node_id, req.via_node, req.cargo)
-    if len(d["path"]) == 1 and cargo is None:     # 이미 목적지 노드에 서 있다 — 움직이지 않고 바로 완료
+    if d["at_target"] and cargo is None:          # 이미 목적지(노드·도로 위 지점)에 서 있다 — 움직이지 않고 바로 완료
         r = agent.resource
         resp = ExecuteResponse(task_id=req.task_id, resource_id=resource_id, status="STARTED", tracking_url=url,
-                               target_node=d["target_node"], eta_sec=0)
+                               target_node=d["target_node"], eta_sec=0, stop_point=sp)
         STORE.register(req.task_id, body, {
-            "task_id": req.task_id, "resource_id": resource_id, "status": "COMPLETED", "target_node": node_id,
+            "task_id": req.task_id, "resource_id": resource_id, "status": "COMPLETED", "target_node": node_id, **spd,
             "progress": {"phase": "ARRIVED", "waypoint": 0, "total": 0},
             "observation": {"observation_type": "ROAD_STATUS", "arrived_node": node_id,
                             "position": {"lat": r.lat, "lon": r.lon}, "fuel_pct": r.fuel_pct}},
             resp.model_dump())
         _report("UGV_ARRIVED", agent, req.task_id, target_node=node_id, already_there=True,
-                observation=_tasks[req.task_id]["observation"])
+                observation=_tasks[req.task_id]["observation"], **spd)
         _after_arrival(agent, req.task_id)
         return resp
-    if stages[0][0] == "DRIVE" and not await agent.execute(stages[0][1]):
+    clock.release()                               # 환경 시계를 기다리며 멈춰 있었다면 첫 출발부터 흐른다
+    if stages[0][0] == "DRIVE" and not await agent.execute(stages[0][1], _rp(sp)):
         raise HTTPException(500, "드라이버가 주행을 시작하지 못했다")
 
     resp = ExecuteResponse(task_id=req.task_id, resource_id=resource_id, status="STARTED", tracking_url=url,
-                           target_node=d["target_node"], eta_sec=d["eta_sec"])
+                           target_node=d["target_node"], eta_sec=d["eta_sec"], stop_point=sp)
     STORE.register(req.task_id, body, {"task_id": req.task_id, "resource_id": resource_id, "status": "STARTED",
-                                       "target_node": node_id, "progress": None, "observation": None,
-                                       "cargo": cargo},
+                                       "target_node": node_id, "progress": None, "observation": None, **spd,
+                                       "cargo": cargo, "started_sim_s": round(clock.now(), 1),
+                                       "eta_sec": d["eta_sec"]},
                    resp.model_dump())
     _task_of[resource_id] = req.task_id
     if stages[0][0] == "DRIVE":
         _siren(agent, True)
     _watchers[req.task_id] = asyncio.create_task(_run_task(req.task_id, agent, stages, d["eta_sec"]))
     _report("UGV_TASK_STARTED", agent, req.task_id, decision_id=req.decision_id, target_node=node_id,
-            eta_sec=d["eta_sec"], path=d["path"], cargo=cargo)
+            eta_sec=d["eta_sec"], path=d["path"], cargo=cargo, **spd)
     return resp
 
 
@@ -733,7 +1080,7 @@ async def stop(resource_id: str):
 
 @app.post("/ugv/{resource_id}/suppress")
 async def suppress(resource_id: str, req: SuppressRequest):
-    """진압 제어 (소방차). 도착하면 자동으로 시작하므로(UGV_AUTO_SUPPRESS) 보통은 stop 만 쓴다.
+    """진압 제어 (소방차). [봉인: UGV_SUPPRESSION=1 일 때만 start 가능] 켜져 있으면 도착 즉시 시작하므로 보통은 stop 만 쓴다.
       stop  : 진압을 멈추고 READY (기록 status=STOPPED). 차는 그 자리에 선다
       start : 지금 자리에서 진압 시작 — READY 이고 수행 중 task 가 없고 물이 남아 있을 때만
     """
@@ -744,6 +1091,8 @@ async def suppress(resource_id: str, req: SuppressRequest):
             raise HTTPException(409, f"{resource_id} 는 진압 중이 아니다 (activity={None if eq is None else eq.activity})")
         await _cancel_work(agent)
         return {"resource_id": resource_id, "state": agent.resource.state, "equipment": eq.to_dict()}
+    if not config.SUPPRESSION_ENABLED:
+        raise HTTPException(409, "진압 불가: 진압 기능 봉인 (발표 범위 외, UGV_SUPPRESSION=1 이면 사용)")
     why = "장비 없음" if eq is None else eq.can_suppress()
     if why:
         raise HTTPException(409, f"진압 불가: {why}")
@@ -838,7 +1187,8 @@ async def reports(limit: int = 30):
 
 @app.get("/clock")
 async def get_clock():
-    return clock.info()
+    """시뮬레이션 시각. environment = 환경 시계 따라가기 상태, scenario_start_kst = 시뮬레이션 0초의 실제 시각."""
+    return clock.info() | {"environment": dict(_env_clock), "scenario_start_kst": _start_kst()}
 
 
 @app.post("/clock/env")
@@ -880,4 +1230,431 @@ async def get_route(resource_id: str):
     cur, total = agent.driver.progress()
     return {"resource_id": resource_id, "target_node": agent.plan.target_node, "path": agent.plan.path,
             "route": [list(p) for p in agent.route], "waypoint": cur, "total": total,
-            "reroutes": agent.reroutes, **_remaining(agent, cur)}
+            "reroutes": agent.reroutes, "legs": _route_legs(agent), **_remaining(agent, cur)}
+
+
+def _route_legs(agent: GroundResourceAgent) -> list[dict]:
+    """경로를 도로 구간으로 — 상황판의 구간별 소요시간. 지금 도로 상태(차단·혼잡)로 다시 계산한다.
+    state: DONE(지나옴) / CURRENT(달리는 중) / NEXT(남음). travel_s = 그 차 최고속도·지금 혼잡 기준 통과 시간."""
+    path = agent.plan.path if agent.plan else []
+    cur_road = agent.current_road_id()
+    out, seen_current = [], cur_road is None
+    for a, b in zip(path, path[1:]):
+        try:
+            r = fleet.graph.road_between(a, b)
+        except KeyError:
+            continue
+        t = r.travel_s(agent.max_speed_mps)
+        if not seen_current and r.road_id == cur_road:
+            state, seen_current = "CURRENT", True
+        else:
+            state = "NEXT" if seen_current else "DONE"
+        out.append({"road_id": r.road_id, "name": r.name, "from": a, "to": b, "distance_m": round(r.distance_m),
+                    "congestion": r.congestion, "blocked": r.blocked,
+                    "travel_s": None if t == float("inf") else round(t), "state": state})
+    tail = next((l for l in (agent.plan.legs if agent.plan else []) if l.get("to_point")), None)
+    if tail is not None:                       # 도로 위 지점 주행: 끝 노드 → 지점 꼬리 구간
+        r = fleet.graph.get_road(tail["road_id"])
+        on_tail = agent.driver is not None and agent.plan.current_leg(agent.driver.progress()[0]) is tail
+        if on_tail:
+            for o in out:
+                o["state"] = "DONE"
+        state = "CURRENT" if on_tail else "NEXT"
+        sp = r.speed_mps(agent.max_speed_mps)
+        out.append({"road_id": r.road_id, "name": r.name, "from": tail["from"], "to": None, "to_point": tail["to_point"],
+                    "distance_m": round(tail["distance_m"]), "congestion": r.congestion, "blocked": r.blocked,
+                    "travel_s": None if r.blocked else round(tail["distance_m"] / sp), "state": state})
+    return out
+
+
+def _bases() -> list[dict]:
+    out = {}
+    for a in fleet.agents.values():
+        nid = a.resource.home_node
+        if nid not in out:
+            n = fleet.graph.node(nid)
+            out[nid] = {"node_id": nid, "lat": n.lat, "lon": n.lon, "name": n.name or nid}
+    return list(out.values())
+
+
+@app.get("/graph/nodes")
+async def graph_nodes():
+    """도로 노드 전체 (상황판 표시용). degree = 닿은 도로 수 (2 가 아니면 교차로·끝점)."""
+    g = fleet.graph
+    return [{"node_id": nid, "lat": n.lat, "lon": n.lon, "name": n.name or "", "degree": len(g._adj.get(nid, []))}
+            for nid, n in g._nodes.items()]
+
+
+class ViewDispatch(BaseModel):
+    node_id: str | None = None
+    point: LatLon | None = None       # 노드 대신 도로 위 지점. 총괄은 칸(90 m) 중심으로 보낸다 —
+                                      # 도로 위 점에 서려면 UGV_TARGET_MODE=road_point (아니면 가장 가까운 노드)
+    resource_type: str = "UGV"        # UGV / FIRE_ENGINE — 어느 차가 갈지는 총괄이 고른다
+
+
+@app.post("/view/dispatch")
+async def view_dispatch(req: ViewDispatch):
+    """상황판에서 노드를 눌러 출동 요청 → 총괄 POST /tasks 로 전달한다 (UGV 를 직접 움직이지 않는다).
+    임무 = 그 지점까지 이동 (sensor 없음 → 총괄은 도착으로 완료, 환경 반영 ACK 없음). 차 선택·Safety 는 총괄 몫.
+    다른 센서로 보내지 않는 이유 (2026-10-08 확인):
+      WEATHER     — 총괄은 목표 칸이 화재·위험 칸 목록에 있을 때만 측정을 '목표 달성'으로 쳐서,
+                    임의 도로 노드로는 도착·측정·재출동이 끝없이 되풀이된다.
+      ROAD_STATUS — 총괄 능력표에 소방차는 ROAD_STATUS 가 없어 후보에서 빠진다 (UGV 만 감).
+    브라우저가 총괄(:8200)을 직접 부르면 다른 출처(CORS)라 막히므로 이 서버가 대신 보낸다."""
+    import uuid
+    import httpx
+    if req.resource_type not in ("UGV", "FIRE_ENGINE"):
+        raise HTTPException(422, "resource_type 은 UGV 또는 FIRE_ENGINE")
+    if req.point is not None:
+        n = None
+        tgt, label = {"lat": req.point.lat, "lon": req.point.lon}, "point"
+    else:
+        if req.node_id is None:
+            raise HTTPException(422, "node_id 또는 point 중 하나가 필요하다")
+        try:
+            n = fleet.graph.node(req.node_id)
+        except KeyError:
+            raise HTTPException(404, f"도로 노드 {req.node_id} 없음")
+        tgt, label = {"lat": n.lat, "lon": n.lon}, req.node_id
+    rid = f"UGV-VIEW:{label}:{req.resource_type}:{uuid.uuid4().hex[:8]}"
+    body = {"request_id": rid, "incident_id": "INC-UGV-VIEW", "kind": "RECON",
+            "target": tgt,
+            "requirements": {"resource_types": [req.resource_type], "sensor": None}}
+    url = f"{config.ORCH_URL.rstrip('/')}/tasks"
+    try:
+        async with httpx.AsyncClient(timeout=15) as cx:
+            r = await cx.post(url, json=body)
+        out = r.json()
+    except Exception as e:      # noqa: BLE001 — 총괄이 없으면 이유만 돌려준다
+        out, r = {"error": f"{type(e).__name__}: {e}"}, None
+    status = None if r is None else r.status_code
+    task = (out or {}).get("task") or {}
+    disp = (out or {}).get("dispatch") or {}
+    if history is not None:
+        history.record("VIEW_DISPATCH", None, task.get("task_id"), node_id=req.node_id,
+                       nodes=[{"node_id": n.node_id, "lat": n.lat, "lon": n.lon} if n is not None
+                              else {**tgt, "label": "도로 위 지점"}],
+                       resource_type=req.resource_type, request_id=rid, orch_http=status,
+                       purpose_status=task.get("purpose_status"), hold_reason=task.get("hold_reason"),
+                       dispatch=disp.get("status") if isinstance(disp, dict) else disp,
+                       attempt_id=disp.get("attempt_id") if isinstance(disp, dict) else None,
+                       assigned=disp.get("resource_id") if isinstance(disp, dict) else None,
+                       error=(out or {}).get("error") or (None if status in (200, 202) else (out or {}).get("detail")))
+    return {"orch_http": status, "request": body, "response": out}
+
+
+@app.get("/graph/edges")
+async def graph_edges():
+    """도로(간선) 전체 — 양 끝 노드·이름·길이. 상황판 그래프 보기가 교차로 사이를 한 간선으로 묶는 데 쓴다."""
+    return [{"road_id": rid, "a": r.node_a, "b": r.node_b, "name": r.name or "", "distance_m": round(r.distance_m)}
+            for rid, r in fleet.graph._roads.items()]
+
+
+# --- 상황판: 차량 상태 요약 · 직접 명령 · 지형 ---------------------------------
+
+_orch_cache: dict = {"t": 0.0, "tasks": {}, "attempt_task": {}}
+
+
+async def _orch_purposes(attempt_ids) -> dict:
+    """총괄 실행시도 ID → 임무 요약 (작전 이유 표시용). 시도→임무는 /attempts/{id} 로 한 번만 묻고 기억,
+    임무 목록(/tasks)은 3초 캐시. 총괄이 없거나 느리면 빈 값 (상황판은 그대로 뜬다)."""
+    import httpx
+    ids = [a for a in attempt_ids if a and a.startswith("ATT-")]
+    if not ids:
+        return {}
+    base = config.ORCH_URL.rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=1.5) as cx:
+            for a in ids:
+                if a not in _orch_cache["attempt_task"]:
+                    r = await cx.get(f"{base}/attempts/{a}")
+                    if r.status_code == 200:
+                        _orch_cache["attempt_task"][a] = r.json().get("task_id")
+            now = time.monotonic()
+            if now - _orch_cache["t"] > 3.0:
+                rows = (await cx.get(f"{base}/tasks")).json()
+                _orch_cache["tasks"] = {t.get("task_id"): t for t in (rows if isinstance(rows, list) else [])}
+                _orch_cache["t"] = now
+    except Exception:          # noqa: BLE001 — 총괄이 없어도 상황판은 뜬다
+        pass
+    out = {}
+    for a in ids:
+        tid = _orch_cache["attempt_task"].get(a)
+        t = _orch_cache["tasks"].get(tid) if tid else None
+        if tid:
+            out[a] = {"orch_task_id": tid, "kind": (t or {}).get("kind"), "incident_id": (t or {}).get("incident_id"),
+                      "request": (t or {}).get("request_key"), "purpose_status": (t or {}).get("purpose_status")}
+    return out
+
+
+def _purpose_text(task_id: str | None, info: dict | None) -> str | None:
+    if not task_id:
+        return None
+    if task_id.startswith("VIEW-CMD-"):
+        return "상황판 직접 명령 (운영자)"
+    if not info:
+        return "총괄 임무" if task_id.startswith("ATT-") else None
+    req = info.get("request") or ""
+    src = ("상황판 출동 요청" if req.startswith("UGV-VIEW") else "자동 초기 정찰" if req.startswith("AUTO-RECON")
+           else "야간 순찰" if "PATROL" in req else "관제판 출동" if req.startswith("WEB-") else "총괄 임무")
+    return f"{src} · {info.get('kind') or ''} · 총괄 {info.get('orch_task_id')}"
+
+
+@app.get("/view/vehicles")
+async def view_vehicles():
+    """상황판 차량 목록: 상태 + 지금 임무(목적지·단계·남은 시간·작전 이유) + 지금 자리(노드 또는 도로 A→B)."""
+    purposes = await _orch_purposes([_task_of.get(rid) for rid in fleet.agents])
+    out = []
+    for rid, agent in fleet.agents.items():
+        agent.refresh()
+        r = agent.resource
+        tid = _task_of.get(rid)
+        t = _tasks.get(tid) if tid else None
+        place = {"at_node": r.current_node}
+        if agent.parked is not None and r.state == "READY":       # 도로 위 지점에 서 있다
+            place = {"road_id": agent.parked.road_id, "road_name": _road_name(agent.parked.road_id), "point": True,
+                     "near_node": r.current_node}
+        task = None
+        if t is not None:
+            prog = t.get("progress") or {}
+            if agent.plan is not None and r.state == "RUNNING":
+                cur = next((l for l in _route_legs(agent) if l["state"] == "CURRENT"), None)
+                if cur:
+                    place = {"road_id": cur["road_id"], "road_name": cur["name"], "from": cur["from"], "to": cur["to"]}
+            tgt = t.get("target_node") or (agent.plan.target_node if agent.plan else None)
+            started = t.get("started_sim_s")
+            spt = t.get("stop_point")
+            task = {"task_id": tid, "status": t.get("status"), "phase": prog.get("phase"),
+                    "target_node": tgt, "stop_point": spt,
+                    "target_name": f"{_road_name(spt['road_id'])} 위 지점" if spt else _node_name(tgt),
+                    "eta_remaining_s": prog.get("eta_remaining_sec"), "remaining_m": prog.get("remaining_m"),
+                    "started_sim_s": started, "reroutes": len(t.get("reroutes") or []),
+                    "purpose": _purpose_text(tid, purposes.get(tid))}
+        out.append({"resource_id": rid, "resource_type": r.resource_type, "base": r.base, "state": r.state,
+                    "position": {"lat": r.lat, "lon": r.lon}, "current_node": r.current_node,
+                    "current_node_name": _node_name(r.current_node), "place": place, "task": task,
+                    "fault": agent.fault, "sim_time_s": round(clock.now(), 1)})
+    return out
+
+
+def _road_name(rid: str) -> str:
+    try:
+        return fleet.graph.get_road(rid).name or rid
+    except KeyError:
+        return rid
+
+
+def _node_name(nid: str | None) -> str | None:
+    if not nid:
+        return None
+    try:
+        return fleet.graph.node(nid).name or None
+    except KeyError:
+        return None
+
+
+class ViewCommand(BaseModel):
+    resource_id: str
+    node_id: str | None = None
+    point: LatLon | None = None   # 노드 대신 도로 위 지점 (가장 가까운 도로 선형 위 점에 선다, ugv/road_point.py)
+    replace: bool = False      # 임무 중인 차를 세우고 새 목적지로 보낼지 (상황판이 먼저 묻는다)
+
+
+@app.post("/view/command")
+async def view_command(req: ViewCommand):
+    """상황판에서 차를 골라 노드를 누른 경우 — 그 차에 직접 명령한다 (운영자 명령, 총괄 Safety 를 거치지 않음).
+    임무 중이면 replace=true 일 때만: 세우고(stop) → 평가 → 출발. 평가는 차가 서 있어야 된다 (주행 중이면 BUSY).
+    총괄이 맡긴 임무(ATT-*)를 교체하면 그 임무는 FAILED(OPERATOR_OVERRIDE) 로 닫는다 — 총괄은 실패로 보고
+    다른 자원에 인계한다 (CANCELLED 로 두면 총괄 계약에 그 상태 처리가 없어 점유가 풀리지 않는다)."""
+    import uuid
+    agent = _agent(req.resource_id)
+    node = None
+    if req.point is None:
+        if req.node_id is None:
+            raise HTTPException(422, "node_id 또는 point 중 하나가 필요하다")
+        try:
+            node = fleet.graph.node(req.node_id)
+        except KeyError:
+            raise HTTPException(404, f"도로 노드 {req.node_id} 없음")
+    old = _task_of.get(req.resource_id)
+    busy = old is not None and (_tasks.get(old) or {}).get("status") in ("STARTED", "IN_PROGRESS")
+    if busy and not req.replace:
+        raise HTTPException(409, {"reason": "BUSY", "task_id": old, "hint": "replace=true 로 다시 보내면 세우고 바꾼다"})
+    stopped = None
+    if busy or agent.resource.state == "UNAVAILABLE":
+        stopped = await stop(req.resource_id)
+        if old and old.startswith("ATT-") and old in _tasks:
+            _tasks[old].update(status="FAILED", error="OPERATOR_OVERRIDE: 상황판 직접 명령으로 교체",
+                               progress={**(_tasks[old].get("progress") or {}), "phase": "FAILED"})
+            _save()
+            _report("UGV_TASK_FAILED", agent, old, reason="OPERATOR_OVERRIDE", error="상황판 직접 명령으로 교체")
+    tid, did = f"VIEW-CMD-{uuid.uuid4().hex[:8]}", f"VIEW-{uuid.uuid4().hex[:8]}"
+    where = ({"target_node": node.node_id} if node is not None
+             else {"target": req.point, "target_mode": "road_point"})
+    ev = await evaluate(req.resource_id, EvaluateRequest(task_id=tid, decision_id=did, **where))
+    sp = None if ev.stop_point is None else ev.stop_point.model_dump()
+    result = {"resource_id": req.resource_id, "node_id": None if node is None else node.node_id, "stop_point": sp,
+              "replaced_task": old if busy else None,
+              "stopped": stopped is not None, "task_id": tid, "verdict": ev.verdict, "reason": ev.reason,
+              "detail": ev.detail, "eta_sec": ev.eta_sec}
+    if ev.verdict == "ACCEPT":
+        ex = await execute(req.resource_id, ExecuteRequest(task_id=tid, decision_id=did, **where))
+        result["status"] = ex.status
+    if history is not None:
+        pt = ({"node_id": node.node_id, "lat": node.lat, "lon": node.lon} if node is not None
+              else {"lat": (sp or req.point.model_dump())["lat"], "lon": (sp or req.point.model_dump())["lon"],
+                    "label": "도로 위 지점"})
+        history.record("VIEW_COMMAND", req.resource_id, tid, node_id=result["node_id"], stop_point=sp, nodes=[pt],
+                       replaced_task=result["replaced_task"], verdict=ev.verdict, reason=ev.reason, eta_sec=ev.eta_sec)
+    return result
+
+
+_terrain_cache: dict | None = None
+
+
+@app.get("/view/terrain")
+async def view_terrain():
+    """지도 보기 배경: 환경 격자(90 m)의 고도·연료를 위경도 정렬 격자로 다시 뽑아 준다 (LIVE 화면과 같은 자료,
+    web/static/inje2019/scenario.json). 색칠·음영은 브라우저가 한다. 격자는 EPSG:5186 이라 위경도와 약간 돌아가
+    있어 네 모서리 좌표로 역변환해 표본을 뽑는다 (모서리 오차 수 m)."""
+    global _terrain_cache
+    if _terrain_cache is None:
+        import base64
+        import json
+        import numpy as np
+        src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                           "web", "static", "inje2019", "scenario.json")
+        try:
+            d = json.load(open(src, encoding="utf-8"))
+        except OSError:
+            raise HTTPException(404, "지형 자료 없음 (web/static/inje2019/scenario.json)")
+        C, R = d["grid"]["cols"], d["grid"]["rows"]
+        elev = np.frombuffer(base64.b64decode(d["elev_dm_u16"]), dtype=np.uint16).reshape(R, C)
+        fuel = np.frombuffer(base64.b64decode(d["fuel_u8"]), dtype=np.uint8).reshape(R, C)
+        try:
+            import gz_bridge as gb
+            corners = [gb.grid_cell_to_latlon(c, r) for c, r in ((-0.5, -0.5), (C - 0.5, -0.5), (-0.5, R - 0.5))]
+        except Exception:      # noqa: BLE001 — 좌표 변환 라이브러리가 없으면 미리 계산해 둔 값 (2026-10-08)
+            corners = [(38.10975038713186, 128.11850550827705), (38.10631696531064, 128.43449186224782),
+                       (37.91842988279845, 128.11560158129583)]
+        (la0, lo0), (la1, lo1), (la2, lo2) = corners
+        # (col,row) → (lat,lon) 아핀: P = P0 + u·(P1-P0) + v·(P2-P0), u = (col+0.5)/C, v = (row+0.5)/R
+        A = np.array([[la1 - la0, la2 - la0], [lo1 - lo0, lo2 - lo0]])
+        Ainv = np.linalg.inv(A)
+        lats = [la0, la1, la2, la1 + la2 - la0]
+        lons = [lo0, lo1, lo2, lo1 + lo2 - lo0]
+        s_, n_, w_, e_ = min(lats), max(lats), min(lons), max(lons)
+        H, W = R * 2, C * 2
+        la = np.linspace(n_, s_, H)[:, None] * np.ones((1, W))
+        lo = np.ones((H, 1)) * np.linspace(w_, e_, W)[None, :]
+        uv = np.einsum("ij,jhw->ihw", Ainv, np.stack([la - la0, lo - lo0]))
+        col = np.floor(uv[0] * C).astype(int)
+        row = np.floor(uv[1] * R).astype(int)
+        inside = (col >= 0) & (col < C) & (row >= 0) & (row < R)
+        cc, rr = np.clip(col, 0, C - 1), np.clip(row, 0, R - 1)
+        e_out = np.where(inside, elev[rr, cc], 0).astype(np.uint16)
+        f_out = np.where(inside, fuel[rr, cc], 255).astype(np.uint8)     # 255 = 격자 밖 (투명)
+        _terrain_cache = {"w": W, "h": H, "bounds": [[s_, w_], [n_, e_]], "cell_m": d["grid"]["cell_m"],
+                          "elev_dm_u16": base64.b64encode(e_out.tobytes()).decode(),
+                          "fuel_u8": base64.b64encode(f_out.tobytes()).decode()}
+    return _terrain_cache
+
+
+@app.get("/graph/bases")
+async def graph_bases():
+    """거점 노드 (상황판 표시용)."""
+    return _bases()
+
+
+# --- 도로 상황판·실행 기록 (ugv/static/road_view.html, ugv/history.py) ------------
+
+@app.get("/view", include_in_schema=False)
+async def road_view():
+    """UGV 도로 상황판. 이 서버 API 만 폴링한다 (총괄·관제판과 무관)."""
+    return FileResponse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "road_view.html"))
+
+
+# --- 도로·교통 소식 (가상 뉴스 사이트, ugv/static/news.html) — 도로 AI 가 찾는 지식 베이스를 웹으로 ---------
+# 시각: now_s(시뮬레이션 초)를 주지 않으면 서버 시계의 지금. 지금 시각 이후에 나올 기사는 목록·본문·검색 모두에서 숨긴다.
+
+def _news_now(now_s: float | None) -> float:
+    return clock.now() if now_s is None else float(now_s)
+
+
+def _news_kst(sim_s: float) -> str:
+    """뉴스 사이트 시각: 환경 서버 시각, 없으면 지식 베이스 meta.json 의 scenario_start_kst (기사 본문 시각과 맞춘다)."""
+    return _kst(sim_s, _start_kst() or getattr(_knowledge(), "start_kst", None))
+
+
+def _news_doc(a: dict, full: bool) -> dict:
+    names = []
+    for r in a["road_ids"]:
+        try:
+            n = fleet.graph.get_road(r).name or r
+        except KeyError:
+            n = r
+        if n not in names:
+            names.append(n)
+    out = {"id": a["id"], "kind": a["kind"], "title": a["title"], "published": a.get("published"),
+           "published_kst": _news_kst(a["published_s"]) if a.get("published") else None,
+           "road_ids": a["road_ids"], "road_names": names}
+    if full:
+        out["body"] = a["body"]
+    else:
+        out["excerpt"] = a["body"][:90] + ("…" if len(a["body"]) > 90 else "")
+    return out
+
+
+@app.get("/news", include_in_schema=False)
+async def news_page():
+    """가상 도로·교통 소식 사이트. 도로 AI 가 검색하는 자료를 사람이 보는 화면."""
+    return FileResponse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "news.html"))
+
+
+@app.get("/news/api/articles")
+def news_articles(now_s: float | None = None, kind: str | None = None):
+    """지금 시각까지 나온 기사·지침 목록 (최신 먼저). kind=news|guide."""
+    kb, now = _knowledge(), _news_now(now_s)
+    docs = kb.visible_docs(now, kind)
+    return {"now_s": now, "now_kst": _news_kst(now), "source": kb.source, "total": len(kb.articles),
+            "upcoming": sum(1 for a in kb.articles if a["published_s"] > now),
+            "articles": [_news_doc(a, False) for a in docs]}
+
+
+@app.get("/news/api/articles/{doc_id}")
+def news_article(doc_id: str, now_s: float | None = None):
+    """기사·지침 하나. 아직 나오지 않은 기사는 404."""
+    kb, now = _knowledge(), _news_now(now_s)
+    a = kb.doc(doc_id)
+    if a is None or a["published_s"] > now:
+        raise HTTPException(404, f"{doc_id}: 없거나 아직 나오지 않은 기사")
+    return _news_doc(a, True)
+
+
+@app.get("/news/api/search")
+def news_search(q: str = "", now_s: float | None = None, road_ids: str | None = None, kind: str | None = None,
+                k: int = 3):
+    """지식 베이스 검색 (도로 AI 의 search_road_news 가 부르는 API). road_ids 는 쉼표로.
+    반환은 ugv/road_news.py RoadNews.search 와 같고, 문서마다 published_kst 를 덧붙인다."""
+    kb, now = _knowledge(), _news_now(now_s)
+    ids = [r for r in (road_ids or "").split(",") if r.strip()]
+    out = kb.search(q, now, ids or None, k=max(1, min(int(k), 10)), kind=kind if kind in ("news", "guide") else None)
+    for h in out["hits"]:
+        a = kb.doc(h["id"])
+        h["published_kst"] = _news_kst(a["published_s"]) if a and a.get("published") else None
+    return {**out, "now_s": now, "now_kst": _news_kst(now), "query": q}
+
+
+@app.get("/history/runs")
+async def history_runs():
+    """실행(서버 기동) 목록, 최신 먼저. current=true 가 지금 실행."""
+    return {"current": history.run_id if history.enabled else None, "runs": history.runs()}
+
+
+@app.get("/history/runs/{run_id}")
+async def history_events(run_id: str, after: int = 0, limit: int = 20000):
+    """한 실행의 기록. after=seq 이후만 (실시간 화면은 이어 받기)."""
+    try:
+        return history.read(run_id, after, min(max(limit, 1), 50000))
+    except KeyError:
+        raise HTTPException(404, f"실행 기록 {run_id} 없음")

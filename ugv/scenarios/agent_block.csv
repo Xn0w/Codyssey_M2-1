@@ -1,0 +1,4 @@
+# 도로 AI(ugv/road_ai.py) 시연 시나리오 1 — 화면에서 보낸 A-ugv1 의 길이 40분 막힌다 → 우회. 기사(ugv/knowledge N1)와 시각이 맞다
+# 시각 = 시뮬레이션 시계 시:분 (00:00 = 2019-04-04 14:45). 형식은 ugv/scenario.py 머리말
+kind,target,start,end,value,note
+road,682501434,00:03,00:45,,설악로 낙석 방지망 보수 통제 (가상, 기사 N1)

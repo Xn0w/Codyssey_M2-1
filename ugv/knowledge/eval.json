@@ -1,0 +1,220 @@
+{
+ "description": "도로 AI 지식 베이스 검색 평가 질문. now 는 시나리오 시각(HH:MM), expected 는 맞는 문서 id (그중 하나라도 상위 k 안이면 맞음). easy = 도로명·낱말이 자료와 그대로 겹치는 질문, hard = 뜻으로 묻거나(낱말이 다름) 헷갈리는 자료(N7 다른 구간 설악로, N8 내일 공사, N9 다른 도로 낙석 방지망, G3 통신 두절 대기)가 있는 질문",
+ "k": 3,
+ "questions": [
+  {
+   "query": "설악로 통제 언제 풀리나",
+   "now": "00:05",
+   "road_ids": [
+    "682501434"
+   ],
+   "expected": [
+    "N1"
+   ],
+   "level": "easy"
+  },
+  {
+   "query": "설악로 통제 해제 시각",
+   "now": "00:25",
+   "road_ids": [
+    "682501434"
+   ],
+   "expected": [
+    "N4"
+   ],
+   "level": "easy"
+  },
+  {
+   "query": "설악로 조기 해제",
+   "now": "00:10",
+   "road_ids": [
+    "682501434"
+   ],
+   "expected": [
+    "N1"
+   ],
+   "note": "N4(00:20)는 아직 안 나옴",
+   "level": "easy"
+  },
+  {
+   "query": "통제 구간 기다릴지 우회할지 기준",
+   "now": "00:05",
+   "road_ids": [
+    "682501434"
+   ],
+   "expected": [
+    "G1"
+   ],
+   "level": "easy"
+  },
+  {
+   "query": "해제 예정 시각이 늦어질 수 있나",
+   "now": "00:05",
+   "road_ids": [],
+   "expected": [
+    "G1"
+   ],
+   "level": "easy"
+  },
+  {
+   "query": "신상촌길 대형 차량 통행",
+   "now": "00:05",
+   "road_ids": [
+    "682502600"
+   ],
+   "expected": [
+    "N2",
+    "G2"
+   ],
+   "level": "easy"
+  },
+  {
+   "query": "가넷고개길 우회 시간",
+   "now": "00:12",
+   "road_ids": [
+    "682503070"
+   ],
+   "expected": [
+    "G2",
+    "N6"
+   ],
+   "level": "easy"
+  },
+  {
+   "query": "남전리 입구 혼잡",
+   "now": "00:05",
+   "road_ids": [
+    "682501397"
+   ],
+   "expected": [
+    "N3"
+   ],
+   "level": "easy"
+  },
+  {
+   "query": "기린로 노면 보수",
+   "now": "00:05",
+   "road_ids": [
+    "683400581"
+   ],
+   "expected": [
+    "N5"
+   ],
+   "level": "easy"
+  },
+  {
+   "query": "우회로 고갯길 경사 소방차",
+   "now": "00:05",
+   "road_ids": [],
+   "expected": [
+    "G2"
+   ],
+   "level": "easy"
+  },
+  {
+   "level": "hard",
+   "query": "중장비가 길을 다 막아서 못 지나가요",
+   "now": "00:05",
+   "road_ids": [],
+   "expected": [
+    "N1"
+   ]
+  },
+  {
+   "level": "hard",
+   "query": "작업 언제 끝나요",
+   "now": "00:05",
+   "road_ids": [
+    "682501434"
+   ],
+   "expected": [
+    "N1"
+   ],
+   "note": "N8(내일 재포장)이 같은 도로"
+  },
+  {
+   "level": "hard",
+   "query": "설악로 통제 해제 시각",
+   "now": "00:05",
+   "road_ids": [],
+   "expected": [
+    "N1"
+   ],
+   "note": "도로 id 없음 — N7(한계령 구간 오전 6시 해제)이 헷갈림"
+  },
+  {
+   "level": "hard",
+   "query": "공사가 예정보다 일찍 끝났나",
+   "now": "00:25",
+   "road_ids": [
+    "682501434"
+   ],
+   "expected": [
+    "N4"
+   ],
+   "note": "N8(내일 공사)"
+  },
+  {
+   "level": "hard",
+   "query": "낙석 방지망 작업으로 길이 막혔나",
+   "now": "00:05",
+   "road_ids": [],
+   "expected": [
+    "N1"
+   ],
+   "note": "N9(다른 도로 낙석 방지망, 통행 제한 없음)"
+  },
+  {
+   "level": "hard",
+   "query": "그 자리에서 기다려도 되는 경우",
+   "now": "00:05",
+   "road_ids": [
+    "682501434"
+   ],
+   "expected": [
+    "G1"
+   ],
+   "note": "G3(통신 두절 시 대기)"
+  },
+  {
+   "level": "hard",
+   "query": "고갯길이 미끄러워 큰 차가 다니기 어렵나",
+   "now": "00:05",
+   "road_ids": [],
+   "expected": [
+    "G2"
+   ]
+  },
+  {
+   "level": "hard",
+   "query": "물 대는 차들 때문에 밀리는 길",
+   "now": "00:12",
+   "road_ids": [
+    "682503070"
+   ],
+   "expected": [
+    "N6"
+   ]
+  },
+  {
+   "level": "hard",
+   "query": "출동 차량이라도 통과 못 하는 경우",
+   "now": "00:05",
+   "road_ids": [],
+   "expected": [
+    "G1",
+    "N1"
+   ]
+  },
+  {
+   "level": "hard",
+   "query": "좁은 마을길에서 마주 오는 소방차",
+   "now": "00:05",
+   "road_ids": [],
+   "expected": [
+    "N2",
+    "G2"
+   ]
+  }
+ ]
+}
