@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 """도로 위 지점에 서기 (ugv/road_point.py) — 노드가 아닌 긴 도로 중간에서 계측.
 
 실행 (저장소 루트):  python -m pytest tests/test_ugv_road_point.py -q

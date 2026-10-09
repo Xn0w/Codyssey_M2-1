@@ -1,4 +1,5 @@
 # ugv/road_ai.py — 도로 AI: 주행 중 앞길이 막혔을 때 우회·대기를 LLM(Gemini)이 판단한다 [봉인 — 기본 꺼짐]
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 #
 # 켜기: UGV_AGENT=1 (+ UGV_AGENT_API_KEY). sim 드라이버 차량만. 총괄 LLM 과 별개이고 키도 따로 쓴다.
 # 언제: 주행 중 남은 경로에 막힌 도로가 생겼을 때 (server._drive_leg 의 재탐색 자리). 차를 세우고 묻는다.

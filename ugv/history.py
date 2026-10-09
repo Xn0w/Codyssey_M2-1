@@ -1,4 +1,5 @@
 # ugv/history.py — UGV 실행 기록 (도로 상황판의 실시간·과거 조회용)
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 #
 # 서버 한 번 기동 = 실행(run) 하나. <기록 폴더>/<run_id>.jsonl 에 한 줄씩 덧붙인다.
 # 기록 폴더 = UGV_HISTORY_DIR (기본 ugv/.state/history). UGV_STATE_DIR 과 따로 둔다 — tools/run_twin.sh 는

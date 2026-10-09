@@ -1,4 +1,5 @@
 # ugv/tools/rag_eval.py — 도로 AI 지식 검색 평가 (ugv/knowledge/eval.json)
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 #
 #   python -m ugv.tools.rag_eval              # BM25 만 (키 없이)
 #   python -m ugv.tools.rag_eval --embed      # BM25 와 BM25+임베딩을 나란히 (UGV_AGENT_API_KEY 필요, 임베딩은 캐시 사용)

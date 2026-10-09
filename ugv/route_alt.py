@@ -1,4 +1,5 @@
 # ugv/route_alt.py — 2순위 경로 (도로 AI 가 비교할 대안)
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 #
 # 1순위 = 지금 도로 상태로 가장 빠른 경로 (Dijkstra, road_graph.find_route).
 # 2순위 = Yen 의 k-최단 경로를 짧은 순으로 보다가 1순위와 겹치는 도로 길이가 OVERLAP_MAX(70%) 미만인 첫 경로.

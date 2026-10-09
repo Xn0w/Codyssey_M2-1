@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 """도로 AI (ugv/road_ai.py, 봉인 기능) — 가짜 Gemini 로 판단 흐름과 서버 연동을 본다. 실제 Gemini 는 부르지 않는다.
 
 실행 (저장소 루트):  python -m pytest tests/test_ugv_road_ai.py -q
@@ -462,3 +463,25 @@ def test_twin_scenario_matches_first_dispatch():
     assert "N12" in [h["id"] for h in kb.search("통제 해제", 10 * 60, ["682501557"])["hits"]]
     assert "N13" in [h["id"] for h in kb.search("통제", 10 * 60, ["683400994"])["hits"]]
     assert "N12" not in [h["id"] for h in kb.search("통제 해제", 9 * 60, ["682501557"])["hits"]]   # 14:55 전엔 없음
+
+
+def test_ai_generated_label_is_for_people_not_for_model():
+    """'AI 생성·가상 자료' 표시는 화면(뉴스 사이트·도로 AI 탭)에만 붙이고, Gemini 에 가는 글에는 넣지 않는다 —
+    표시가 섞이면 모델이 근거를 믿지 않거나 판단 이유에 섞어 쓸 수 있다."""
+    sent = []
+
+    def http(url, headers, body, timeout):
+        sent.append(json.dumps(body, ensure_ascii=False))
+        last = body["contents"][-1]["parts"][0]
+        if "functionResponse" in last:
+            return 200, _fc("submit_decision", {"decision": "ROUTE_1", "reason": "r", "article_ids": ["N1"]})
+        return 200, _fc("search_road_news", {"query": "설악로 통제 해제", "road_ids": ["682501434"]})
+
+    out = RoadAI(GeminiClient(None, "m", "e", http=http), RoadNews.load(NEWS)).decide(_situation())
+    assert out["decision"] == "ROUTE_1" and len(sent) == 2
+    assert "N1" in sent[1]                                             # 기사는 갔다
+    for s in sent:
+        assert "가상" not in s and "AI 생성" not in s, s[:200]
+    page = (ROOT / "ugv" / "static" / "news.html").read_text(encoding="utf-8")
+    assert "AI 생성" in page and "생성형 AI" in page                    # 사람에게는 보인다
+    assert "생성형 AI(Gemini)" in (ROOT / "ugv" / "static" / "road_view.html").read_text(encoding="utf-8")

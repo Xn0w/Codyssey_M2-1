@@ -1,4 +1,5 @@
 # ugv/tools/road_ai_probe.py — 도로 AI 실제 Gemini 연결 확인 (서버 없이)
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 #
 #   python -m ugv.tools.road_ai_probe                  # function calling(B)
 #   python -m ugv.tools.road_ai_probe --mode inline    # 기사를 프롬프트에 넣는 방식(A)

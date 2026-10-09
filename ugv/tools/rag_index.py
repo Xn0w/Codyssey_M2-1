@@ -1,4 +1,5 @@
 # ugv/tools/rag_index.py — 도로 AI 지식 베이스 점검·색인 (임베딩 캐시 미리 만들기)
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 #
 #   python -m ugv.tools.rag_index            # 문서·조각 목록, 캐시 상태 (키 없이도 된다)
 #   python -m ugv.tools.rag_index --embed    # 캐시에 없는 조각만 임베딩해 저장 (UGV_AGENT_API_KEY 필요)

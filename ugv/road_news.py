@@ -1,4 +1,5 @@
 # ugv/road_news.py — 도로 AI 의 지식 베이스 검색 (RAG 의 검색 쪽)
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 #
 # 지식 베이스: ugv/knowledge/ (UGV_AGENT_NEWS). 모두 직접 만든 가상 자료다 (실제 보도·실제 지침 아님).
 #   meta.json        이름, 출처 표기, scenario_start_kst (자료 시각 00:00 의 실제 시각)

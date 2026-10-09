@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 """UGV 시계가 환경 시계를 따라가는지 (ugv/sim_clock.py hold·release·follow_env).
 
 실행 (저장소 루트):  python -m pytest tests/test_ugv_env_clock.py -q
