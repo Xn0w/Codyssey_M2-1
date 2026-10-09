@@ -1048,7 +1048,7 @@ function drawAi(t){
       return `<div class="q">${x.by === "model" ? "모델이 검색" : "서버가 미리 검색"} “${esc(x.query || "")}”${x.kind ? ` · ${x.kind === "guide" ? "지침" : "기사"}만` : ""} <span>(${esc(x.method || "")})</span>
         ${(x.hits || []).map((h, i) => `<span class="hit">[${esc(h)}] ${esc((x.titles || [])[i] || "")}</span>`).join("") || `<span class="hit">결과 없음</span>`}</div>`; }).join("");
     const dec = d ? `<div class="dec ${d.fallback ? "fb" : ""}"><b>${esc(pick)}</b>${pick === "WAIT" && d.wait_until ? ` ~${esc(d.wait_until)}` : ""} · ${esc(d.reason || "")}
-        ${(d.article_ids || []).length ? `<div class="row">근거 기사 <b>${esc(d.article_ids.join(", "))}</b></div>` : ""}
+        ${(d.article_ids || []).length ? `<div class="row">근거 자료 <b>${esc(d.article_ids.join(", "))}</b></div>` : ""}
         <div class="row">응답 ${d.latency_s != null ? d.latency_s.toFixed(1) + "초" : "–"}${d.fallback ? ` · <span style="color:var(--bad)">규칙 판단으로 넘어감: ${esc(d.fallback)}</span>` : ""}</div></div>`
       : `<div class="dec">판단 중…</div>`;
     const ai = c.out?.data?.ai;
