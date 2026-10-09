@@ -23,6 +23,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:13px/
 #app{display:grid;grid-template-columns:320px 1fr 360px;grid-template-rows:48px 1fr auto;height:100vh}
 header{grid-column:1/4;display:flex;align-items:center;gap:10px;padding:0 14px;background:var(--panel);border-bottom:1px solid var(--line);min-width:0}
 header h1{font-size:15px;margin:0 4px 0 0;font-weight:700;white-space:nowrap}
+.aigen{font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid #7a5a20;color:var(--warn);white-space:nowrap;flex-shrink:0;cursor:help}
+.mapnote{background:rgba(15,20,25,.78);color:#c9d3db;font-size:11px;line-height:1.45;padding:4px 8px;border-radius:6px;max-width:460px;pointer-events:none}
 .pill{padding:3px 9px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);color:var(--dim);white-space:nowrap}
 .pill b{color:var(--text);font-weight:600}
 .pill.live b{color:var(--ok)}
@@ -160,6 +162,7 @@ footer.show{display:flex}
 <div id="app">
   <header>
     <h1>UGV 도로 상황판</h1>
+    <span class="aigen" title="AI 생성 화면 — 이 상황판(화면·지도 그림·차량 아이콘·도로/지형 표현)은 AI 코딩 도구(Claude Code)로 작성한 코드가 그립니다. 지형·도로 원자료는 팀 환경 데이터(DEM·도로망)이고, 도로 AI 판단은 생성형 AI(Gemini), 교통 기사·지침은 AI가 만든 가상 시험용 자료입니다.">AI 생성 화면</span>
     <select id="mode" title="실시간 또는 과거 실행"></select>
     <div class="seg" id="viewSeg"><button data-v="map" class="on">지도</button><button data-v="graph">그래프</button></div>
     <span class="pill" id="clock">시뮬 <b>--:--:--</b></span>
@@ -268,6 +271,12 @@ function vehicleSvg(type, size = 34){
 
 // ---------------------------------------------------------------- 지도
 const map = L.map("map", {preferCanvas: true, zoomControl: true, attributionControl: false});
+{ // 지도 위 상시 표시: 이 그림이 AI 도구로 만든 코드가 그린 것임을 알린다 (AI 생성 콘텐츠 명시)
+  const note = L.control({position: "bottomleft"});
+  note.onAdd = () => { const d = L.DomUtil.create("div", "mapnote");
+    d.textContent = "AI 생성 화면 · 지도 그림·아이콘은 AI 코딩 도구(Claude Code)로 만든 코드가 그림 · 지형·도로 원자료: 팀 환경 데이터"; return d; };
+  note.addTo(map);
+}
 const renderer = L.canvas({padding: .3, tolerance: 6});
 const layers = {};
 ["terrain", "casing", "roads", "gedges", "gnodes", "nodes", "route", "hl", "bases", "blkNodes", "veh"]

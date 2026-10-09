@@ -484,4 +484,7 @@ def test_ai_generated_label_is_for_people_not_for_model():
         assert "가상" not in s and "AI 생성" not in s, s[:200]
     page = (ROOT / "ugv" / "static" / "news.html").read_text(encoding="utf-8")
     assert "AI 생성" in page and "생성형 AI" in page                    # 사람에게는 보인다
-    assert "생성형 AI(Gemini)" in (ROOT / "ugv" / "static" / "road_view.html").read_text(encoding="utf-8")
+    view = (ROOT / "ugv" / "static" / "road_view.html").read_text(encoding="utf-8")
+    assert "생성형 AI(Gemini)" in view                                 # 도로 AI 탭: 판단·근거 자료
+    assert "AI 생성 화면" in view and "mapnote" in view                # 화면·지도 그림 자체 (머리 표시 + 지도 위 상시 표시)
+    assert "AI 생성 사이트" in page                                     # 뉴스 사이트 자체
