@@ -4,6 +4,10 @@ import sys
 from pathlib import Path
 
 os.environ["ORCH_SKIP_DOTENV"] = "1"          # 시험은 로컬 .env 의 실제 API 키를 쓰지 않는다
+# 시험 기준 정책: 열화상은 드론만 (시험 장면이 드론 기준으로 짜여 있다). 운영 기본값은 둘 다 켜짐 —
+# UGV 열화상은 test_ugv_thermal 이 직접 켜서 보고, 운영 기본값은 test_ugv_thermal_defaults_on 이 확인한다.
+os.environ["ORCH_UGV_THERMAL"] = "0"
+os.environ["ORCH_AUTO_RECON_GROUND"] = "0"
 
 import pytest
 
