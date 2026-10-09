@@ -5,21 +5,24 @@ import os
 # 자원 배치 — Gazebo 월드 1개(kangwon)에 PX4 인스턴스 3개 (차량당 PX4 1개, 제어 프로그램은 이 서버 1개)
 # px4_instance i → PX4 가 MAVLink 를 14540 + i 로 보낸다. 0 은 UAV 몫이라 UGV 는 1 부터.
 # px4_model: PX4 Gazebo 모델 이름. 에어프레임 번호는 ugv/tools/px4-start.sh 가 모델 이름으로 찾는다.
-# max_speed_mps: 차량 최고속도(시뮬레이션 초당 m). ETA = 도로별 min(도로 제한속도, 이 값) 으로 계산한다.
+# max_speed_mps: 차량 최고속도(시뮬레이션 초당 m). ETA = 도로별 길이 ÷ (이 값 ÷ 혼잡 배율). 도로 제한속도는 보지 않는다.
 #   r1_rover 2.1 (RO_MAX_THR_SPEED), rover_ackermann 3.1, lawnmower 2.7 — PX4 v1.16 기본 파라미터 기준.
 #   실제 소방차(수십 km/h)가 아니라 Gazebo 차량 속도에 맞춘 값이다. 실제 시간감은 UGV_TIME_SCALE 로 맞춘다.
 # sim_speed_mps: sim 드라이버(PX4 없이)로 달릴 때만 쓰는 속도. 없으면 max_speed_mps. ETA 도 같은 값으로 낸다.
+#   세 대 모두 19.4 m/s ≈ 70 km/h (실제 차량 주행 속도 60~80 km/h). PX4 는 r1_rover 라 2.0 그대로.
 # 스폰 위치는 ugv/data/road_network.json 의 spawn[resource_id] (build_road_network.py 가 계산).
 RESOURCES = [
     {"resource_id": "A-ugv1",  "resource_type": "UGV",
-     "base": "A", "home_node": "A", "px4_instance": 1, "px4_model": "r1_rover", "max_speed_mps": 2.0},
+     "base": "A", "home_node": "A", "px4_instance": 1, "px4_model": "r1_rover", "max_speed_mps": 2.0,
+     "sim_speed_mps": 19.4},
     # 소방차도 r1_rover 기반 (2026-10-03 WSL): rover_ackermann 은 명령 없이(disarm 상태) 조향된 채 굴러가
     # 도로 밖으로 떨어졌다. 경광등·방수포는 px4-start.sh 가 r1_rover 위에 붙인다 (ugv/gazebo/fire_truck)
     {"resource_id": "A-fire1", "resource_type": "FIRE_ENGINE",
      "base": "A", "home_node": "A", "px4_instance": 3, "px4_model": "r1_rover", "max_speed_mps": 2.0,
-     "sim_speed_mps": 11.0},   # sim 주행일 때만: 산간 도로 출동 평균 약 40 km/h (PX4 는 r1_rover 라 2.0 그대로)
+     "sim_speed_mps": 19.4},
     {"resource_id": "B-ugv1",  "resource_type": "UGV",
-     "base": "B", "home_node": "B", "px4_instance": 2, "px4_model": "r1_rover", "max_speed_mps": 2.0},
+     "base": "B", "home_node": "B", "px4_instance": 2, "px4_model": "r1_rover", "max_speed_mps": 2.0,
+     "sim_speed_mps": 19.4},
 ]
 for _r in RESOURCES:
     _r["px4_port"] = 14540 + _r["px4_instance"]
