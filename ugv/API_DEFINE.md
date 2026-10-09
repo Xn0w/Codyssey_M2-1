@@ -314,11 +314,12 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 | `WAIT` | 막힌 도로가 곧 열린다고 보고 그 자리에서 대기. `wait_until`(HH:MM)까지, 그 전에 열리면 바로 원래 길로. 상한 `UGV_AGENT_MAX_WAIT_S`(45분) |
 
 **근거 — 지식 베이스 검색 (RAG, `ugv/road_news.py`)**: `ugv/knowledge/` (**직접 만든 가상 자료**, 실제 보도·실제 지침 아님)
-- `news/N*.md` 교통 기사 6건 — `published`(시나리오 시각) 이후에만 보이고 `road_ids` 로 도로와 묶인다
-- `guides/G*.md` 도로 운영 지침 2건 — 언제나 보인다. G1 통제 구간 대기·우회 기준(해제 예정 시각 +10분 여유 등), G2 신상촌길·가넷고개길 대형차 통행
+- `news/N*.md` 교통 기사 9건 — `published`(시나리오 시각) 이후에만 보이고 `road_ids` 로 도로와 묶인다
+- `guides/G*.md` 도로 운영 지침 3건 — 언제나 보인다. G1 통제 구간 대기·우회 기준(해제 예정 시각 +10분 여유 등), G2 신상촌길·가넷고개길 대형차 통행
+- 헷갈리는 자료(검색 평가용, 판단에 쓰면 안 되는 것): N7 다른 구간(한계령) 설악로 통제, N8 같은 도로 '내일' 재포장 예고, N9 다른 도로 낙석 방지망 점검, G3 통신 두절 시 대기 요령
 - 문서 머리말(`---`): `id`, `kind`(news|guide), `published`, `road_ids`, `title`. `meta.json` 에 출처 표기와 `scenario_start_kst`
 
-1. **조각내기** — 문서를 문단 단위로 자르고 220자까지 이어 붙인다 (지금 8문서 → 11조각). 조각마다 제목을 앞에 붙여 검색
+1. **조각내기** — 문서를 문단 단위로 자르고 220자까지 이어 붙인다 (지금 12문서 → 15조각). 조각마다 제목을 앞에 붙여 검색
 2. **색인** — BM25(낱말 + 글자 두 개 묶음) 통계와 조각 임베딩(`gemini-embedding-001`). 임베딩은 디스크 캐시
    (`UGV_AGENT_RAG_CACHE`, 모델별 파일, 조각 내용 해시 → 벡터)에 남겨 **바뀐 조각만** 다시 만든다
 3. **거르기** — 지금 시각까지 나온 자료만(미래 기사는 못 읽음), `kind`, 도로 id(그 도로를 다룬 자료 + 도로를 정하지 않은 일반 지침. 하나도 없으면 시각만 거름 `relaxed`)
@@ -327,8 +328,9 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 
 **점검·평가 도구**
 - `python -m ugv.tools.rag_index [--chunks] [--embed]` — 문서·조각 목록, 캐시 상태. `--embed` 는 캐시에 없는 조각만 임베딩해 저장
-- `python -m ugv.tools.rag_eval [--embed]` — `ugv/knowledge/eval.json` 10문항(그 시각·그 도로 조건)으로 hit@3·MRR. BM25 만 / BM25+임베딩 비교.
-  지금 BM25 만으로 hit@3 1.0, MRR 1.0 — 자료가 8건이라 쉬운 평가다 (자료를 늘리면 다시 잰다)
+- `python -m ugv.tools.rag_eval [--embed]` — `ugv/knowledge/eval.json` 20문항(그 시각·그 도로 조건)으로 hit@3·MRR. BM25 만 / BM25+임베딩 비교.
+  easy 10 (도로명·낱말이 그대로 겹침), hard 10 (뜻으로 묻거나 헷갈리는 자료가 있음). BM25 만: easy hit@3 1.0 · MRR 0.95, hard hit@3 0.9 · MRR 0.8
+  (놓친 문항: 도로 id 없이 '설악로 통제 해제 시각' → 다른 구간 N7 이 끼어듦 — 도로 필터가 필요한 이유)
 
 **방식** (`UGV_AGENT_MODE`, 시스템 프롬프트는 같음 — "자료가 주어지지 않았으면 search_road_news 로 먼저 찾아라", 기사와 지침이 다르면 최근 현장 기사 우선)
 - `function_calling` (기본): 모델이 `search_road_news(query, road_ids, kind)` 도구로 기사·지침을 찾고 `submit_decision(decision, wait_until, reason, article_ids)` 로 결정. 매 턴 함수 호출 강제(`mode: ANY`), 최대 4턴

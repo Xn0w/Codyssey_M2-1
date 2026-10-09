@@ -43,7 +43,7 @@ def test_news_time_and_road_filter():
     r = n.search("설악로 통제 해제", 7 * 60, ["682501434"])
     ids = [h["id"] for h in r["hits"]]
     assert r["road_filter"] == "matched" and ids[0] == "N1" and "N4" not in ids    # N4(00:20)는 아직 안 나옴
-    assert set(ids) <= {"N1", "G1"}                         # 그 도로 기사 + 일반 지침만 (다른 도로 기사는 빠짐)
+    assert set(ids) <= {"N1", "N8", "G1", "G3"}             # 그 도로 기사 + 일반 지침만 (다른 도로 기사는 빠짐)
     r = n.search("설악로 통제 해제", 25 * 60, ["682501434"])
     assert r["hits"][0]["id"] == "N4"
     r = n.search("기린로", 7 * 60, ["no-such-road"])
@@ -89,7 +89,9 @@ def test_rag_eval_baseline():
     from ugv.tools.rag_eval import evaluate
     spec = json.loads((NEWS / "eval.json").read_text(encoding="utf-8"))
     r = evaluate(RoadNews.load(NEWS), spec["questions"], spec["k"], use_embedding=False)
-    assert r["n"] >= 10 and r["hit_at_k"] >= 0.9, r
+    assert r["n"] >= 20 and set(r["by_level"]) == {"easy", "hard"}
+    # BM25 만의 기준선 (2026-10-09): easy hit@3 1.0, hard hit@3 0.9 · MRR 0.8 — 자료를 바꾸면 이 숫자도 다시 잰다
+    assert r["by_level"]["easy"]["hit_at_k"] == 1.0 and r["by_level"]["hard"]["hit_at_k"] >= 0.8, r["by_level"]
 
 
 def _situation(options=("ROUTE_1",)):
