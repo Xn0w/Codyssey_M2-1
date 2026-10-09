@@ -169,7 +169,7 @@ GROUND_SENSOR_PROFILE_ID = os.getenv("ORCH_GROUND_SENSOR_PROFILE", "ASSUMED_GROU
 # ---------------------------------------------------------------------------
 # UGV 지상 열화상 (모의, 2026-10-05): UGV 에 THERMAL 을 붙인다. 기본 켜짐 (2026-10-09 팀 합의), 끄려면 ORCH_UGV_THERMAL=0.
 # 켜면 UAV·UGV 를 함께 허용한 열화상 임무에서 직선거리가 가까운 UGV 가 먼저 평가된다.
-UGV_THERMAL_ENABLED = os.getenv("ORCH_UGV_THERMAL", "1") == "1"
+UGV_THERMAL_ENABLED = os.getenv("ORCH_UGV_THERMAL", "1") == "1"   # 사용자 결정 2026-10-07: 관측 계획 시연용으로 켬
 SIMULATED_CAPABILITIES = {"UAV": ("WEATHER",), "UGV": ("WEATHER",) + (("THERMAL",) if UGV_THERMAL_ENABLED else ()),
                           "FIRE_ENGINE": ("WEATHER",)}
 WEATHER_SENSOR_PROFILE = {

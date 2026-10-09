@@ -8,22 +8,21 @@ import os
 # max_speed_mps: 차량 최고속도(시뮬레이션 초당 m). 도로별 속도 = min(max(도로 제한속도, MIN_ROAD_SPEED_KMH), 이 값) ÷ 혼잡 배율.
 #   r1_rover 2.1 (RO_MAX_THR_SPEED), rover_ackermann 3.1, lawnmower 2.7 — PX4 v1.16 기본 파라미터 기준.
 #   실제 소방차(수십 km/h)가 아니라 Gazebo 차량 속도에 맞춘 값이다. 실제 시간감은 UGV_TIME_SCALE 로 맞춘다.
-# sim_speed_mps: sim 드라이버(PX4 없이)로 달릴 때만 쓰는 속도. 없으면 max_speed_mps. ETA 도 같은 값으로 낸다.
-#   세 대 모두 60 km/h (상한, 총괄 브랜치 결정 2026-10-07 과 같은 값). 느린 도로는 하한 50 km/h (MIN_ROAD_SPEED_KMH) —
-#   sim 주행은 도로마다 50~60 km/h. PX4 는 r1_rover 라 2.0 그대로 (하한보다 작은 최고속도가 우선이라 영향 없음).
+# sim_speed_mps: sim 드라이버(PX4 없이)로 달릴 때만 쓰는 속도. ETA 도 같은 값으로 낸다.
+#   모든 차량 60 km/h (상한, 총괄 브랜치 결정 2026-10-07 과 같은 값). 느린 도로는 하한 50 km/h (MIN_ROAD_SPEED_KMH) —
+#   sim 주행은 도로마다 50~60 km/h. PX4 는 r1_rover 라 max_speed_mps 를 2.0 으로 묶는다 (아래 반복문, 하한보다 작은 최고속도가 우선).
 # 스폰 위치는 ugv/data/road_network.json 의 spawn[resource_id] (build_road_network.py 가 계산).
 RESOURCES = [
+    # UGV 최고속도 60 km/h (총괄 브랜치 사용자 결정 2026-10-07: 50~60 km/h, 실제 소방차 수준. sim 주행 기준 —
+    # Gazebo r1_rover 는 이 속도를 내지 못한다). 이전 값 2.0 m/s (r1_rover 기본)
     {"resource_id": "A-ugv1",  "resource_type": "UGV",
-     "base": "A", "home_node": "A", "px4_instance": 1, "px4_model": "r1_rover", "max_speed_mps": 2.0,
-     "sim_speed_mps": 60 / 3.6},
+     "base": "A", "home_node": "A", "px4_instance": 1, "px4_model": "r1_rover", "max_speed_mps": 60 / 3.6},
     # 소방차도 r1_rover 기반 (2026-10-03 WSL): rover_ackermann 은 명령 없이(disarm 상태) 조향된 채 굴러가
     # 도로 밖으로 떨어졌다. 경광등·방수포는 px4-start.sh 가 r1_rover 위에 붙인다 (ugv/gazebo/fire_truck)
     {"resource_id": "A-fire1", "resource_type": "FIRE_ENGINE",
-     "base": "A", "home_node": "A", "px4_instance": 3, "px4_model": "r1_rover", "max_speed_mps": 2.0,
-     "sim_speed_mps": 60 / 3.6},
+     "base": "A", "home_node": "A", "px4_instance": 3, "px4_model": "r1_rover", "max_speed_mps": 2.0},
     {"resource_id": "B-ugv1",  "resource_type": "UGV",
-     "base": "B", "home_node": "B", "px4_instance": 2, "px4_model": "r1_rover", "max_speed_mps": 2.0,
-     "sim_speed_mps": 60 / 3.6},
+     "base": "B", "home_node": "B", "px4_instance": 2, "px4_model": "r1_rover", "max_speed_mps": 60 / 3.6},
 ]
 # 추가 UGV (sim 전용, 기본 없음). UGV_EXTRA="자원:거점[:출발노드],..." — 출발노드를 생략하면 거점 노드.
 # 예: 트윈 --extra-fleet 의 원통(C)은 도로망 밖이라 가장 가까운 도로 노드(495165 광치령로, 1.3 km 남쪽)에서 출발
@@ -33,6 +32,10 @@ for _i, _p in enumerate(p for p in os.getenv("UGV_EXTRA", "").split(",") if ":" 
                       "px4_instance": 10 + _i, "px4_model": "r1_rover", "max_speed_mps": 60 / 3.6})
 for _r in RESOURCES:
     _r["px4_port"] = 14540 + _r["px4_instance"]
+    # 속도 (UGV 담당 2026-10-09): sim 주행은 모든 차량 60 km/h (sim_speed_mps), PX4(Gazebo r1_rover)에는 낼 수 있는
+    # 2.0 m/s 까지만 명령한다 (max_speed_mps 상한). 위 목록·추가 UGV 가 60/3.6 이어도 PX4 명령은 2.0 으로 묶인다.
+    _r.setdefault("sim_speed_mps", 60 / 3.6)
+    _r["max_speed_mps"] = min(_r["max_speed_mps"], 2.0)
 
 # 장비 (ugv/equipment.py) — 잠정값
 #   소방차: 물탱크·방수량. [봉인 — UGV_SUPPRESSION=1 일 때만] 도착하면 자동으로 진압(SUPPRESSING) — 물이 바닥나거나 /suppress stop 까지.
@@ -83,11 +86,48 @@ ENV_CLOCK_POLL_S = float(os.getenv("UGV_ENV_CLOCK_POLL_S", "1.0"))
 # 총괄 주소 — 도로 상황판의 노드 클릭 출동 요청을 여기 POST /tasks 로 전달한다 (ugv/server.py /view/dispatch)
 ORCH_URL = os.getenv("UGV_ORCH_URL", "http://127.0.0.1:8200")
 
-# 도로 환경 시나리오(차단 도로·경유 불가 노드·혼잡의 시간대, CSV 또는 JSON). 기본은 시나리오 없음(도로 전부 열림)
-# — 2026-10-08 발표 범위에서 길막·혼잡 제외. 켜기: UGV_SCENARIO=ugv/scenarios/inje_girin.csv
+# 도로 환경 시나리오(차단 도로·경유 불가 노드·혼잡의 시간대, CSV 또는 JSON). 비우면 시나리오 없음
+# 총괄 브랜치 사용자 결정 2026-10-07: 도로 정체·통제 시나리오를 기본으로 끈다 (돌아가거나 느려지는 일 없음).
+# 다시 켜려면 UGV_SCENARIO=ugv/scenarios/inje_girin.csv
 SCENARIO_FILE = os.getenv("UGV_SCENARIO", "")
 # 차량 최고속도가 주어진 주행에서 도로 제한속도가 이보다 낮으면 이 값으로 본다 (50 km/h, 같은 결정). 0 이면 끔
 MIN_ROAD_SPEED_KMH = float(os.getenv("UGV_MIN_ROAD_SPEED_KMH", "50"))
+
+# 주행 파라미터 — 실측 보정 필요
+CRUISE_SPEED_MPS = 2.0
+MISSION_ALT_M = 0.0      # 지상차량. 홈 고도 0 기준 상대 0m
+ARM_SETTLE_S = 2.0
+
+# 판단 임계값 — 잠정값
+FUEL_RETURN_MARGIN_PCT = 20.0
+ROAD_SNAP_M = 50.0          # 이 거리 안이면 해당 도로 위로 간주
+NODE_ARRIVE_M = 20.0        # 이 거리 안이면 노드 도착으로 간주
+STALE_AFTER_S = 10.0        # 이 시간 넘으면 STALE (주행 중이면 TELEMETRY_LOST 로 task 실패)
+
+# 주행 감시 (server._watch_task) — 잠정값, PX4 rover(2 m/s) 기준
+STALL_TIMEOUT_S = float(os.getenv("UGV_STALL_TIMEOUT_S", "60"))   # 이 시뮬레이션 초 동안 (2026-10-03 부터 벽시계 아님 — 4배속이면 벽시계 15초)
+STALL_MOVE_M = 10.0          # 이만큼도 못 움직이고 웨이포인트도 안 넘어가면 STALLED
+OFF_ROUTE_M = 100.0          # 경로(노드를 이은 선)에서 이보다 벗어나면 OFF_ROUTE
+# 추락 판정은 고도 하강 속도로 한다. 강원 지형 월드는 도로를 따라 고도가 수백 m 바뀌므로
+# '홈 대비 상대고도 < -5 m' 같은 절대 기준은 정상 주행도 추락으로 잘못 본다.
+# 도로 주행 하강은 1 m/s 를 넘기 어렵고(경사 15%, 3 m/s 기준 0.45), 지형을 뚫고 떨어지면 수십 m/s 다.
+FALL_RATE_MPS = 8.0          # 시뮬레이션 초당 이보다 빨리 내려가면 추락 (VEHICLE_FAULT)
+FAULT_GRACE_S = 5.0          # 출발 직후 이 시간은 차량 이상 판정 안 함 (arm·모드 전환 대기)
+FAULT_CONFIRM_S = 3.0        # 차량 이상이 이 시간 이상 계속돼야 확정 (순간 신호 무시)
+
+# 화재 접근 규칙 — 환경변수로 바꿀 수 있다 (코드 수정 없이)
+#   기본: 화재에서 가장 가까운 도로 노드 하나만 본다. 거기로 못 가면 거절.
+#   UGV_APPROACH_FALLBACK=1: 가장 가까운 노드로 못 가면 APPROACH_MAX_M 안의 다음 노드로 접근
+TARGET_SNAP_M = float(os.getenv("UGV_TARGET_SNAP_M", "2000"))      # 가장 가까운 노드가 이보다 멀면 TARGET_UNREACHABLE (루트 config.UGV_TARGET_SNAP_M 과 같은 값)
+APPROACH_FALLBACK = os.getenv("UGV_APPROACH_FALLBACK", "0") == "1"
+# 목적지 방식 (ugv/road_point.py): node = 목표에서 가장 가까운 도로 노드(기본, 지금까지 동작) /
+#   road_point = 목표에서 가장 가까운 도로 위 점에 선다 (교차로 사이 긴 도로 중간 계측용). 요청마다 target_mode 로 바꿀 수 있다
+TARGET_MODE = os.getenv("UGV_TARGET_MODE", "node")
+APPROACH_MAX_M = float(os.getenv("UGV_APPROACH_MAX_M", "500"))     # fallback 접근 노드의 화재 거리 상한
+
+# 시연용 가속 — 6노드 시연 도로망(graph_data_demo, 총괄 orchestrator_v012 데모)에서만 쓴다.
+# 실제 도로망(server.py)은 차량 max_speed_mps × UGV_TIME_SCALE 로 움직인다.
+DEMO_SPEED_MPS = 2000.0
 
 # 도로 AI (ugv/road_ai.py) — [봉인] 기본 꺼짐. 주행 중 앞길이 막히면 우회(1·2순위)·대기를 LLM(Gemini)이 판단한다.
 #   sim 드라이버 차량만. 총괄 LLM 과 별개이고 키도 따로 (UGV_AGENT_API_KEY, 저장소 루트 .env 의 UGV_* 도 읽는다)
@@ -136,39 +176,3 @@ AGENT_RAG_K = int(os.getenv("UGV_AGENT_RAG_K", "3"))                         # �
 # 도로 AI 가 지식 베이스를 찾는 웹 API (이 서버의 뉴스 사이트 GET /news/api/search). 서버를 다른 포트로 띄우면 맞춰 준다.
 # 비우면 서버 안에서 직접 찾는다. API 가 안 되면 자동으로 서버 안 검색 (기록의 source 에 사유)
 AGENT_NEWS_URL = os.getenv("UGV_AGENT_NEWS_URL", "http://127.0.0.1:8100")
-
-# 주행 파라미터 — 실측 보정 필요
-CRUISE_SPEED_MPS = 2.0
-MISSION_ALT_M = 0.0      # 지상차량. 홈 고도 0 기준 상대 0m
-ARM_SETTLE_S = 2.0
-
-# 판단 임계값 — 잠정값
-FUEL_RETURN_MARGIN_PCT = 20.0
-ROAD_SNAP_M = 50.0          # 이 거리 안이면 해당 도로 위로 간주
-NODE_ARRIVE_M = 20.0        # 이 거리 안이면 노드 도착으로 간주
-STALE_AFTER_S = 10.0        # 이 시간 넘으면 STALE (주행 중이면 TELEMETRY_LOST 로 task 실패)
-
-# 주행 감시 (server._watch_task) — 잠정값, PX4 rover(2 m/s) 기준
-STALL_TIMEOUT_S = float(os.getenv("UGV_STALL_TIMEOUT_S", "60"))   # 이 시뮬레이션 초 동안 (2026-10-03 부터 벽시계 아님 — 4배속이면 벽시계 15초)
-STALL_MOVE_M = 10.0          # 이만큼도 못 움직이고 웨이포인트도 안 넘어가면 STALLED
-OFF_ROUTE_M = 100.0          # 경로(노드를 이은 선)에서 이보다 벗어나면 OFF_ROUTE
-# 추락 판정은 고도 하강 속도로 한다. 강원 지형 월드는 도로를 따라 고도가 수백 m 바뀌므로
-# '홈 대비 상대고도 < -5 m' 같은 절대 기준은 정상 주행도 추락으로 잘못 본다.
-# 도로 주행 하강은 1 m/s 를 넘기 어렵고(경사 15%, 3 m/s 기준 0.45), 지형을 뚫고 떨어지면 수십 m/s 다.
-FALL_RATE_MPS = 8.0          # 시뮬레이션 초당 이보다 빨리 내려가면 추락 (VEHICLE_FAULT)
-FAULT_GRACE_S = 5.0          # 출발 직후 이 시간은 차량 이상 판정 안 함 (arm·모드 전환 대기)
-FAULT_CONFIRM_S = 3.0        # 차량 이상이 이 시간 이상 계속돼야 확정 (순간 신호 무시)
-
-# 화재 접근 규칙 — 환경변수로 바꿀 수 있다 (코드 수정 없이)
-#   기본: 화재에서 가장 가까운 도로 노드 하나만 본다. 거기로 못 가면 거절.
-#   UGV_APPROACH_FALLBACK=1: 가장 가까운 노드로 못 가면 APPROACH_MAX_M 안의 다음 노드로 접근
-TARGET_SNAP_M = float(os.getenv("UGV_TARGET_SNAP_M", "2000"))      # 가장 가까운 노드가 이보다 멀면 TARGET_UNREACHABLE (루트 config.UGV_TARGET_SNAP_M 과 같은 값)
-APPROACH_FALLBACK = os.getenv("UGV_APPROACH_FALLBACK", "0") == "1"
-# 목적지 방식 (ugv/road_point.py): node = 목표에서 가장 가까운 도로 노드(기본, 지금까지 동작) /
-#   road_point = 목표에서 가장 가까운 도로 위 점에 선다 (교차로 사이 긴 도로 중간 계측용). 요청마다 target_mode 로 바꿀 수 있다
-TARGET_MODE = os.getenv("UGV_TARGET_MODE", "node")
-APPROACH_MAX_M = float(os.getenv("UGV_APPROACH_MAX_M", "500"))     # fallback 접근 노드의 화재 거리 상한
-
-# 시연용 가속 — 6노드 시연 도로망(graph_data_demo, 총괄 orchestrator_v012 데모)에서만 쓴다.
-# 실제 도로망(server.py)은 차량 max_speed_mps × UGV_TIME_SCALE 로 움직인다.
-DEMO_SPEED_MPS = 2000.0
