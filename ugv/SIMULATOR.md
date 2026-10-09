@@ -73,7 +73,8 @@ curl -s localhost:8100/health | python3 -m json.tool  # resources 가 모두 px4
 | `UGV_CLOCK_SOURCE` | 서버 | `px4`(기본): PX4 차량이 있으면 서버 시계가 PX4(Gazebo) 시뮬레이션 시간을 따른다. `wall`: 예전처럼 벽시계 × TIME_SCALE |
 | `UGV_SECONDS_PER_ENV_STEP` | Mac | 환경 1스텝 = 몇 초 (잠정 60, INT-05 미정) |
 | `max_speed_mps` | `ugv/config.py` | 차량 최고속도 (PX4·Gazebo 차량 기준: UGV·소방차 모두 r1_rover 2.0 m/s) |
-| `sim_speed_mps` | `ugv/config.py` | sim 드라이버로 달릴 때만 쓰는 속도. 세 대 모두 19.4 m/s(약 70 km/h). 도로 제한속도는 보지 않고 혼잡만 나눈다. 없으면 `max_speed_mps` |
+| `sim_speed_mps` | `ugv/config.py` | sim 드라이버로 달릴 때만 쓰는 속도(상한). 세 대 모두 60 km/h. 없으면 `max_speed_mps` |
+| `UGV_MIN_ROAD_SPEED_KMH` | 서버 | 도로 제한속도 하한 (기본 50). 차량 속도가 주어진 주행에서 이보다 느린 도로는 이 값으로 본다. 0 이면 끔 |
 
 Gazebo 배속은 상한이라 CPU 가 밀리면 흔들린다 (실측 30초 평균 3.1~4.0, 목표 4). 벽시계 × 4 로 세면 서버만 6~10% 앞서
 시나리오 사건이 일찍 발동했다. 그래서 PX4 차량이 연결돼 있으면 서버 시계의 '흐름'은 PX4 시각을 따른다 — 환경 시계를
