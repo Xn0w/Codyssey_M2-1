@@ -32,9 +32,12 @@ def tokens(text: str) -> list[str]:
 
 
 class RoadNews:
-    def __init__(self, articles: list[dict], seconds_per_env_step: float = 60.0, embed=None, source: str = ""):
-        """embed: (texts: list[str], task: "RETRIEVAL_DOCUMENT"|"RETRIEVAL_QUERY") → list[list[float]], 또는 None."""
+    def __init__(self, articles: list[dict], seconds_per_env_step: float = 60.0, embed=None, source: str = "",
+                 start_kst: str | None = None):
+        """embed: (texts: list[str], task: "RETRIEVAL_DOCUMENT"|"RETRIEVAL_QUERY") → list[list[float]], 또는 None.
+        start_kst: 기사 시각 00:00 의 실제 시각 — 환경 서버가 없을 때 판단 문장의 'HH:MM' 을 기사 본문 시각과 맞춘다."""
         self.source = source
+        self.start_kst = start_kst
         self.embed = embed
         self.articles = []
         for a in articles:
@@ -52,7 +55,8 @@ class RoadNews:
     @classmethod
     def load(cls, path: str | Path, seconds_per_env_step: float = 60.0, embed=None) -> "RoadNews":
         d = json.loads(Path(path).read_text(encoding="utf-8"))
-        return cls(d.get("articles", []), seconds_per_env_step, embed, source=d.get("source", str(path)))
+        return cls(d.get("articles", []), seconds_per_env_step, embed, source=d.get("source", str(path)),
+                   start_kst=d.get("scenario_start_kst"))
 
     # --- 점수 ------------------------------------------------------------
     def _bm25(self, q: list[str], i: int) -> float:

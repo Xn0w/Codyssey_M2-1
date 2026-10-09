@@ -636,10 +636,15 @@ def _make_road_ai():
     return ai
 
 
+def _start_kst() -> str | None:
+    """시뮬레이션 0초의 실제 시각: 환경 서버 값, 없으면 도로 AI 기사 묶음의 scenario_start_kst (기사 본문 시각과 맞춘다)."""
+    return _env_clock.get("scenario_start_kst") or (getattr(road_ai.news, "start_kst", None) if road_ai else None)
+
+
 def _kst(sim_s: float) -> str:
-    """시뮬레이션 초 → 'HH:MM' (환경 시나리오 시작 시각을 알면 실제 시각, 모르면 시뮬레이션 시:분)."""
+    """시뮬레이션 초 → 'HH:MM' (시작 시각을 알면 실제 시각, 모르면 시뮬레이션 시:분)."""
     from datetime import datetime, timedelta
-    start = _env_clock.get("scenario_start_kst")
+    start = _start_kst()
     if start:
         try:
             return (datetime.fromisoformat(start) + timedelta(seconds=sim_s)).strftime("%H:%M")
@@ -652,7 +657,7 @@ def _from_kst(text: str) -> float:
     """'HH:MM' → 시뮬레이션 초 (_kst 의 반대). 시작 시각보다 이르면 다음 날로 본다."""
     from datetime import datetime, timedelta
     h, m = (int(x) for x in text.strip().split(":")[:2])
-    start = _env_clock.get("scenario_start_kst")
+    start = _start_kst()
     if start:
         try:
             st = datetime.fromisoformat(start)
@@ -1127,7 +1132,7 @@ async def reports(limit: int = 30):
 @app.get("/clock")
 async def get_clock():
     """시뮬레이션 시각. environment = 환경 시계 따라가기 상태, scenario_start_kst = 시뮬레이션 0초의 실제 시각."""
-    return clock.info() | {"environment": dict(_env_clock), "scenario_start_kst": _env_clock["scenario_start_kst"]}
+    return clock.info() | {"environment": dict(_env_clock), "scenario_start_kst": _start_kst()}
 
 
 @app.post("/clock/env")

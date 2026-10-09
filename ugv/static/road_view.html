@@ -97,6 +97,22 @@ h2{font-size:12px;color:var(--dim);font-weight:600;margin:14px 14px 6px;letter-s
 .rule .h{display:flex;justify-content:space-between;gap:6px}
 .rule.on{border-color:#7a2a2b}
 .rule .r{color:var(--dim);font-size:12px}
+.ai{margin:8px 12px;padding:8px 10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);cursor:pointer;font-size:12px}
+.ai.on{border-color:var(--hl)}
+.ai .h{display:flex;justify-content:space-between;gap:6px}
+.ai .h .t{color:var(--dim)}
+.ai .row{margin-top:4px;color:var(--dim)}
+.ai .row b{color:var(--text)}
+.ai .opt{margin-top:2px;color:var(--dim)}
+.ai .opt.pick{color:var(--text)}
+.ai .opt.pick b{color:var(--warn)}
+.ai .q{margin-top:4px;color:var(--dim)}
+.ai .q .hit{display:block;padding-left:12px;color:var(--text)}
+.ai .dec{margin-top:6px;padding:6px 8px;border-left:3px solid var(--warn);background:rgba(245,176,65,.08);color:var(--text)}
+.ai .dec.fb{border-left-color:var(--bad)}
+.ai details{margin-top:6px}
+.ai summary{cursor:pointer;color:var(--dim)}
+.ai pre{white-space:pre-wrap;font-size:11px;color:var(--dim);margin:4px 0 0;font-family:inherit}
 footer{grid-column:1/4;background:var(--panel);border-top:1px solid var(--line);padding:8px 14px;display:none;gap:12px;align-items:center}
 footer.show{display:flex}
 #bar{position:relative;flex:1;height:34px}
@@ -165,6 +181,7 @@ footer.show{display:flex}
     <div class="tabs">
       <button data-tab="log" class="on">기록<span class="cnt" id="cLog"></span></button>
       <button data-tab="scn">도로 상황<span class="cnt" id="cScn"></span></button>
+      <button data-tab="ai">도로 AI<span class="cnt" id="cAi"></span></button>
     </div>
     <div class="flt" id="logFilter">
       <label><input type="checkbox" id="fProg"> 진행 보고</label>
@@ -173,6 +190,7 @@ footer.show{display:flex}
     </div>
     <div class="tabbody" id="tabLog"></div>
     <div class="tabbody" id="tabScn" style="display:none"></div>
+    <div class="tabbody" id="tabAi" style="display:none"></div>
   </aside>
 
   <footer id="foot">
@@ -996,6 +1014,57 @@ $("#tabLog").addEventListener("pointerdown", ev => {
   const h = ev.target.closest(".grp > .gh"); if (h) toggleGroup(h.parentElement.dataset.key);
 });
 
+// ---------------------------------------------------------------- 도로 AI 탭: 막힘 한 번 = 카드 하나 (요청 → 기사 검색 → 결정 → 결과)
+let lastAiSig = "";
+function drawAi(t){
+  const vis = S.events.filter(e => t == null || e.sim_time_s == null || e.sim_time_s <= t);
+  const runStart = S.events.find(e => e.type === "RUN_START");
+  const cases = [], cur = {};
+  for (const e of vis){
+    const rid = e.resource_id;
+    if (e.type === "AGENT_REQUEST"){ cur[rid] = {rid, req: e, tools: [], dec: null, wait: null, out: null}; cases.push(cur[rid]); continue; }
+    const c = cur[rid]; if (!c) continue;
+    if (e.type === "AGENT_TOOL") c.tools.push(e);
+    else if (e.type === "AGENT_DECISION") c.dec = e;
+    else if (e.type === "UGV_WAITING") c.wait = e;
+    else if (e.type === "UGV_REROUTED" && e.data?.ai && !c.out){ c.out = e; delete cur[rid]; }
+  }
+  $("#cAi").textContent = cases.length || "";
+  const sig = `${cases.length}|${cases.map(c => `${c.tools.length}${c.dec ? 1 : 0}${c.wait ? 1 : 0}${c.out ? 1 : 0}`).join(",")}|${S.focusSeq}|${runStart?.seq}`;
+  if (sig === lastAiSig) return;
+  lastAiSig = sig;
+  const box = $("#tabAi"), agent = runStart?.data?.ugv_agent || "";
+  if (!cases.length){
+    box.innerHTML = `<div class="empty">${agent.startsWith("ON") ? `도로 AI 켜짐 (${esc(agent.slice(3))}) — 아직 판단 없음.<br>달리는 차의 앞길이 막히면 여기에 요청·기사 검색·결정이 나온다.`
+      : "도로 AI 꺼짐 — 서버를 UGV_AGENT=1 로 띄우면 켜진다."}</div>`;
+    return;
+  }
+  const names = ids => { const out = []; (ids || []).forEach(id => { const n = roadInfo[id]?.name || id; if (out[out.length - 1] !== n) out.push(n); }); return out.join(" → "); };
+  const card = c => {
+    const q = c.req.data || {}, d = c.dec?.data, pick = d?.decision;
+    const opts = (q.options || []).map(o => `<div class="opt ${o.name === pick ? "pick" : ""}"><b>${esc(o.name)}</b> ${durS(o.eta_s)} · ${(o.distance_m / 1000).toFixed(1)} km · ${esc(names(o.road_ids))}</div>`).join("")
+      + `<div class="opt ${pick === "WAIT" ? "pick" : ""}"><b>WAIT</b> 열릴 때까지 기다림</div>`;
+    const tools = c.tools.map(e => { const x = e.data || {};
+      return `<div class="q">${x.by === "model" ? "모델이 검색" : "서버가 미리 검색"} “${esc(x.query || "")}” <span>(${esc(x.method || "")})</span>
+        ${(x.hits || []).map((h, i) => `<span class="hit">[${esc(h)}] ${esc((x.titles || [])[i] || "")}</span>`).join("") || `<span class="hit">결과 없음</span>`}</div>`; }).join("");
+    const dec = d ? `<div class="dec ${d.fallback ? "fb" : ""}"><b>${esc(pick)}</b>${pick === "WAIT" && d.wait_until ? ` ~${esc(d.wait_until)}` : ""} · ${esc(d.reason || "")}
+        ${(d.article_ids || []).length ? `<div class="row">근거 기사 <b>${esc(d.article_ids.join(", "))}</b></div>` : ""}
+        <div class="row">응답 ${d.latency_s != null ? d.latency_s.toFixed(1) + "초" : "–"}${d.fallback ? ` · <span style="color:var(--bad)">규칙 판단으로 넘어감: ${esc(d.fallback)}</span>` : ""}</div></div>`
+      : `<div class="dec">판단 중…</div>`;
+    const ai = c.out?.data?.ai;
+    const res = c.wait && !c.out ? `<div class="row">대기 중 — ${esc(roadName(c.wait.data?.blocked_road_id))} 열릴 때까지 (최대 ${hms(c.wait.data?.wait_until_sim_s)})</div>`
+      : c.out ? `<div class="row">결과: ${ai?.waited_s != null ? `${durS(ai.waited_s)} 기다림 · ${ai.reopened ? "도로 열려 원래 길로" : "안 열려 1순위 우회"} · ` : ""}재탐색, 남은 ${durS(c.out.data?.eta_remaining_sec)}</div>` : "";
+    const focus = c.dec?.seq ?? c.req.seq;
+    return `<div class="ai ${S.focusSeq === focus ? "on" : ""}" data-seq="${focus}">
+      <div class="h"><b>${esc(c.rid)} · ${esc(roadName((q.roads || [])[0]))} 막힘</b><span class="t">${hms(c.req.sim_time_s)}</span></div>
+      <div class="row">${esc(q.model || "")} · ${esc(q.mode === "inline" ? "기사 미리 넣기(A)" : "function calling(B)")}</div>
+      <div class="row">선택지</div>${opts}${tools}${dec}${res}
+      ${q.prompt ? `<details><summary>모델에 보낸 상황</summary><pre>${esc(q.prompt)}</pre></details>` : ""}</div>`;
+  };
+  box.innerHTML = cases.slice().reverse().map(card).join("");
+  box.querySelectorAll(".ai").forEach(el => el.onclick = ev => { if (ev.target.closest("details")) return; focusEvent(+el.dataset.seq); });
+}
+
 function drawScenario(rs){
   const box = $("#tabScn"), sc = S.mode === "live" ? S.live.scenario : null;
   const active = sc ? sc.active : (rs.active_rules || []);
@@ -1154,6 +1223,7 @@ document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
   $("#tabLog").style.display = tab === "log" ? "" : "none";
   $("#logFilter").style.display = tab === "log" ? "" : "none";
   $("#tabScn").style.display = tab === "scn" ? "" : "none";
+  $("#tabAi").style.display = tab === "ai" ? "" : "none";
 });
 ["#fProg", "#fRoad", "#fOther"].forEach(s => $(s).onchange = () => { lastLogSig = ""; render(); });
 
@@ -1183,6 +1253,7 @@ function render(){
   drawLegs(route, selRow?.task?.eta_remaining_s);
   drawLog(t);
   drawScenario(st.road);
+  drawAi(t);
   drawBases();
   for (const e of S.events) if (e.type === "CLOCK" && e.data?.scenario_start_kst) setStart(e.data.scenario_start_kst);
   const ct = curTime();
@@ -1243,7 +1314,7 @@ $("#mode").onfocus = () => loadRuns();
 $("#mode").onchange = () => switchMode($("#mode").value);
 
 async function switchMode(v){
-  S.events = []; S.after = 0; S.focusSeq = null; S.roadSig = ""; S.open.clear(); lastLogSig = ""; highlight(null); map.closePopup();
+  S.events = []; S.after = 0; S.focusSeq = null; S.roadSig = ""; S.open.clear(); lastLogSig = ""; lastAiSig = ""; highlight(null); map.closePopup();
   if (v === "live"){
     S.mode = "live"; S.runId = S.currentRun; S.t = null; $("#foot").classList.remove("show");
     await pollLive();
@@ -1282,6 +1353,14 @@ async function pollLive(){
   } finally { polling = false; }
 }
 setInterval(pollLive, 1000);
+// 서버를 다시 띄우면 실행(run)이 바뀐다 — 실시간 보기면 새 실행으로 따라간다 (새로고침 없이)
+setInterval(async () => {
+  if (S.mode !== "live") return;
+  try {
+    const r = await get("/history/runs");
+    if (r.current && r.current !== S.currentRun){ await loadRuns("live"); await switchMode("live"); }
+  } catch {}
+}, 5000);
 
 async function init(){
   const [geo, edges, nodes] = await Promise.all([get("/roads/geometry"), get("/graph/edges"), get("/graph/nodes")]);

@@ -155,7 +155,7 @@ class RoadAI:
             road_ids = [s["blocked_road_id"]] + [r for o in s["options"] for r in o["road_ids"]]
             found = self.news.search(q, s["now_s"], road_ids)
             trace.append({"type": "AGENT_TOOL", "tool": "search_road_news", "by": "server", "query": q,
-                          "road_ids": road_ids, "hits": [h["id"] for h in found["hits"]], "method": found["method"],
+                          "road_ids": road_ids, "hits": [h["id"] for h in found["hits"]], "titles": [h["title"] for h in found["hits"]], "method": found["method"],
                           "road_filter": found["road_filter"]})
             user += "\n\n참고 기사:\n" + ("\n".join(f"[{h['id']}] ({h['published']}) {h['title']} — {h['body']}"
                                                   for h in found["hits"]) or "(없음)")
@@ -189,7 +189,7 @@ class RoadAI:
                     found = self.news.search(str(args.get("query", "")), s["now_s"], args.get("road_ids"))
                     trace.append({"type": "AGENT_TOOL", "tool": "search_road_news", "by": "model",
                                   "query": args.get("query"), "road_ids": args.get("road_ids"),
-                                  "hits": [h["id"] for h in found["hits"]], "method": found["method"],
+                                  "hits": [h["id"] for h in found["hits"]], "titles": [h["title"] for h in found["hits"]], "method": found["method"],
                                   "road_filter": found["road_filter"]})
                     payload = {"articles": [{k: h[k] for k in ("id", "published", "title", "body", "road_ids")}
                                             for h in found["hits"]], "road_filter": found["road_filter"]}

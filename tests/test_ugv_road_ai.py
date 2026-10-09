@@ -115,7 +115,7 @@ def _port():
 
 
 def _fake_gemini(decision="WAIT"):
-    """첫 호출: 기사 검색, 다음: WAIT(00:55 까지 — 시나리오 시작 시각을 모르면 시뮬레이션 시:분으로 읽힌다)."""
+    """첫 호출: 기사 검색, 다음: WAIT(15:40 까지 = 시뮬레이션 00:55 — 시각은 기사 묶음의 scenario_start_kst 14:45 기준)."""
     import uvicorn
     from fastapi import FastAPI, Request
     app, calls = FastAPI(), []
@@ -129,7 +129,7 @@ def _fake_gemini(decision="WAIT"):
                                    for r in body["requests"]]}
         last = body["contents"][-1]["parts"][0]
         if "functionResponse" in last:
-            return _fc("submit_decision", {"decision": decision, "wait_until": "00:55",
+            return _fc("submit_decision", {"decision": decision, "wait_until": "15:40",
                                            "reason": "기사 N1 근거", "article_ids": ["N1"]})
         return _fc("search_road_news", {"query": "설악로 통제 해제", "road_ids": ["682501434"]})
 
@@ -170,6 +170,10 @@ def test_server_waits_then_continues_original_road(tmp_path):
         assert ev[0]["data"]["ugv_agent"] == "ON:function_calling"
         for t in ("AGENT_REQUEST", "AGENT_TOOL", "AGENT_DECISION", "UGV_WAITING", "UGV_REROUTED"):
             assert t in types, t
+        req = next(e for e in ev if e["type"] == "AGENT_REQUEST")["data"]
+        assert "지금 시각 14:4" in req["prompt"]          # 환경 서버 없이도 기사와 같은 실제 시각 (00:02 = 14:47)
+        tool = next(e for e in ev if e["type"] == "AGENT_TOOL")["data"]
+        assert tool["titles"] and len(tool["titles"]) == len(tool["hits"])   # 상황판 도로 AI 탭이 제목을 보여 준다
         dec = next(e for e in ev if e["type"] == "AGENT_DECISION")["data"]
         assert dec["decision"] == "WAIT" and dec["article_ids"] == ["N1"]
         rr = next(e for e in ev if e["type"] == "UGV_REROUTED")
