@@ -103,7 +103,20 @@ AGENT_MAX_CALLS = int(os.getenv("UGV_AGENT_MAX_CALLS", "30"))          # 서버 
 #   모델이 wait_until 을 재개 예정 시각 그대로 주면 1초 늦게 열려도 우회해 버린다 (2026-10-09 실측: 14:57:00 마감, 14:57:01 해제 → 33분 우회)
 AGENT_WAIT_GRACE_S = float(os.getenv("UGV_AGENT_WAIT_GRACE_S", "600"))
 AGENT_MAX_WAIT_S = float(os.getenv("UGV_AGENT_MAX_WAIT_S", "2700"))    # WAIT 상한 (시뮬레이션 초, 45분)
-AGENT_NEWS = os.getenv("UGV_AGENT_NEWS", "ugv/knowledge")                 # 지식 베이스 폴더 (ugv/road_news.py)
+AGENT_NEWS = os.getenv("UGV_AGENT_NEWS", "ugv/knowledge")                 # 지식 베이스 폴더 (ugv/road_news.py), 쉼표로 여러 개
+
+
+def agent_news_paths(root) -> list[str]:
+    """도로 AI·뉴스 사이트가 읽는 지식 폴더: UGV_AGENT_NEWS + 시나리오 전용 기사 폴더.
+    시나리오 기사는 시나리오 파일 옆 같은 이름 폴더의 news/ 에 둔다 — ugv/scenarios/X.csv ↔ ugv/scenarios/X/news/.
+    그래서 시나리오마다 기사 시각이 따로 맞고, 다른 시나리오의 기사가 섞이지 않는다."""
+    out = [p if os.path.isabs(p) else os.path.join(root, p) for p in AGENT_NEWS.split(",") if p.strip()]
+    if SCENARIO_FILE:
+        d = os.path.splitext(SCENARIO_FILE)[0]
+        d = d if os.path.isabs(d) else os.path.join(root, d)
+        if os.path.isdir(os.path.join(d, "news")) and d not in out:
+            out.append(d)
+    return out
 AGENT_RAG_CACHE = os.getenv("UGV_AGENT_RAG_CACHE", "ugv/.state/rag_cache")   # 조각 임베딩 디스크 캐시 (바뀐 조각만 다시 만든다)
 AGENT_RAG_K = int(os.getenv("UGV_AGENT_RAG_K", "3"))                         # 검색 한 번에 돌려줄 문서 수
 # 도로 AI 가 지식 베이스를 찾는 웹 API (이 서버의 뉴스 사이트 GET /news/api/search). 서버를 다른 포트로 띄우면 맞춰 준다.

@@ -411,9 +411,54 @@ def test_agent_dispatch_scenario_matches_routes_and_news():
         extra = (g.find_route(base, goal, speed).eta_s - r.eta_s) / 60
         g.get_road(road).blocked = False
         assert extra >= min_extra and (max_extra is None or extra <= max_extra), (base, extra)
-    kb = RoadNews.load(NEWS)
+    assert "N10" not in [d["id"] for d in RoadNews.load(NEWS).articles]          # 시나리오 기사는 공통 지식에 없다
+    kb = RoadNews.load([NEWS, ROOT / "ugv" / "scenarios" / "agent_dispatch"])
     a_ids = [h["id"] for h in kb.search("통제 해제", 4 * 60, ["682501557"])["hits"]]
     b_ids = [h["id"] for h in kb.search("통제", 3 * 60, ["683400994"])["hits"]]
     assert "N10" in a_ids and "N1" not in a_ids          # 그 도로 기사 + 일반 지침 (다른 설악로 구간 기사는 안 섞임)
     assert "N11" in b_ids and "N10" not in b_ids
     assert "N10" not in [h["id"] for h in kb.search("통제 해제", 2 * 60, ["682501557"])["hits"]]   # 00:03 전엔 없음
+
+
+def test_scenario_news_folder_follows_scenario(monkeypatch):
+    """시나리오 기사는 시나리오 파일 옆 같은 이름 폴더(news/)에서만 읽는다 — 시연 2 와 트윈 기사가 섞이지 않는다."""
+    from ugv import config
+    monkeypatch.setattr(config, "AGENT_NEWS", "ugv/knowledge")
+    monkeypatch.setattr(config, "SCENARIO_FILE", "ugv/scenarios/twin_inje.csv")
+    ids = [d["id"] for d in RoadNews.load(config.agent_news_paths(ROOT)).articles]
+    assert "N12" in ids and "N13" in ids and "N10" not in ids and "G1" in ids
+    monkeypatch.setattr(config, "SCENARIO_FILE", "")
+    assert config.agent_news_paths(ROOT) == [str(ROOT / "ugv" / "knowledge")]
+    with pytest.raises(ValueError):                                         # 같은 id 를 두 번 읽으면 오류
+        RoadNews.load([NEWS, NEWS])
+
+
+def test_twin_scenario_matches_first_dispatch():
+    """트윈 시나리오 (ugv/scenarios/twin_inje.csv): ADAIR 트윈 첫 출동 길(실측)에 통제가 걸리고, 기사와 판단 근거가 맞는다.
+    A(인제119→494950): 우회 +분이 '대기 + 여유 10분' 보다 커서 WAIT 이 맞다. B(기린119→494955): 긴 통제·우회 +10분 미만 → ROUTE_1."""
+    from ugv import config
+    from ugv.fleet import GroundFleet
+    from ugv.scenario import Scenario
+    sc = Scenario.load(ROOT / "ugv" / "scenarios" / "twin_inje.csv", 60.0)
+    rules = {r["targets"][0]: r for r in sc.rules}
+    assert set(rules) == {"682501557", "683400994"}
+    f = GroundFleet(use_px4=False, graph_data=graph_gpkg, time_scale=100)
+    g, speed = f.graph, config.RESOURCES[0]["sim_speed_mps"]
+    for base, goal, road, mid in (("A", "494950", "682501557", "682501201"), ("B", "494955", "683400994", "683400633")):
+        legs = g.legs(g.find_route(base, goal, speed).path, speed)
+        ids = [l["road_id"] for l in legs]
+        assert road in ids and mid in ids, (base, ids[:10])                 # 실측 경로와 같은 길
+        node = legs[ids.index(mid)]["to"]                                    # 막힘을 알아챌 무렵 차가 있는 곳
+        r0 = g.find_route(node, goal, speed)
+        g.get_road(road).blocked = True
+        extra = (g.find_route(node, goal, speed).eta_s - r0.eta_s) / 60
+        g.get_road(road).blocked = False
+        closure = (rules[road]["end"] - rules[road]["start"]) / 60
+        if base == "A":
+            assert extra > closure + config.AGENT_WAIT_GRACE_S / 60, (extra, closure)   # 대기가 이긴다
+        else:
+            assert extra < 10 and closure > 60                               # 우회가 이긴다
+    kb = RoadNews.load([NEWS, ROOT / "ugv" / "scenarios" / "twin_inje"])
+    assert "N12" in [h["id"] for h in kb.search("통제 해제", 13 * 60, ["682501557"])["hits"]]
+    assert "N13" in [h["id"] for h in kb.search("통제", 13 * 60, ["683400994"])["hits"]]
+    assert "N12" not in [h["id"] for h in kb.search("통제 해제", 12 * 60, ["682501557"])["hits"]]   # 14:58 전엔 없음

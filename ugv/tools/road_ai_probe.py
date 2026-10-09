@@ -30,7 +30,7 @@ def main():
         raise SystemExit("UGV_AGENT_API_KEY 가 없습니다 (.env 에 UGV_AGENT_API_KEY=... 한 줄)")
     client = GeminiClient(key, os.getenv("UGV_AGENT_MODEL", config.AGENT_MODEL).strip().lower().replace(" ", "-"), config.AGENT_EMBED_MODEL,
                           config.AGENT_BASE_URL, config.AGENT_TIMEOUT_S)
-    news = RoadNews.load(ROOT / config.AGENT_NEWS, embed=None if a.no_embed else client.embed,
+    news = RoadNews.load(config.agent_news_paths(ROOT), embed=None if a.no_embed else client.embed,
                          cache_dir=ROOT / config.AGENT_RAG_CACHE, embed_model=config.AGENT_EMBED_MODEL)
     ai = RoadAI(client, news, a.mode, k=config.AGENT_RAG_K)
     start = 14 * 3600 + 45 * 60

@@ -7,6 +7,7 @@
 # 총괄이 배정한다 — 최초 정찰은 가장 가까운 A-ugv1, 지상 지원은 남은 B-ugv1 (드론 서버는 띄우지 않는다).
 #
 #   ugv/tools/demo_agent_dispatch.sh            # 저장소 루트에서. 끄기: Ctrl+C
+# 기사 N10·N11 은 ugv/scenarios/agent_dispatch/news/ — UGV_SCENARIO 옆 폴더라 서버가 공통 지식(ugv/knowledge)과 함께 읽는다
 # 키: 저장소 루트 .env 의 UGV_AGENT_API_KEY. 배속 UGV_TIME_SCALE (기본 10 — LLM 응답 9초 = 시뮬레이션 1.5분)
 # 화면: 상황판 http://localhost:8100/view (도로 AI 탭), 교통 소식 http://localhost:8100/news, 총괄 http://localhost:8200/board,
 #       3D http://localhost:8080/inje3d → '실시간 연결 LIVE' (UGV 위치만 — 환경·드론 서버는 이 시연에서 띄우지 않는다)

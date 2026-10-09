@@ -113,6 +113,23 @@ class EmbeddingCache:
         tmp.replace(self.path)
 
 
+def _read_dir(path: Path) -> tuple[dict, list[dict]]:
+    """지식 폴더 하나: (meta.json, news/·guides/ 의 문서들)."""
+    meta = json.loads((path / "meta.json").read_text(encoding="utf-8")) if (path / "meta.json").is_file() else {}
+    docs = []
+    for sub in ("news", "guides"):
+        for f in sorted((path / sub).glob("*.md")):
+            head, body = _parse_md(f.read_text(encoding="utf-8"))
+            try:
+                docs.append({"id": head["id"], "kind": head.get("kind", "news" if sub == "news" else "guide"),
+                             "published": head.get("published") or None, "title": head["title"],
+                             "road_ids": [r.strip() for r in head.get("road_ids", "").split(",") if r.strip()],
+                             "body": body.strip(), "file": f"{path.name}/{sub}/{f.name}"})
+            except KeyError as e:
+                raise ValueError(f"{f}: 머리말에 {e} 가 없다") from None
+    return meta, docs
+
+
 class RoadNews:
     """도로 AI 지식 베이스 (이름은 처음 기사 묶음일 때 그대로). articles = 문서, chunks = 검색 단위."""
 
@@ -161,27 +178,27 @@ class RoadNews:
     @classmethod
     def load(cls, path: str | Path, seconds_per_env_step: float = 60.0, embed=None,
              cache_dir: str | Path | None = None, embed_model: str = "") -> "RoadNews":
-        """path: 지식 베이스 폴더(ugv/knowledge) 또는 예전 기사 묶음 JSON."""
-        path = Path(path)
+        """path: 지식 베이스 폴더(ugv/knowledge) 또는 예전 기사 묶음 JSON.
+        폴더 여러 개(목록 또는 쉼표로 이은 문자열)를 주면 합친다 — 공통 지식 + 시나리오 전용 기사
+        (ugv/scenarios/<이름>/news/). meta.json(시나리오 시작 시각·출처)은 첫 폴더 것을 쓴다. 같은 id 는 오류."""
         cache = None
         if cache_dir is not None and embed is not None:
             safe = re.sub(r"[^0-9A-Za-z._-]", "_", embed_model or "embed")
             cache = Path(cache_dir) / f"{safe}.json"
-        if path.is_dir():
-            meta = json.loads((path / "meta.json").read_text(encoding="utf-8")) if (path / "meta.json").is_file() else {}
-            docs = []
-            for sub in ("news", "guides"):
-                for f in sorted((path / sub).glob("*.md")):
-                    head, body = _parse_md(f.read_text(encoding="utf-8"))
-                    try:
-                        docs.append({"id": head["id"], "kind": head.get("kind", "news" if sub == "news" else "guide"),
-                                     "published": head.get("published") or None, "title": head["title"],
-                                     "road_ids": [r.strip() for r in head.get("road_ids", "").split(",") if r.strip()],
-                                     "body": body.strip(), "file": f"{sub}/{f.name}"})
-                    except KeyError as e:
-                        raise ValueError(f"{f}: 머리말에 {e} 가 없다") from None
-            return cls(docs, seconds_per_env_step, embed, source=meta.get("source", str(path)),
+        paths = [Path(p) for p in (path if isinstance(path, (list, tuple)) else str(path).split(",")) if str(p).strip()]
+        if all(p.is_dir() for p in paths):
+            meta, docs = {}, []
+            for i, p in enumerate(paths):
+                m, d = _read_dir(p)
+                meta = m if i == 0 else meta
+                docs += d
+            seen = [d["id"] for d in docs]
+            dup = sorted({x for x in seen if seen.count(x) > 1})
+            if dup:
+                raise ValueError(f"지식 베이스 id 중복: {dup} ({', '.join(map(str, paths))})")
+            return cls(docs, seconds_per_env_step, embed, source=meta.get("source", str(paths[0])),
                        start_kst=meta.get("scenario_start_kst"), cache_path=cache, embed_model=embed_model)
+        path = paths[0]
         d = json.loads(path.read_text(encoding="utf-8"))
         return cls(d.get("articles", []), seconds_per_env_step, embed, source=d.get("source", str(path)),
                    start_kst=d.get("scenario_start_kst"), cache_path=cache, embed_model=embed_model)

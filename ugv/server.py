@@ -628,7 +628,7 @@ def _make_road_ai():
     ra.load_env_keys(Path(root) / ".env")
     client = ra.GeminiClient(os.getenv("UGV_AGENT_API_KEY"), config.AGENT_MODEL, config.AGENT_EMBED_MODEL,
                              config.AGENT_BASE_URL, config.AGENT_TIMEOUT_S, thinking=config.AGENT_THINKING)
-    news_path = config.AGENT_NEWS if os.path.isabs(config.AGENT_NEWS) else os.path.join(root, config.AGENT_NEWS)
+    news_path = config.agent_news_paths(root)
     cache_dir = config.AGENT_RAG_CACHE if os.path.isabs(config.AGENT_RAG_CACHE) else os.path.join(root, config.AGENT_RAG_CACHE)
     news = RoadNews.load(news_path, config.SECONDS_PER_ENV_STEP,
                          embed=client.embed if (config.AGENT_EMBED and client.key) else None,
@@ -656,8 +656,7 @@ def _knowledge():
     if _kb is None:
         from .road_news import RoadNews
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        path = config.AGENT_NEWS if os.path.isabs(config.AGENT_NEWS) else os.path.join(root, config.AGENT_NEWS)
-        _kb = RoadNews.load(path, config.SECONDS_PER_ENV_STEP)
+        _kb = RoadNews.load(config.agent_news_paths(root), config.SECONDS_PER_ENV_STEP)
     return _kb
 
 

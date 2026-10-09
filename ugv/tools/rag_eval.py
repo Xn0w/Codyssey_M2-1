@@ -45,8 +45,8 @@ def main():
     ap.add_argument("--embed", action="store_true")
     ap.add_argument("--k", type=int, default=None)
     a = ap.parse_args()
-    base = ROOT / config.AGENT_NEWS
-    spec = json.loads((base / "eval.json").read_text(encoding="utf-8"))
+    base = config.agent_news_paths(ROOT)
+    spec = json.loads((Path(base[0]) / "eval.json").read_text(encoding="utf-8"))
     k = a.k or spec.get("k", 3)
     embed = None
     if a.embed:

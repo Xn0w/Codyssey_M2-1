@@ -28,7 +28,7 @@ def main():
             raise SystemExit("UGV_AGENT_API_KEY 가 없습니다 (.env 에 UGV_AGENT_API_KEY=... 한 줄)")
         embed = GeminiClient(key, config.AGENT_MODEL, config.AGENT_EMBED_MODEL, config.AGENT_BASE_URL,
                              config.AGENT_TIMEOUT_S).embed
-    kb = RoadNews.load(ROOT / config.AGENT_NEWS, embed=embed, cache_dir=ROOT / config.AGENT_RAG_CACHE,
+    kb = RoadNews.load(config.agent_news_paths(ROOT), embed=embed, cache_dir=ROOT / config.AGENT_RAG_CACHE,
                        embed_model=config.AGENT_EMBED_MODEL)
     print(f"지식 베이스 {config.AGENT_NEWS} — {kb.source}")
     for d in kb.articles:
