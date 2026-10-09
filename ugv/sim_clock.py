@@ -24,7 +24,7 @@ import time
 
 
 class SimClock:
-    def __init__(self, time_scale: float = 1.0, seconds_per_env_step: float = 60.0):
+    def __init__(self, time_scale: float = 1.0, seconds_per_env_step: float = 60.0, env_lead_max_s: float | None = None):
         if time_scale <= 0 or seconds_per_env_step <= 0:
             raise ValueError("time_scale, seconds_per_env_step 는 0 보다 커야 한다")
         self.time_scale = time_scale
@@ -41,6 +41,11 @@ class SimClock:
         self.source_switches = 0
         self._last_value = 0.0
         self._held: float | None = None           # 멈춘 시계 (환경 시계를 기다리는 동안). release() 로 다시 흐른다
+        # 환경 시계를 따라갈 때 마지막 환경 시각보다 이만큼(시뮬레이션 초)까지만 앞서 간다. 환경이 멈추면(트윈 시계는
+        # 총괄 LLM 을 기다리는 동안 /advance 를 멈춘다, ADAIR 2026-10-08) 우리 시계도 거기서 멈추고, 뒤로 가지 않는다.
+        # None 이면 예전처럼 벽시계 × TIME_SCALE 로 계속 간다.
+        self.env_lead_max_s = env_lead_max_s
+        self._env_last: float | None = None
 
     STALE_S = 10.0
 
@@ -109,6 +114,9 @@ class SimClock:
                 self._rebase(base, (key, t))
                 self.source_switches += 1
             v = self._anchor_sim + (t - self._src_anchor)
+        if self._env_last is not None and self.env_lead_max_s is not None:
+            v = min(v, self._env_last + self.env_lead_max_s)   # 멈춘 환경보다 너무 앞서지 않는다
+            v = max(v, self._last_value)                       # 앞서 갔던 만큼은 기다린다 (뒤로 가지 않는다)
         self._last_value = v
         return v
 
@@ -125,12 +133,17 @@ class SimClock:
         self.env_step, self.env_synced_at = sim_step, self._anchor_wall
         return {"sim_time_s": env_s, "drift_s": self.last_drift_s, "reset": reset}
 
-    def follow_env(self, sim_time_s: float) -> dict:
+    def follow_env(self, sim_time_s: float, restart: bool = False) -> dict:
         """환경 서버의 시뮬레이션 초를 그대로 받는다 (스텝 번호가 아니라 초). 값이 바뀔 때마다 부른다.
-        환경은 스텝 단위로만 움직이므로(트윈: 2100초씩) 그 사이는 벽시계 × TIME_SCALE 로 이어 간다."""
+        환경은 스텝 단위로만 움직이므로 그 사이는 벽시계 × TIME_SCALE 로 이어 간다.
+        env_lead_max_s 가 있으면 우리 시계가 환경보다 앞서 있던 만큼은 환경이 따라올 때까지 기다린다 (뒤로 가지 않음).
+        restart=True (새 실행) 면 환경 시각으로 그대로 돌아간다."""
         before = self.now()
         self._held = None
         self._rebase(float(sim_time_s), self._read_source())
+        self._env_last = float(sim_time_s)
+        if not restart and self.env_lead_max_s is not None:
+            self._last_value = max(before, float(sim_time_s))
         self.env_synced_at = self._anchor_wall
         self.last_drift_s = round(before - sim_time_s, 1)
         return {"sim_time_s": sim_time_s, "drift_s": self.last_drift_s}

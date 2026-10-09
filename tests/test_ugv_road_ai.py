@@ -459,6 +459,6 @@ def test_twin_scenario_matches_first_dispatch():
         else:
             assert extra < 10 and closure > 60                               # 우회가 이긴다
     kb = RoadNews.load([NEWS, ROOT / "ugv" / "scenarios" / "twin_inje"])
-    assert "N12" in [h["id"] for h in kb.search("통제 해제", 13 * 60, ["682501557"])["hits"]]
-    assert "N13" in [h["id"] for h in kb.search("통제", 13 * 60, ["683400994"])["hits"]]
-    assert "N12" not in [h["id"] for h in kb.search("통제 해제", 12 * 60, ["682501557"])["hits"]]   # 14:58 전엔 없음
+    assert "N12" in [h["id"] for h in kb.search("통제 해제", 10 * 60, ["682501557"])["hits"]]
+    assert "N13" in [h["id"] for h in kb.search("통제", 10 * 60, ["683400994"])["hits"]]
+    assert "N12" not in [h["id"] for h in kb.search("통제 해제", 9 * 60, ["682501557"])["hits"]]   # 14:55 전엔 없음

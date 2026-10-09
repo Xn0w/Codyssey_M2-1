@@ -73,6 +73,10 @@ REPORT_URL = os.getenv("UGV_REPORT_URL", "")
 # 비우면 UGV 서버 혼자 시계 (서버 시작 = 0). 환경이 없으면 조용히 혼자 간다.
 ENV_URL = os.getenv("UGV_ENV_URL", "http://127.0.0.1:8300")
 ENV_CLOCK_POLL_S = float(os.getenv("UGV_ENV_CLOCK_POLL_S", "1.0"))
+# 환경을 따라갈 때 마지막 환경 시각보다 최대 이만큼(시뮬레이션 초)만 앞서 간다 — 환경이 멈추면(트윈 시계가 총괄 LLM 을
+# 기다리는 동안) UGV 시계·sim 주행도 멈춘다. 기본: 시계 확인 두 번 사이에 환경이 나아가는 양의 2배 (100배속 1초 확인 → 200초).
+# 0 이면 끔 (예전처럼 벽시계 × 배속으로 계속 — 환경이 멈춰도 차는 달리고, 다시 맞출 때 시계가 뒤로 간다)
+ENV_LEAD_MAX_S = float(os.getenv("UGV_ENV_LEAD_MAX_S", str(max(60.0, 2 * ENV_CLOCK_POLL_S * TIME_SCALE))))
 # 총괄 주소 — 도로 상황판의 노드 클릭 출동 요청을 여기 POST /tasks 로 전달한다 (ugv/server.py /view/dispatch)
 ORCH_URL = os.getenv("UGV_ORCH_URL", "http://127.0.0.1:8200")
 

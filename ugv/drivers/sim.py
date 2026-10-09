@@ -28,6 +28,9 @@ class SimDriver(MotionDriver):
         self._progress = (0, 0)
         self._task: asyncio.Task | None = None
         self._speed = 0.0
+        # 시뮬레이션 시계 (서버의 SimClock.now). 있으면 tick 마다 '시계가 흐른 만큼' 움직인다 — 환경 시계가 멈추면
+        # (트윈 시계가 총괄 LLM 을 기다리는 동안) 차도 선다. 없으면 예전처럼 벽시계 × time_scale.
+        self.sim_now = None
 
     async def connect(self) -> None:
         pass
@@ -69,8 +72,13 @@ class SimDriver(MotionDriver):
         """tick 마다 '구간 속도 × time_scale × tick_s' 만큼 이동한다. 한 tick 에 웨이포인트를
         여러 개 지날 수 있다 — 고배속에서 웨이포인트마다 tick 을 하나씩 쓰면 시계보다 늦어진다."""
         i, n = 0, len(waypoints)
+        last = self.sim_now() if self.sim_now else None
         while i < n:
-            budget = self.tick_s * self.time_scale          # 이번 tick 의 시뮬레이션 초
+            if self.sim_now:
+                now = self.sim_now()
+                budget, last = max(0.0, now - last), now     # 시계가 흐른 만큼 (멈췄으면 0)
+            else:
+                budget = self.tick_s * self.time_scale       # 이번 tick 의 시뮬레이션 초
             self._speed = speeds[i]
             while i < n and budget > 0:
                 target, v = waypoints[i], speeds[i]

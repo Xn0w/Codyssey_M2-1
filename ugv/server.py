@@ -131,7 +131,7 @@ async def _env_clock_loop() -> None:
                         clock.hold(float(t))
                         res = {"drift_s": None}
                     else:
-                        res = clock.follow_env(float(t))
+                        res = clock.follow_env(float(t), restart=restart)
                     if scenario is not None:
                         if restart:
                             scenario.reset(roads)
@@ -165,7 +165,8 @@ async def _refresh_loop() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global fleet, roads, clock, scenario, reporter, history, road_ai
-    clock = SimClock(config.TIME_SCALE, config.SECONDS_PER_ENV_STEP)
+    clock = SimClock(config.TIME_SCALE, config.SECONDS_PER_ENV_STEP,
+                     env_lead_max_s=config.ENV_LEAD_MAX_S if config.ENV_LEAD_MAX_S > 0 else None)
     history = History(os.getenv("UGV_HISTORY_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".state", "history")),
                       clock, enabled=os.getenv("UGV_HISTORY", "1") != "0",
                       keep=int(os.getenv("UGV_HISTORY_KEEP", "30")))
@@ -180,6 +181,9 @@ async def lifespan(app: FastAPI):
         scenario.validate(roads)                    # 없는 도로 id 면 여기서 바로 실패
         log.info("시나리오 %s: 규칙 %d개 (%s)", scenario.name, len(scenario.rules), scenario.source)
     await fleet.connect_all()                       # PX4 는 연결될 때까지 대기
+    for a in fleet.agents.values():                 # sim 주행은 이 시계로 움직인다 — 환경 시계가 멈추면 차도 선다
+        if hasattr(a.driver, "sim_now"):
+            a.driver.sim_now = clock.now
     if CLOCK_FOLLOWS_PX4 and any(_driver_kind(a) == "px4" for a in fleet.agents.values()):
         clock.set_source(_px4_time)                 # 시계 흐름 = PX4(Gazebo) 시뮬레이션 시간 (ugv/sim_clock.py)
     history.record("RUN_START", driver=DRIVER, time_scale=config.TIME_SCALE,
