@@ -320,3 +320,29 @@ def test_news_site_api(tmp_path):
         assert {h["kind"] for h in g["hits"]} == {"guide"}
     finally:
         _stop(p)
+
+
+def test_agent_dispatch_scenario_matches_routes_and_news():
+    """시연 시나리오 2 (ugv/scenarios/agent_dispatch.csv): 막히는 도로가 A·B 의 기본 경로 위에 있고, 기사 시각과 맞는다.
+    A: 짧은 통제·우회 +20분 이상 → 대기가 맞는 상황, B: 긴 통제·우회 +10분 미만 → 우회가 맞는 상황."""
+    from ugv import config
+    from ugv.fleet import GroundFleet
+    from ugv.scenario import Scenario
+    sc = Scenario.load(ROOT / "ugv" / "scenarios" / "agent_dispatch.csv", 60.0)
+    assert len(sc.rules) == 2
+    f = GroundFleet(use_px4=False, graph_data=graph_gpkg, time_scale=10)
+    g, speed = f.graph, config.RESOURCES[0]["sim_speed_mps"]
+    goal = g.nearest_node(38.02845, 128.1309)[0].node_id
+    for base, road, min_extra, max_extra in (("A", "682501557", 20, None), ("B", "683400994", 0, 10)):
+        r = g.find_route(base, goal, speed)
+        assert road in [l["road_id"] for l in g.legs(r.path, speed)]
+        g.get_road(road).blocked = True
+        extra = (g.find_route(base, goal, speed).eta_s - r.eta_s) / 60
+        g.get_road(road).blocked = False
+        assert extra >= min_extra and (max_extra is None or extra <= max_extra), (base, extra)
+    kb = RoadNews.load(NEWS)
+    a_ids = [h["id"] for h in kb.search("통제 해제", 4 * 60, ["682501557"])["hits"]]
+    b_ids = [h["id"] for h in kb.search("통제", 3 * 60, ["683400994"])["hits"]]
+    assert "N10" in a_ids and "N1" not in a_ids          # 그 도로 기사 + 일반 지침 (다른 설악로 구간 기사는 안 섞임)
+    assert "N11" in b_ids and "N10" not in b_ids
+    assert "N10" not in [h["id"] for h in kb.search("통제 해제", 2 * 60, ["682501557"])["hits"]]   # 00:03 전엔 없음

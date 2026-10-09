@@ -184,7 +184,7 @@ footer.show{display:flex}
     <div class="tabs">
       <button data-tab="log" class="on">기록<span class="cnt" id="cLog"></span></button>
       <button data-tab="scn">도로 상황<span class="cnt" id="cScn"></span></button>
-      <button data-tab="ai">도로 AI<span class="cnt" id="cAi"></span></button>
+      <button data-tab="ai" style="display:none">도로 AI<span class="cnt" id="cAi"></span></button>
     </div>
     <div class="flt" id="logFilter">
       <label><input type="checkbox" id="fProg"> 진행 보고</label>
@@ -1022,6 +1022,14 @@ let lastAiSig = "";
 function drawAi(t){
   const vis = S.events.filter(e => t == null || e.sim_time_s == null || e.sim_time_s <= t);
   const runStart = S.events.find(e => e.type === "RUN_START");
+  // 도로 AI 탭은 도로 AI 를 켠 실행(또는 판단 기록이 있는 지난 실행)에서만 보인다 (봉인 기능 — 꺼져 있으면 탭 자체를 숨김)
+  const aiOn = (runStart?.data?.ugv_agent || "").startsWith("ON") || S.events.some(e => e.type === "AGENT_REQUEST");
+  const aiBtn = document.querySelector('.tabs button[data-tab="ai"]');
+  if (aiBtn && aiBtn.style.display !== (aiOn ? "" : "none")){
+    aiBtn.style.display = aiOn ? "" : "none";
+    if (!aiOn && aiBtn.classList.contains("on")) document.querySelector('.tabs button[data-tab="log"]').click();
+  }
+  if (!aiOn) return;
   const cases = [], cur = {};
   for (const e of vis){
     const rid = e.resource_id;
@@ -1039,7 +1047,7 @@ function drawAi(t){
   const box = $("#tabAi"), agent = runStart?.data?.ugv_agent || "";
   if (!cases.length){
     box.innerHTML = `<div class="empty">${agent.startsWith("ON") ? `도로 AI 켜짐 (${esc(agent.slice(3))}) — 아직 판단 없음.<br>달리는 차의 앞길이 막히면 여기에 요청·기사 검색·결정이 나온다.`
-      : "도로 AI 꺼짐 — 서버를 UGV_AGENT=1 로 띄우면 켜진다."}</div>`;
+      : "이 실행에는 도로 AI 판단 기록이 없다."}</div>`;
     return;
   }
   const names = ids => { const out = []; (ids || []).forEach(id => { const n = roadInfo[id]?.name || id; if (out[out.length - 1] !== n) out.push(n); }); return out.join(" → "); };
