@@ -171,11 +171,9 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 경로(`/ugv/{id}/route` 의 `legs`, 실행 기록 `ROUTE`) 마지막에 꼬리 구간이 `to: null`, `to_point: {lat, lon}` 으로 붙는다.
 보고(`UGV_TASK_STARTED`·`UGV_ARRIVED`)와 task 상태에 `stop_point` 가 실린다. 총괄은 이 필드를 몰라도 된다 (노드 방식과 같은 흐름).
 
-ETA(시뮬레이션 초)는 도로마다 `길이 ÷ min(도로등급별 속도, 차량 최고속도) × 혼잡 배율` 의 합이다.
-도로등급 속도(잠정): 고속국도 80, 일반국도 60, 지방도 50, 시군도 30 km/h. 차량 최고속도는 `ugv/config.py` `max_speed_mps`
-(Gazebo 차량 기준: UGV·소방차 모두 2.0 m/s) — 그래서 PX4 주행 ETA 는 사실상 차량 속도가 정한다 (A→B 29 km ≈ 4.1 h).
-sim 드라이버로 달릴 때는 `sim_speed_mps` 가 있으면 그 값을 쓴다 — 소방차 11.0 m/s(약 40 km/h). 이때는 시군도 30 km/h 구간은
-도로 속도가, 그 밖은 차량 속도가 정한다 (A→B 약 47분). ETA 와 sim 주행이 같은 값을 쓴다.
+ETA(시뮬레이션 초)는 도로마다 `길이 ÷ 차량 속도 × 혼잡 배율` 의 합이다. 도로 제한속도는 보지 않는다 — 막힘·혼잡만 차를 늦춘다.
+차량 속도는 `ugv/config.py`: PX4 주행은 `max_speed_mps` (Gazebo r1_rover 2.0 m/s, A→B 29 km ≈ 4.1 h),
+sim 드라이버 주행은 `sim_speed_mps` — 세 대 모두 19.4 m/s(약 70 km/h, A→B 약 25분). ETA 와 주행이 같은 값을 쓴다.
 PX4 차량도 같은 구간 속도로 달린다 (미션 항목별 속도).
 
 ## POST /ugv/{resource_id}/execute
