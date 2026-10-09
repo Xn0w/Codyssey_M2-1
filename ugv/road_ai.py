@@ -127,7 +127,8 @@ class RoadAI:
         return {"type": "AGENT_TOOL", "tool": "search_road_news", "by": by, "query": query, "road_ids": road_ids,
                 "kind": kind, "hits": [h["id"] for h in found["hits"]], "titles": [h["title"] for h in found["hits"]],
                 "chunks": [c for h in found["hits"] for c in h.get("chunk_ids", [])],
-                "method": found["method"], "road_filter": found["road_filter"]}
+                "method": found["method"], "fusion": found.get("fusion"), "road_filter": found["road_filter"],
+                "source": found.get("source", "local")}
 
     @staticmethod
     def _cite(h: dict) -> str:

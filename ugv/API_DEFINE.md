@@ -323,8 +323,22 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 2. **색인** — BM25(낱말 + 글자 두 개 묶음) 통계와 조각 임베딩(`gemini-embedding-001`). 임베딩은 디스크 캐시
    (`UGV_AGENT_RAG_CACHE`, 모델별 파일, 조각 내용 해시 → 벡터)에 남겨 **바뀐 조각만** 다시 만든다
 3. **거르기** — 지금 시각까지 나온 자료만(미래 기사는 못 읽음), `kind`, 도로 id(그 도로를 다룬 자료 + 도로를 정하지 않은 일반 지침. 하나도 없으면 시각만 거름 `relaxed`)
-4. **순위** — BM25(최고값으로 나눔)와 코사인 유사도를 반씩. 문서 단위로 묶어 상위 `UGV_AGENT_RAG_K`(3)개, 문서마다 맞은 조각 최대 2개를 본문으로. 임베딩이 안 되면 BM25 만. 계산은 numpy, UGV 서버 안에서
+4. **순위** — 순위 합치기 RRF: BM25 순위와 임베딩 코사인 순위를 각각 매겨 점수 = 1/(60 + BM25 순위) + 1/(60 + 코사인 순위)
+   (BM25 가 0, 즉 낱말이 하나도 안 겹친 조각은 BM25 몫 0). 점수 범위가 달라도 두 검색이 같은 무게로 반영된다.
+   예전 '점수 반반 더하기'는 코사인 값이 좁은 범위(0.6~0.8)에 몰려 사실상 BM25 만 일했다 (2026-10-09 실측: 두 방식 점수가 같았음).
+   문서 단위로 묶어 상위 `UGV_AGENT_RAG_K`(3)개, 문서마다 맞은 조각 최대 2개를 본문으로. 임베딩이 안 되면 BM25 만. 계산은 numpy
 5. **근거 표기** — 결정의 `article_ids` 에 문서 id(N…, G…)
+
+**가상 뉴스 사이트 — 지식 베이스를 웹으로** (`GET /news`, `ugv/static/news.html`, 도로 AI 가 꺼져 있어도 열린다)
+- 화면: 교통 기사·운영 지침 목록(최신 먼저), 본문(`/news#/N1`), 검색창(순위·점수·BM25/임베딩 순위·맞은 조각), 시각 막대.
+  **지금 시각까지 나온 자료만** 보인다 — 미래 기사는 목록·본문·검색 모두에서 숨김 (도로 AI 와 같은 규칙)
+- API (`now_s` 를 안 주면 서버 시계의 지금):
+  - `GET /news/api/articles?now_s=&kind=` — 목록 `{now_kst, total, upcoming, articles:[{id, kind, title, published_kst, road_names, excerpt}]}`
+  - `GET /news/api/articles/{id}?now_s=` — 본문. 아직 나오지 않은 기사는 404
+  - `GET /news/api/search?q=&road_ids=a,b&kind=&k=&now_s=` — 검색 (`RoadNews.search` 와 같은 결과 + `published_kst`)
+- **도로 AI 의 검색 도구 `search_road_news` 는 이 웹 API 를 부른다** (`UGV_AGENT_NEWS_URL`, 기본 `http://127.0.0.1:8100`).
+  기록 `AGENT_TOOL.source` 가 `news_api GET /news/api/search`. API 가 안 되면 서버 안에서 직접 찾고 source 에 사유 (판단은 멈추지 않음)
+- 상황판 상단 "교통 소식 ↗", 도로 AI 탭의 검색 결과 기사 id 를 누르면 그 기사가 열린다
 
 **점검·평가 도구**
 - `python -m ugv.tools.rag_index [--chunks] [--embed]` — 문서·조각 목록, 캐시 상태. `--embed` 는 캐시에 없는 조각만 임베딩해 저장
@@ -352,6 +366,7 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 | `UGV_AGENT_NEWS` | `ugv/knowledge` | 지식 베이스 폴더 (예전 기사 묶음 JSON 도 읽는다) |
 | `UGV_AGENT_RAG_CACHE` | `ugv/.state/rag_cache` | 조각 임베딩 디스크 캐시 (git 제외) |
 | `UGV_AGENT_RAG_K` | `3` | 검색 한 번에 돌려줄 문서 수 |
+| `UGV_AGENT_NEWS_URL` | `http://127.0.0.1:8100` | 도로 AI 가 지식 베이스를 찾는 웹 API 주소 (이 서버의 `/news/api/search`). 다른 포트로 띄우면 맞춘다. 비우면 서버 안에서 직접 |
 | `UGV_AGENT_BASE_URL` | Gemini v1beta | 시험에서 가짜 서버로 바꿀 때 |
 
 **시연 시나리오**: `UGV_SCENARIO=ugv/scenarios/agent_block.csv` — 14:48(00:03)~15:30(00:45) 설악로 682501434 통제 (약 70 km/h 차가 설악로에 닿기 전), 기사 N1(00:02, "약 40분, 15시 30분 재개 예정")·N4(00:20, "조기 해제", 그 전엔 안 보임), 지침 G1(대기·우회 기준)과 맞춰 놓았다.

@@ -15,7 +15,9 @@
 #      임베딩은 디스크 캐시(UGV_AGENT_RAG_CACHE, 모델별 파일)에 '조각 내용 해시 → 벡터'로 남겨 바뀐 조각만 다시 만든다
 #   3. 검색 — 메타데이터로 거른다: 지금 시각까지 나온 것만(미래 기사는 못 읽는다), kind, 도로 id
 #      (그 도로를 다룬 문서 + 도로를 정하지 않은 일반 지침. 하나도 없으면 시각만 거른 전체에서 찾고 road_filter="relaxed")
-#      → 점수 = BM25(최고값으로 나눔) 와 임베딩 코사인 유사도를 반씩 (임베딩이 없거나 실패하면 BM25 만)
+#      → 순위 합치기 RRF(Reciprocal Rank Fusion): BM25 순위와 임베딩 코사인 순위를 각각 매겨
+#        점수 = 1/(RRF_K + BM25 순위) + 1/(RRF_K + 코사인 순위). 두 점수의 범위가 달라도 두 검색이 같은 무게로 반영된다.
+#        임베딩이 없거나 실패하면 BM25 만 (점수 = BM25 ÷ 그 검색의 최고 BM25)
 #      → 문서 단위로 묶어 상위 k 개 문서, 문서마다 맞은 조각(최대 2개)을 본문으로 돌려준다
 # 계산은 numpy. 결과의 id 는 문서 id(N1, G1 …)라 판단의 근거 표기(article_ids)에 그대로 쓴다.
 
@@ -30,6 +32,7 @@ import numpy as np
 from .scenario import fmt_time, parse_time
 
 K1, B = 1.5, 0.75
+RRF_K = 60                 # RRF 상수 (널리 쓰는 기본값). 순위 차이를 얼마나 완만하게 볼지
 CHUNK_CHARS = 220          # 조각 최대 글자 수 (문단을 이 길이까지 합친다)
 CHUNKS_PER_DOC = 2         # 검색 결과에서 문서마다 돌려줄 조각 수
 KINDS = ("news", "guide")
@@ -242,17 +245,26 @@ class RoadNews:
         q = tokens(query or "")
         bm = np.array([self._bm25(q, i) for i in pool])
         bm_n = bm / bm.max() if bm.max() > 0 else bm
-        cos, method = None, "bm25"
+        cos, method, fusion = None, "bm25", "bm25_only"
         if use_embedding and self.embed is not None and query:
             try:
                 docs = self.build_index()
                 qv = np.asarray(self.embed([query], "RETRIEVAL_QUERY")[0], dtype=float)
                 qv = qv / max(np.linalg.norm(qv), 1e-12)
                 cos = docs[pool] @ qv
-                method = "bm25+embedding"
+                method, fusion = "bm25+embedding", "rrf"
             except Exception as e:   # noqa: BLE001 — 임베딩이 안 되면 BM25 만
                 method = f"bm25 (임베딩 실패: {type(e).__name__})"
-        score = bm_n if cos is None else 0.5 * bm_n + 0.5 * (cos + 1) / 2
+        rank_bm = np.empty(len(pool), dtype=int)
+        rank_bm[np.argsort(-bm, kind="stable")] = np.arange(1, len(pool) + 1)
+        rank_cos = None
+        if cos is None:
+            score = bm_n
+        else:
+            rank_cos = np.empty(len(pool), dtype=int)
+            rank_cos[np.argsort(-cos, kind="stable")] = np.arange(1, len(pool) + 1)
+            # BM25 가 0 (낱말이 하나도 안 겹침) 인 조각은 BM25 목록에 없는 것으로 본다 — 순위 점수를 주지 않는다
+            score = np.where(bm > 0, 1.0 / (RRF_K + rank_bm), 0.0) + 1.0 / (RRF_K + rank_cos)
         by_doc: dict[int, list[int]] = {}
         for j in np.argsort(-score, kind="stable"):
             by_doc.setdefault(self.chunks[pool[j]]["doc"], []).append(int(j))
@@ -266,8 +278,60 @@ class RoadNews:
                          "body": " … ".join(self.chunks[pool[j]]["text"] for j in top),
                          "chunk_ids": [self.chunks[pool[j]]["chunk_id"] for j in top],
                          "published": fmt_time(a["published_s"]) if a.get("published") else None,
-                         "road_ids": a["road_ids"], "score": round(float(score[best]), 3),
-                         "bm25": round(float(bm[best]), 3),
-                         "cosine": None if cos is None else round(float(cos[best]), 3)})
-        return {"hits": hits, "road_filter": road_filter, "method": method, "visible": n_visible_docs,
-                "chunks_scored": len(pool)}
+                         "road_ids": a["road_ids"], "score": round(float(score[best]), 5),
+                         "bm25": round(float(bm[best]), 3), "rank_bm25": int(rank_bm[best]),
+                         "cosine": None if cos is None else round(float(cos[best]), 3),
+                         "rank_cosine": None if rank_cos is None else int(rank_cos[best])})
+        return {"hits": hits, "road_filter": road_filter, "method": method, "fusion": fusion,
+                "visible": n_visible_docs, "chunks_scored": len(pool)}
+
+    # --- 뉴스 사이트용 조회 (ugv/server.py /news/api) ----------------------------
+    def visible_docs(self, now_s: float, kind: str | None = None) -> list[dict]:
+        """지금 시각까지 나온 문서 (최신 먼저, 지침은 뒤). 본문 포함."""
+        out = [a for a in self.articles if a["published_s"] <= now_s and (kind is None or a["kind"] == kind)]
+        return sorted(out, key=lambda a: (a["kind"] != "news", -a["published_s"], a["id"]))
+
+    def doc(self, doc_id: str) -> dict | None:
+        return next((a for a in self.articles if a["id"] == doc_id), None)
+
+
+class NewsApiClient:
+    """도로 AI 가 지식 베이스를 웹 API(GET {base}/news/api/search)로 찾게 하는 클라이언트. RoadNews.search 와 같은 모양으로 돌려준다.
+    API 가 안 되면(서버 미기동·오류) local(RoadNews) 로 직접 찾고 source 에 사유를 남긴다 — 판단은 멈추지 않는다."""
+
+    def __init__(self, base_url: str, local: "RoadNews | None" = None, timeout_s: float = 5.0, http=None):
+        self.base, self.local, self.timeout_s, self._http = base_url.rstrip("/"), local, timeout_s, http
+
+    @property
+    def start_kst(self):
+        return getattr(self.local, "start_kst", None)
+
+    @property
+    def articles(self):
+        return getattr(self.local, "articles", [])
+
+    def stats(self) -> dict:
+        return {**(self.local.stats() if self.local else {}), "via": f"{self.base}/news/api/search"}
+
+    def search(self, query: str, now_s: float, road_ids: list[str] | None = None, k: int = 3,
+               kind: str | None = None, use_embedding: bool = True) -> dict:
+        params = {"q": query or "", "now_s": now_s, "k": k}
+        if road_ids:
+            params["road_ids"] = ",".join(str(r) for r in road_ids)
+        if kind:
+            params["kind"] = kind
+        url = f"{self.base}/news/api/search"
+        try:
+            if self._http is not None:
+                data = self._http(url, params, self.timeout_s)
+            else:
+                import httpx
+                r = httpx.get(url, params=params, timeout=self.timeout_s)
+                r.raise_for_status()
+                data = r.json()
+            return {**data, "source": f"news_api GET /news/api/search"}
+        except Exception as e:   # noqa: BLE001 — 웹 API 가 안 되면 내부 검색으로
+            if self.local is None:
+                raise
+            out = self.local.search(query, now_s, road_ids, k=k, kind=kind, use_embedding=use_embedding)
+            return {**out, "source": f"local (뉴스 API 실패: {type(e).__name__})"}

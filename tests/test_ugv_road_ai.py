@@ -197,7 +197,7 @@ def test_server_waits_then_continues_original_road(tmp_path):
     gem, url_g, calls = _fake_gemini()
     scen = tmp_path / "block.csv"
     scen.write_text("kind,target,start,end,value,note\nroad,682501434,00:02,00:20,,시험 통제\n", encoding="utf-8")
-    p, url = _start(tmp_path, str(scen), UGV_AGENT="1", UGV_AGENT_API_KEY="test-key", UGV_AGENT_BASE_URL=url_g,
+    p, url = _start(tmp_path, str(scen), UGV_AGENT="1", UGV_AGENT_API_KEY="test-key", UGV_AGENT_BASE_URL=url_g, UGV_AGENT_NEWS_URL="http://127.0.0.1:{port}",
                     UGV_TIME_SCALE="50")
     try:
         assert httpx.get(url + "/history/runs").json()
@@ -221,6 +221,7 @@ def test_server_waits_then_continues_original_road(tmp_path):
         req = next(e for e in ev if e["type"] == "AGENT_REQUEST")["data"]
         assert "지금 시각 14:4" in req["prompt"]          # 환경 서버 없이도 기사와 같은 실제 시각 (00:02 = 14:47)
         tool = next(e for e in ev if e["type"] == "AGENT_TOOL")["data"]
+        assert tool["source"].startswith("news_api"), tool          # 도로 AI 는 뉴스 사이트 웹 API 로 찾는다
         assert tool["titles"] and len(tool["titles"]) == len(tool["hits"])   # 상황판 도로 AI 탭이 제목을 보여 준다
         dec = next(e for e in ev if e["type"] == "AGENT_DECISION")["data"]
         assert dec["decision"] == "WAIT" and dec["article_ids"] == ["N1"]
@@ -240,7 +241,7 @@ def test_server_route2_follows_alternative(tmp_path):
     gem, url_g, _ = _fake_gemini("ROUTE_2")
     scen = tmp_path / "block.csv"
     scen.write_text("kind,target,start,end,value,note\nroad,682501434,00:02,,,시험 통제\n", encoding="utf-8")
-    p, url = _start(tmp_path, str(scen), UGV_AGENT="1", UGV_AGENT_API_KEY="test-key", UGV_AGENT_BASE_URL=url_g,
+    p, url = _start(tmp_path, str(scen), UGV_AGENT="1", UGV_AGENT_API_KEY="test-key", UGV_AGENT_BASE_URL=url_g, UGV_AGENT_NEWS_URL="http://127.0.0.1:{port}",
                     UGV_TIME_SCALE="50")
     try:
         tid = httpx.post(url + "/view/command", json={"resource_id": "A-ugv1", "node_id": "494955"}, timeout=30).json()["task_id"]
@@ -266,3 +267,56 @@ def test_server_route2_follows_alternative(tmp_path):
     finally:
         _stop(p)
         gem.should_exit = True
+
+
+def test_rrf_fusion_with_embedding(tmp_path):
+    """임베딩이 있으면 BM25 순위와 코사인 순위를 RRF 로 합친다 (점수 범위가 달라도 두 검색이 같은 무게)."""
+    from ugv.road_news import RRF_K
+
+    def embed(texts, task):          # '해제' 가 들어간 글을 같은 방향으로 — 낱말이 안 겹쳐도 뜻으로 찾는 흉내
+        return [[1.0, 0.0] if ("해제" in x or "풀리" in x) else [0.0, 1.0] for x in texts]
+    kb = RoadNews.load(NEWS, embed=embed, cache_dir=tmp_path, embed_model="fake")
+    r = kb.search("언제 풀리나", 7 * 60, ["682501434"])
+    assert r["fusion"] == "rrf" and r["method"] == "bm25+embedding"
+    h = r["hits"][0]
+    assert h["rank_cosine"] >= 1 and h["rank_bm25"] >= 1
+    assert abs(h["score"] - (1 / (RRF_K + h["rank_bm25"]) * (h["bm25"] > 0) + 1 / (RRF_K + h["rank_cosine"]))) < 1e-4
+    assert RoadNews.load(NEWS).search("언제 풀리나", 7 * 60)["fusion"] == "bm25_only"
+
+
+def test_news_api_client_falls_back_to_local():
+    from ugv.road_news import NewsApiClient
+    local = RoadNews.load(NEWS)
+
+    def boom(url, params, timeout):
+        raise ConnectionError("down")
+    c = NewsApiClient("http://127.0.0.1:9", local=local, http=boom)
+    r = c.search("설악로 통제 해제", 7 * 60, ["682501434"])
+    assert r["source"].startswith("local (뉴스 API 실패") and r["hits"][0]["id"] == "N1"
+    ok = NewsApiClient("http://x", local=local, http=lambda url, params, to: {"hits": [], "road_filter": "none",
+                                                                              "method": "bm25", "params": params})
+    r = ok.search("q", 60, ["a", "b"], k=2, kind="guide")
+    assert r["source"].startswith("news_api") and r["params"] == {"q": "q", "now_s": 60, "k": 2, "road_ids": "a,b",
+                                                                  "kind": "guide"}
+
+
+def test_news_site_api(tmp_path):
+    """가상 뉴스 사이트: 지금 시각까지 나온 자료만 목록·본문·검색에 보인다 (도로 AI 가 꺼져 있어도 사이트는 열린다)."""
+    from tests.test_ugv_road_view import _start, _stop
+    p, url = _start(tmp_path)
+    try:
+        assert "인제 도로·교통 소식" in httpx.get(url + "/news").text
+        d = httpx.get(url + "/news/api/articles", params={"now_s": 420}).json()
+        ids = [a["id"] for a in d["articles"]]
+        assert "N1" in ids and "N4" not in ids and d["upcoming"] >= 1 and d["now_kst"] == "14:52"
+        assert ids.index("N1") < ids.index("G1")                            # 기사(최신 먼저) 다음 지침
+        assert httpx.get(url + "/news/api/articles/N4", params={"now_s": 420}).status_code == 404   # 아직 안 나옴
+        a = httpx.get(url + "/news/api/articles/N4", params={"now_s": 25 * 60}).json()
+        assert a["published_kst"] == "15:05" and "설악로" in a["road_names"] and a["body"]
+        s = httpx.get(url + "/news/api/search", params={"q": "설악로 통제 해제", "road_ids": "682501434",
+                                                        "now_s": 420}).json()
+        assert s["hits"][0]["id"] == "N1" and s["hits"][0]["published_kst"] == "14:47" and s["fusion"] == "bm25_only"
+        g = httpx.get(url + "/news/api/search", params={"q": "기다릴지 우회할지", "kind": "guide", "now_s": 0}).json()
+        assert {h["kind"] for h in g["hits"]} == {"guide"}
+    finally:
+        _stop(p)

@@ -81,6 +81,7 @@ RESTART_CLOSED = STORE.reconcile_after_restart(
     basis="SIM_DRIVER_RESET" if DRIVER == "sim" else "PHYSICAL_STATE_FROM_TELEMETRY_AFTER_RESTART")
 _watchers: dict[str, asyncio.Task] = {}
 road_ai = None                                        # ugv/road_ai.py RoadAI — UGV_AGENT=1 일 때만 (봉인)
+_kb = None                                            # 도로 지식 베이스 (ugv/road_news.py) — 뉴스 사이트 /news 와 도로 AI 가 같이 쓴다
 history: History | None = None                       # 실행 기록 (lifespan 에서 만든다)             # task_id → 도착 감시 태스크
 
 
@@ -632,12 +633,32 @@ def _make_road_ai():
     news = RoadNews.load(news_path, config.SECONDS_PER_ENV_STEP,
                          embed=client.embed if (config.AGENT_EMBED and client.key) else None,
                          cache_dir=cache_dir, embed_model=config.AGENT_EMBED_MODEL)
-    ai = ra.RoadAI(client, news, config.AGENT_MODE, config.AGENT_MAX_CALLS, k=config.AGENT_RAG_K)
+    global _kb
+    _kb = news                                       # 뉴스 사이트도 같은 지식 베이스(임베딩 포함)를 쓴다
+    # 도로 AI 는 지식 베이스를 웹 API(뉴스 사이트 /news/api/search)로 찾는다. 비우면 서버 안에서 직접
+    source = ra_news = news
+    if config.AGENT_NEWS_URL:
+        from .road_news import NewsApiClient
+        ra_news = NewsApiClient(config.AGENT_NEWS_URL, local=news)
+        source = f"{config.AGENT_NEWS_URL}/news/api/search"
+    ai = ra.RoadAI(client, ra_news, config.AGENT_MODE, config.AGENT_MAX_CALLS, k=config.AGENT_RAG_K)
     st = news.stats()
-    log.info("도로 AI 켜짐: %s, 모델 %s, 지식 %d건(기사 %d, 지침 %d) 조각 %d개 (임베딩 캐시 %d)%s", ai.mode, client.model,
-             st["documents"], st["news"], st["guide"], st["chunks"], st["cached_vectors"],
-             "" if client.key else " — 키 없음(UGV_AGENT_API_KEY), 판단은 규칙(1순위 우회)으로")
+    log.info("도로 AI 켜짐: %s, 모델 %s, 지식 %d건(기사 %d, 지침 %d) 조각 %d개 (임베딩 캐시 %d), 검색 %s%s", ai.mode,
+             client.model, st["documents"], st["news"], st["guide"], st["chunks"], st["cached_vectors"],
+             source if source is not news else "서버 안", "" if client.key else
+             " — 키 없음(UGV_AGENT_API_KEY), 판단은 규칙(1순위 우회)으로")
     return ai
+
+
+def _knowledge():
+    """뉴스 사이트용 지식 베이스. 도로 AI 가 꺼져 있으면 처음 쓸 때 임베딩 없이(BM25 만) 읽는다."""
+    global _kb
+    if _kb is None:
+        from .road_news import RoadNews
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        path = config.AGENT_NEWS if os.path.isabs(config.AGENT_NEWS) else os.path.join(root, config.AGENT_NEWS)
+        _kb = RoadNews.load(path, config.SECONDS_PER_ENV_STEP)
+    return _kb
 
 
 def _start_kst() -> str | None:
@@ -645,10 +666,10 @@ def _start_kst() -> str | None:
     return _env_clock.get("scenario_start_kst") or (getattr(road_ai.news, "start_kst", None) if road_ai else None)
 
 
-def _kst(sim_s: float) -> str:
+def _kst(sim_s: float, start: str | None = None) -> str:
     """시뮬레이션 초 → 'HH:MM' (시작 시각을 알면 실제 시각, 모르면 시뮬레이션 시:분)."""
     from datetime import datetime, timedelta
-    start = _start_kst()
+    start = start or _start_kst()
     if start:
         try:
             return (datetime.fromisoformat(start) + timedelta(seconds=sim_s)).strftime("%H:%M")
@@ -1520,6 +1541,77 @@ async def graph_bases():
 async def road_view():
     """UGV 도로 상황판. 이 서버 API 만 폴링한다 (총괄·관제판과 무관)."""
     return FileResponse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "road_view.html"))
+
+
+# --- 도로·교통 소식 (가상 뉴스 사이트, ugv/static/news.html) — 도로 AI 가 찾는 지식 베이스를 웹으로 ---------
+# 시각: now_s(시뮬레이션 초)를 주지 않으면 서버 시계의 지금. 지금 시각 이후에 나올 기사는 목록·본문·검색 모두에서 숨긴다.
+
+def _news_now(now_s: float | None) -> float:
+    return clock.now() if now_s is None else float(now_s)
+
+
+def _news_kst(sim_s: float) -> str:
+    """뉴스 사이트 시각: 환경 서버 시각, 없으면 지식 베이스 meta.json 의 scenario_start_kst (기사 본문 시각과 맞춘다)."""
+    return _kst(sim_s, _start_kst() or getattr(_knowledge(), "start_kst", None))
+
+
+def _news_doc(a: dict, full: bool) -> dict:
+    names = []
+    for r in a["road_ids"]:
+        try:
+            n = fleet.graph.get_road(r).name or r
+        except KeyError:
+            n = r
+        if n not in names:
+            names.append(n)
+    out = {"id": a["id"], "kind": a["kind"], "title": a["title"], "published": a.get("published"),
+           "published_kst": _news_kst(a["published_s"]) if a.get("published") else None,
+           "road_ids": a["road_ids"], "road_names": names}
+    if full:
+        out["body"] = a["body"]
+    else:
+        out["excerpt"] = a["body"][:90] + ("…" if len(a["body"]) > 90 else "")
+    return out
+
+
+@app.get("/news", include_in_schema=False)
+async def news_page():
+    """가상 도로·교통 소식 사이트. 도로 AI 가 검색하는 자료를 사람이 보는 화면."""
+    return FileResponse(os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "news.html"))
+
+
+@app.get("/news/api/articles")
+def news_articles(now_s: float | None = None, kind: str | None = None):
+    """지금 시각까지 나온 기사·지침 목록 (최신 먼저). kind=news|guide."""
+    kb, now = _knowledge(), _news_now(now_s)
+    docs = kb.visible_docs(now, kind)
+    return {"now_s": now, "now_kst": _news_kst(now), "source": kb.source, "total": len(kb.articles),
+            "upcoming": sum(1 for a in kb.articles if a["published_s"] > now),
+            "articles": [_news_doc(a, False) for a in docs]}
+
+
+@app.get("/news/api/articles/{doc_id}")
+def news_article(doc_id: str, now_s: float | None = None):
+    """기사·지침 하나. 아직 나오지 않은 기사는 404."""
+    kb, now = _knowledge(), _news_now(now_s)
+    a = kb.doc(doc_id)
+    if a is None or a["published_s"] > now:
+        raise HTTPException(404, f"{doc_id}: 없거나 아직 나오지 않은 기사")
+    return _news_doc(a, True)
+
+
+@app.get("/news/api/search")
+def news_search(q: str = "", now_s: float | None = None, road_ids: str | None = None, kind: str | None = None,
+                k: int = 3):
+    """지식 베이스 검색 (도로 AI 의 search_road_news 가 부르는 API). road_ids 는 쉼표로.
+    반환은 ugv/road_news.py RoadNews.search 와 같고, 문서마다 published_kst 를 덧붙인다."""
+    kb, now = _knowledge(), _news_now(now_s)
+    ids = [r for r in (road_ids or "").split(",") if r.strip()]
+    out = kb.search(q, now, ids or None, k=max(1, min(int(k), 10)), kind=kind if kind in ("news", "guide") else None)
+    for h in out["hits"]:
+        a = kb.doc(h["id"])
+        h["published_kst"] = _news_kst(a["published_s"]) if a and a.get("published") else None
+    return {**out, "now_s": now, "now_kst": _news_kst(now), "query": q}
 
 
 @app.get("/history/runs")

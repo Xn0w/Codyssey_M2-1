@@ -98,6 +98,9 @@ AGENT_MAX_WAIT_S = float(os.getenv("UGV_AGENT_MAX_WAIT_S", "2700"))    # WAIT �
 AGENT_NEWS = os.getenv("UGV_AGENT_NEWS", "ugv/knowledge")                 # 지식 베이스 폴더 (ugv/road_news.py)
 AGENT_RAG_CACHE = os.getenv("UGV_AGENT_RAG_CACHE", "ugv/.state/rag_cache")   # 조각 임베딩 디스크 캐시 (바뀐 조각만 다시 만든다)
 AGENT_RAG_K = int(os.getenv("UGV_AGENT_RAG_K", "3"))                         # 검색 한 번에 돌려줄 문서 수
+# 도로 AI 가 지식 베이스를 찾는 웹 API (이 서버의 뉴스 사이트 GET /news/api/search). 서버를 다른 포트로 띄우면 맞춰 준다.
+# 비우면 서버 안에서 직접 찾는다. API 가 안 되면 자동으로 서버 안 검색 (기록의 source 에 사유)
+AGENT_NEWS_URL = os.getenv("UGV_AGENT_NEWS_URL", "http://127.0.0.1:8100")
 
 # 주행 파라미터 — 실측 보정 필요
 CRUISE_SPEED_MPS = 2.0

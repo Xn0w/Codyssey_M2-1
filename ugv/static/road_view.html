@@ -27,6 +27,8 @@ header h1{font-size:15px;margin:0 4px 0 0;font-weight:700;white-space:nowrap}
 .pill.live b{color:var(--ok)}
 .pill.alert{border-color:#7a2a2b;color:#ffb3b3}.pill.alert b{color:var(--bad)}
 header .grow{flex:1}
+#terrainBtn,#newsLink,#viewSeg,#mode,header .pill{white-space:nowrap;flex-shrink:0}
+.lg{min-width:0;overflow:hidden}
 .seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
 .seg button{border:0;border-radius:0;background:transparent;color:var(--dim);padding:5px 12px}
 .seg button.on{background:#223543;color:#fff}
@@ -164,6 +166,7 @@ footer.show{display:flex}
     <span class="grow"></span>
     <span class="lg"><span><i style="background:var(--road)"></i>원활</span><span><i style="background:var(--cong1)"></i>서행</span><span><i style="background:var(--cong2)"></i>정체</span><span><i style="background:var(--block)"></i>통제</span><span><i style="background:var(--route)"></i>경로</span><span><i style="background:var(--hl)"></i>선택 강조</span></span>
     <button id="terrainBtn" title="지형 배경 켜기/끄기 (지도 보기)">지형</button>
+    <a id="newsLink" href="/news" target="_blank" title="도로 AI 가 검색하는 가상 교통 기사·도로 운영 지침" style="font-size:12px;color:var(--dim);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:4px 8px">교통 소식 ↗</a>
   </header>
 
   <aside class="left">
@@ -1045,8 +1048,8 @@ function drawAi(t){
     const opts = (q.options || []).map(o => `<div class="opt ${o.name === pick ? "pick" : ""}"><b>${esc(o.name)}</b> ${durS(o.eta_s)} · ${(o.distance_m / 1000).toFixed(1)} km · ${esc(names(o.road_ids))}</div>`).join("")
       + `<div class="opt ${pick === "WAIT" ? "pick" : ""}"><b>WAIT</b> 열릴 때까지 기다림</div>`;
     const tools = c.tools.map(e => { const x = e.data || {};
-      return `<div class="q">${x.by === "model" ? "모델이 검색" : "서버가 미리 검색"} “${esc(x.query || "")}”${x.kind ? ` · ${x.kind === "guide" ? "지침" : "기사"}만` : ""} <span>(${esc(x.method || "")})</span>
-        ${(x.hits || []).map((h, i) => `<span class="hit">[${esc(h)}] ${esc((x.titles || [])[i] || "")}</span>`).join("") || `<span class="hit">결과 없음</span>`}</div>`; }).join("");
+      return `<div class="q">${x.by === "model" ? "모델이 검색" : "서버가 미리 검색"} “${esc(x.query || "")}”${x.kind ? ` · ${x.kind === "guide" ? "지침" : "기사"}만` : ""} <span>(${esc(x.method || "")}${x.fusion === "rrf" ? " · RRF" : ""}${x.source && x.source !== "local" ? " · " + esc(x.source) : ""})</span>
+        ${(x.hits || []).map((h, i) => `<a class="hit" href="/news#/${encodeURIComponent(h)}" target="_blank" style="text-decoration:none">[${esc(h)}] ${esc((x.titles || [])[i] || "")}</a>`).join("") || `<span class="hit">결과 없음</span>`}</div>`; }).join("");
     const dec = d ? `<div class="dec ${d.fallback ? "fb" : ""}"><b>${esc(pick)}</b>${pick === "WAIT" && d.wait_until ? ` ~${esc(d.wait_until)}` : ""} · ${esc(d.reason || "")}
         ${(d.article_ids || []).length ? `<div class="row">근거 자료 <b>${esc(d.article_ids.join(", "))}</b></div>` : ""}
         <div class="row">응답 ${d.latency_s != null ? d.latency_s.toFixed(1) + "초" : "–"}${d.fallback ? ` · <span style="color:var(--bad)">규칙 판단으로 넘어감: ${esc(d.fallback)}</span>` : ""}</div></div>`
