@@ -628,16 +628,20 @@ def _make_road_ai():
     client = ra.GeminiClient(os.getenv("UGV_AGENT_API_KEY"), config.AGENT_MODEL, config.AGENT_EMBED_MODEL,
                              config.AGENT_BASE_URL, config.AGENT_TIMEOUT_S)
     news_path = config.AGENT_NEWS if os.path.isabs(config.AGENT_NEWS) else os.path.join(root, config.AGENT_NEWS)
+    cache_dir = config.AGENT_RAG_CACHE if os.path.isabs(config.AGENT_RAG_CACHE) else os.path.join(root, config.AGENT_RAG_CACHE)
     news = RoadNews.load(news_path, config.SECONDS_PER_ENV_STEP,
-                         embed=client.embed if (config.AGENT_EMBED and client.key) else None)
-    ai = ra.RoadAI(client, news, config.AGENT_MODE, config.AGENT_MAX_CALLS)
-    log.info("도로 AI 켜짐: %s, 모델 %s, 기사 %d건%s", ai.mode, client.model, len(news.articles),
+                         embed=client.embed if (config.AGENT_EMBED and client.key) else None,
+                         cache_dir=cache_dir, embed_model=config.AGENT_EMBED_MODEL)
+    ai = ra.RoadAI(client, news, config.AGENT_MODE, config.AGENT_MAX_CALLS, k=config.AGENT_RAG_K)
+    st = news.stats()
+    log.info("도로 AI 켜짐: %s, 모델 %s, 지식 %d건(기사 %d, 지침 %d) 조각 %d개 (임베딩 캐시 %d)%s", ai.mode, client.model,
+             st["documents"], st["news"], st["guide"], st["chunks"], st["cached_vectors"],
              "" if client.key else " — 키 없음(UGV_AGENT_API_KEY), 판단은 규칙(1순위 우회)으로")
     return ai
 
 
 def _start_kst() -> str | None:
-    """시뮬레이션 0초의 실제 시각: 환경 서버 값, 없으면 도로 AI 기사 묶음의 scenario_start_kst (기사 본문 시각과 맞춘다)."""
+    """시뮬레이션 0초의 실제 시각: 환경 서버 값, 없으면 도로 AI 지식 베이스의 scenario_start_kst (자료 본문 시각과 맞춘다)."""
     return _env_clock.get("scenario_start_kst") or (getattr(road_ai.news, "start_kst", None) if road_ai else None)
 
 

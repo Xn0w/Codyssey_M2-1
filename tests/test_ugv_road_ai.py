@@ -3,7 +3,8 @@
 
 실행 (저장소 루트):  python -m pytest tests/test_ugv_road_ai.py -q
 - 2순위 경로: 1순위와 겹침 70% 미만 (ugv/route_alt.py)
-- 기사 검색: 지금 시각 이후 기사는 안 보임, 도로로 거르기, BM25 순위 (ugv/road_news.py)
+- 지식 검색(RAG, ugv/road_news.py·ugv/knowledge): 지금 시각 이후 기사는 안 보임, 도로로 거르기(일반 지침은 함께),
+  문단 조각·문서 단위 묶기, 임베딩 디스크 캐시(바뀐 조각만 다시), 평가 질문 hit@3
 - 판단: function calling(모델이 검색 → 결정), inline(서버가 기사를 넣음), 실패 시 1순위
 - 서버: 주행 중 막힘 → 차를 세우고 AI 에 묻고 → WAIT → 도로가 열리면 원래 길로 이어 도착
 """
@@ -24,7 +25,7 @@ from ugv.road_news import RoadNews
 from ugv.route_alt import best_and_alternative
 
 ROOT = Path(__file__).resolve().parents[1]
-NEWS = ROOT / "ugv" / "scenarios" / "road_news.json"
+NEWS = ROOT / "ugv" / "knowledge"
 
 
 def test_alternative_route_overlap():
@@ -40,11 +41,55 @@ def test_alternative_route_overlap():
 def test_news_time_and_road_filter():
     n = RoadNews.load(NEWS)
     r = n.search("설악로 통제 해제", 7 * 60, ["682501434"])
-    assert r["road_filter"] == "matched" and [h["id"] for h in r["hits"]] == ["N1"]   # N4(00:20)는 아직 안 나옴
+    ids = [h["id"] for h in r["hits"]]
+    assert r["road_filter"] == "matched" and ids[0] == "N1" and "N4" not in ids    # N4(00:20)는 아직 안 나옴
+    assert set(ids) <= {"N1", "G1"}                         # 그 도로 기사 + 일반 지침만 (다른 도로 기사는 빠짐)
     r = n.search("설악로 통제 해제", 25 * 60, ["682501434"])
     assert r["hits"][0]["id"] == "N4"
     r = n.search("기린로", 7 * 60, ["no-such-road"])
     assert r["road_filter"] == "relaxed" and r["hits"][0]["id"] == "N5"
+
+
+def test_knowledge_base_chunks_and_kinds():
+    from ugv.road_news import chunk_text
+    kb = RoadNews.load(NEWS)
+    st = kb.stats()
+    assert st["news"] >= 5 and st["guide"] >= 2 and st["chunks"] > st["documents"]       # 긴 지침은 여러 조각
+    assert all(len(c["text"]) <= 220 for c in kb.chunks)
+    assert chunk_text("가.\n\n나.\n\n다.", 5) == ["가. 나.", "다."]                  # 짧은 문단은 합친다
+    g = kb.search("통제 때 기다릴지 우회할지", 0, kind="guide")
+    assert {h["kind"] for h in g["hits"]} == {"guide"} and g["hits"][0]["id"] == "G1" and g["hits"][0]["published"] is None
+    assert kb.search("설악로 통제", 0, kind="news")["hits"][0]["kind"] == "news"
+
+
+def test_embedding_cache_reuses_vectors(tmp_path):
+    calls = []
+
+    def embed(texts, task):
+        calls.append((len(texts), task))
+        return [[float(len(t) % 5), 1.0, float(i % 3)] for i, t in enumerate(texts)]
+    kb = RoadNews.load(NEWS, embed=embed, cache_dir=tmp_path, embed_model="models/test-embed")
+    r = kb.search("설악로 통제 해제", 7 * 60, ["682501434"])
+    assert r["method"] == "bm25+embedding" and kb.embedded_new == len(kb.chunks)
+    assert calls[0] == (len(kb.chunks), "RETRIEVAL_DOCUMENT") and calls[1] == (1, "RETRIEVAL_QUERY")
+    assert (tmp_path / "models_test-embed.json").is_file()
+    again = RoadNews.load(NEWS, embed=embed, cache_dir=tmp_path, embed_model="models/test-embed")
+    again.search("설악로", 7 * 60)
+    assert again.embedded_new == 0 and calls[-1] == (1, "RETRIEVAL_QUERY")           # 문서 임베딩은 캐시에서
+
+
+def test_legacy_json_still_loads(tmp_path):
+    f = tmp_path / "news.json"
+    f.write_text(json.dumps({"articles": [{"id": "X1", "published": "00:01", "road_ids": ["r1"],
+                                           "title": "t", "body": "도로 통제 해제"}]}), encoding="utf-8")
+    assert RoadNews.load(f).search("통제", 120, ["r1"])["hits"][0]["id"] == "X1"
+
+
+def test_rag_eval_baseline():
+    from ugv.tools.rag_eval import evaluate
+    spec = json.loads((NEWS / "eval.json").read_text(encoding="utf-8"))
+    r = evaluate(RoadNews.load(NEWS), spec["questions"], spec["k"], use_embedding=False)
+    assert r["n"] >= 10 and r["hit_at_k"] >= 0.9, r
 
 
 def _situation(options=("ROUTE_1",)):
@@ -77,7 +122,8 @@ def test_function_calling_search_then_decide():
     assert fr["name"] == "search_road_news" and fr["response"]["articles"][0]["id"] == "N1"
     assert [e["type"] for e in out["trace"]] == ["AGENT_REQUEST", "AGENT_TOOL", "AGENT_DECISION"]
     assert seen[0]["toolConfig"]["functionCallingConfig"]["mode"] == "ANY"
-    assert "기사가 주어지지 않았으면 search_road_news" in seen[0]["systemInstruction"]["parts"][0]["text"]
+    assert "자료가 주어지지 않았으면 search_road_news" in seen[0]["systemInstruction"]["parts"][0]["text"]
+    assert out["trace"][1]["chunks"] and out["trace"][1]["chunks"][0].startswith("N1#")
 
 
 def test_inline_mode_puts_articles_in_prompt_and_wait():
@@ -90,7 +136,7 @@ def test_inline_mode_puts_articles_in_prompt_and_wait():
     ai = RoadAI(GeminiClient(None, "m", "e", http=http), RoadNews.load(NEWS), mode="inline")
     out = ai.decide(_situation())
     prompt = seen[0]["contents"][0]["parts"][0]["text"]
-    assert "참고 기사" in prompt and "[N1]" in prompt and "[N4]" not in prompt
+    assert "참고 자료" in prompt and "[N1]" in prompt and "[N4]" not in prompt and "[G1] (지침)" in prompt
     assert [t["name"] for t in seen[0]["tools"][0]["functionDeclarations"]] == ["submit_decision"]
     assert out["decision"] == "WAIT" and out["wait_until_s"] == 45 * 60
 

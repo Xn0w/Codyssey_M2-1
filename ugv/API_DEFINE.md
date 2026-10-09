@@ -313,31 +313,46 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 | `ROUTE_2` | 1순위와 겹치는 도로 길이가 70% 미만인 다른 우회 — Yen k-최단 경로를 짧은 순으로 40개까지 보고 첫 번째 (`ugv/route_alt.py`). 없으면 선택지에서 빠진다 |
 | `WAIT` | 막힌 도로가 곧 열린다고 보고 그 자리에서 대기. `wait_until`(HH:MM)까지, 그 전에 열리면 바로 원래 길로. 상한 `UGV_AGENT_MAX_WAIT_S`(45분) |
 
-**근거 — 교통 기사 검색 (RAG, `ugv/road_news.py`)**: 기사 묶음 `ugv/scenarios/road_news.json` (**직접 만든 가상 기사**, 실제 보도 아님).
-1. 메타데이터로 거름 — 지금 시각까지 나온 기사만(미래 기사는 못 읽음), 도로 id 를 주면 그 도로를 다룬 기사만 (없으면 시각만 거름)
-2. BM25(낱말 + 글자 두 개 묶음)와 임베딩(`gemini-embedding-001`) 코사인 유사도를 반씩 섞어 상위 3개. 임베딩이 안 되면 BM25 만. 계산은 numpy, UGV 서버 안에서
+**근거 — 지식 베이스 검색 (RAG, `ugv/road_news.py`)**: `ugv/knowledge/` (**직접 만든 가상 자료**, 실제 보도·실제 지침 아님)
+- `news/N*.md` 교통 기사 6건 — `published`(시나리오 시각) 이후에만 보이고 `road_ids` 로 도로와 묶인다
+- `guides/G*.md` 도로 운영 지침 2건 — 언제나 보인다. G1 통제 구간 대기·우회 기준(해제 예정 시각 +10분 여유 등), G2 신상촌길·가넷고개길 대형차 통행
+- 문서 머리말(`---`): `id`, `kind`(news|guide), `published`, `road_ids`, `title`. `meta.json` 에 출처 표기와 `scenario_start_kst`
 
-**방식** (`UGV_AGENT_MODE`, 시스템 프롬프트는 같음 — "기사가 주어지지 않았으면 search_road_news 로 먼저 찾아라")
-- `function_calling` (기본): 모델이 `search_road_news(query, road_ids)` 도구로 기사를 찾고 `submit_decision(decision, wait_until, reason, article_ids)` 로 결정. 매 턴 함수 호출 강제(`mode: ANY`), 최대 4턴
-- `inline`: 서버가 막힌 도로·우회 경로 도로로 기사를 먼저 찾아 프롬프트에 넣고, 모델은 `submit_decision` 만 부른다
+1. **조각내기** — 문서를 문단 단위로 자르고 220자까지 이어 붙인다 (지금 8문서 → 11조각). 조각마다 제목을 앞에 붙여 검색
+2. **색인** — BM25(낱말 + 글자 두 개 묶음) 통계와 조각 임베딩(`gemini-embedding-001`). 임베딩은 디스크 캐시
+   (`UGV_AGENT_RAG_CACHE`, 모델별 파일, 조각 내용 해시 → 벡터)에 남겨 **바뀐 조각만** 다시 만든다
+3. **거르기** — 지금 시각까지 나온 자료만(미래 기사는 못 읽음), `kind`, 도로 id(그 도로를 다룬 자료 + 도로를 정하지 않은 일반 지침. 하나도 없으면 시각만 거름 `relaxed`)
+4. **순위** — BM25(최고값으로 나눔)와 코사인 유사도를 반씩. 문서 단위로 묶어 상위 `UGV_AGENT_RAG_K`(3)개, 문서마다 맞은 조각 최대 2개를 본문으로. 임베딩이 안 되면 BM25 만. 계산은 numpy, UGV 서버 안에서
+5. **근거 표기** — 결정의 `article_ids` 에 문서 id(N…, G…)
+
+**점검·평가 도구**
+- `python -m ugv.tools.rag_index [--chunks] [--embed]` — 문서·조각 목록, 캐시 상태. `--embed` 는 캐시에 없는 조각만 임베딩해 저장
+- `python -m ugv.tools.rag_eval [--embed]` — `ugv/knowledge/eval.json` 10문항(그 시각·그 도로 조건)으로 hit@3·MRR. BM25 만 / BM25+임베딩 비교.
+  지금 BM25 만으로 hit@3 1.0, MRR 1.0 — 자료가 8건이라 쉬운 평가다 (자료를 늘리면 다시 잰다)
+
+**방식** (`UGV_AGENT_MODE`, 시스템 프롬프트는 같음 — "자료가 주어지지 않았으면 search_road_news 로 먼저 찾아라", 기사와 지침이 다르면 최근 현장 기사 우선)
+- `function_calling` (기본): 모델이 `search_road_news(query, road_ids, kind)` 도구로 기사·지침을 찾고 `submit_decision(decision, wait_until, reason, article_ids)` 로 결정. 매 턴 함수 호출 강제(`mode: ANY`), 최대 4턴
+- `inline`: 서버가 세 갈래로 먼저 찾아 프롬프트에 넣는다 — 막힌 도로 기사, 대기·우회 기준과 우회로 지침, 우회로 기사(각 2건, 중복 제거). 모델은 `submit_decision` 만 부른다
 
 **실패하면 항상 `ROUTE_1`** (키 없음·호출 한도·HTTP 오류·결정 없음·선택지에 없는 결정·잘못된 시각). 결과의 `fallback` 에 사유. 주행은 멈추지 않는다.
 
-**기록**: 실행 기록에 `AGENT_REQUEST`(상황·선택지·프롬프트) → `AGENT_TOOL`(검색어·찾은 기사) → `AGENT_DECISION`(결정·이유·근거 기사·대기 시각·fallback) → `UGV_WAITING`(대기 시) → `UGV_REROUTED`(`ai` 에 결정 요약). 상황판 기록에 한 줄씩 나온다.
+**기록**: 실행 기록에 `AGENT_REQUEST`(상황·선택지·프롬프트) → `AGENT_TOOL`(검색어·종류·찾은 문서와 조각 id·검색 방식) → `AGENT_DECISION`(결정·이유·근거 기사·대기 시각·fallback) → `UGV_WAITING`(대기 시) → `UGV_REROUTED`(`ai` 에 결정 요약). 상황판 기록에 한 줄씩 나온다.
 
 **설정**
 | 환경변수 | 기본값 | 설명 |
 |---|---|---|
 | `UGV_AGENT_API_KEY` | (없음) | Gemini 키. 총괄 키와 따로. 저장소 루트 `.env` 의 `UGV_*` 줄도 읽는다 |
-| `UGV_AGENT_MODE` | `function_calling` | `inline` 이면 기사를 프롬프트에 넣는 방식 |
-| `UGV_AGENT_MODEL` | `gemini-2.5-flash` | 판단 모델 |
-| `UGV_AGENT_EMBED_MODEL`, `UGV_AGENT_EMBED` | `gemini-embedding-001`, `1` | 기사 임베딩. `0` 이면 BM25 만 |
+| `UGV_AGENT_MODE` | `function_calling` | `inline` 이면 서버가 자료를 찾아 프롬프트에 넣는 방식 |
+| `UGV_AGENT_MODEL` | `gemini-3.8-flash` | 판단 모델 (`gemini-2.5-flash` 는 새 사용자에게 막혀 2026-10-09 교체). 서버는 `.env` 가 아니라 셸 환경변수로 줘야 한다 |
+| `UGV_AGENT_EMBED_MODEL`, `UGV_AGENT_EMBED` | `gemini-embedding-001`, `1` | 조각 임베딩. `0` 이면 BM25 만 |
 | `UGV_AGENT_TIMEOUT_S`, `UGV_AGENT_MAX_CALLS` | `20`, `30` | 호출 하나의 제한 시간(실제 초), 서버 1회 실행당 호출 한도 |
 | `UGV_AGENT_MAX_WAIT_S` | `2700` | WAIT 상한 (시뮬레이션 초) |
-| `UGV_AGENT_NEWS` | `ugv/scenarios/road_news.json` | 기사 묶음 |
+| `UGV_AGENT_NEWS` | `ugv/knowledge` | 지식 베이스 폴더 (예전 기사 묶음 JSON 도 읽는다) |
+| `UGV_AGENT_RAG_CACHE` | `ugv/.state/rag_cache` | 조각 임베딩 디스크 캐시 (git 제외) |
+| `UGV_AGENT_RAG_K` | `3` | 검색 한 번에 돌려줄 문서 수 |
 | `UGV_AGENT_BASE_URL` | Gemini v1beta | 시험에서 가짜 서버로 바꿀 때 |
 
-**시연 시나리오**: `UGV_SCENARIO=ugv/scenarios/agent_block.csv` — 14:48(00:03)~15:30(00:45) 설악로 682501434 통제 (약 70 km/h 차가 설악로에 닿기 전), 기사 N1(00:02, "약 40분, 15시 30분 재개 예정")·N4(00:20, "조기 해제", 그 전엔 안 보임)와 맞춰 놓았다.
+**시연 시나리오**: `UGV_SCENARIO=ugv/scenarios/agent_block.csv` — 14:48(00:03)~15:30(00:45) 설악로 682501434 통제 (약 70 km/h 차가 설악로에 닿기 전), 기사 N1(00:02, "약 40분, 15시 30분 재개 예정")·N4(00:20, "조기 해제", 그 전엔 안 보임), 지침 G1(대기·우회 기준)과 맞춰 놓았다.
 
 **연결 확인 (서버 없이)**: `python -m ugv.tools.road_ai_probe [--mode inline] [--no-embed]` — 같은 상황을 실제 Gemini 에 넣고 결정·검색·호출 수를 찍는다.
 

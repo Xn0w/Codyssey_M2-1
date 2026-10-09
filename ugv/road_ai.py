@@ -6,11 +6,11 @@
 #   ROUTE_1  지금 가장 빠른 우회 (AI 를 끈 때와 같은 경로)
 #   ROUTE_2  1순위와 겹치는 도로가 70% 미만인 다른 우회 (ugv/route_alt.py, 없으면 선택지에서 빠짐)
 #   WAIT     막힌 도로가 곧 열린다고 보고 그 자리에서 기다림 (wait_until 까지, 열리면 바로 출발)
-# 근거: 상황(막힌 도로·선택지별 ETA) + 교통 기사(ugv/road_news.py, 가상 기사 묶음)
+# 근거: 상황(막힌 도로·선택지별 ETA) + 지식 베이스(ugv/road_news.py, ugv/knowledge — 가상 교통 기사·도로 운영 지침)
 # 방식 (UGV_AGENT_MODE)
-#   function_calling (기본, B): 모델이 search_road_news 도구로 기사를 직접 찾고 submit_decision 으로 결정을 낸다
-#   inline (A): 서버가 막힌 도로·경로 도로로 기사를 먼저 찾아 프롬프트에 넣고, 모델은 submit_decision 만 부른다
-#   시스템 프롬프트는 같다 — "기사가 주어지지 않았으면 search_road_news 로 먼저 찾아라"
+#   function_calling (기본, B): 모델이 search_road_news 도구로 기사·지침을 직접 찾고 submit_decision 으로 결정을 낸다
+#   inline (A): 서버가 막힌 도로·경로 도로로 자료를 먼저 찾아 프롬프트에 넣고, 모델은 submit_decision 만 부른다
+#   시스템 프롬프트는 같다 — "자료가 주어지지 않았으면 search_road_news 로 먼저 찾아라"
 # 실패(키 없음·호출 한도·HTTP 오류·결정 없음·형식 오류)는 모두 ROUTE_1 로 (fallback 에 사유). 주행은 멈추지 않는다.
 # 기록: 결과의 trace 를 서버가 실행 기록에 AGENT_REQUEST / AGENT_TOOL / AGENT_DECISION 으로 남긴다.
 
@@ -30,17 +30,20 @@ SYSTEM_PROMPT = """너는 산불 현장으로 가는 무인 지상차량(UGV)의
 - ROUTE_1: 지금 가장 빠른 우회 경로
 - ROUTE_2: 1순위와 많이 다른 다른 우회 경로 (상황에 없으면 고를 수 없다)
 - WAIT: 막힌 도로가 곧 다시 열린다고 볼 근거가 있을 때 그 자리에서 기다린다. wait_until(시각, HH:MM)을 반드시 적는다
-판단 근거는 주어진 상황과 교통 기사뿐이다. 기사가 주어지지 않았으면 search_road_news 로 먼저 찾아라.
-기사에 없는 사실을 지어내지 마라. 근거가 부족하면 ROUTE_1 을 고른다.
+판단 근거는 주어진 상황과 검색한 자료(교통 기사 N…, 도로 운영 지침 G…)뿐이다.
+자료가 주어지지 않았으면 search_road_news 로 먼저 찾아라. 막힌 도로의 통제·해제 소식과 대기·우회 기준 지침을 함께 확인한다.
+자료에 없는 사실을 지어내지 마라. 기사와 지침이 다르면 더 최근의 현장 기사를 우선한다. 근거가 부족하면 ROUTE_1 을 고른다.
 기다리는 시간이 우회로 늘어나는 시간보다 길면 기다리지 않는다.
-결정은 submit_decision 으로 낸다. reason 은 한국어 한두 문장, article_ids 에는 근거로 쓴 기사 id 를 적는다."""
+결정은 submit_decision 으로 낸다. reason 은 한국어 한두 문장, article_ids 에는 근거로 쓴 자료 id(N…, G…)를 적는다."""
 
 TOOL_SEARCH = {
     "name": "search_road_news",
-    "description": "지금 시각까지 나온 교통 기사를 찾는다. 도로 id 를 주면 그 도로를 다룬 기사만 찾는다.",
+    "description": "도로 지식 베이스를 찾는다: 지금 시각까지 나온 교통 기사(news)와 도로 운영 지침(guide). "
+                   "도로 id 를 주면 그 도로를 다룬 자료와 일반 지침만 찾는다.",
     "parameters": {"type": "object", "properties": {
-        "query": {"type": "string", "description": "찾을 내용 (예: 설악로 통제 해제 시각)"},
-        "road_ids": {"type": "array", "items": {"type": "string"}, "description": "관련 도로 id (선택)"}},
+        "query": {"type": "string", "description": "찾을 내용 (예: 설악로 통제 해제 시각, 통제 시 대기 기준)"},
+        "road_ids": {"type": "array", "items": {"type": "string"}, "description": "관련 도로 id (선택)"},
+        "kind": {"type": "string", "enum": ["news", "guide"], "description": "자료 종류 (선택, 없으면 둘 다)"}},
         "required": ["query"]},
 }
 TOOL_DECIDE = {
@@ -105,9 +108,9 @@ class GeminiClient:
 
 class RoadAI:
     def __init__(self, client: GeminiClient | None, news, mode: str = "function_calling",
-                 max_calls: int = 30, max_turns: int = 4):
+                 max_calls: int = 30, max_turns: int = 4, k: int = 3):
         self.client, self.news, self.mode = client, news, mode
-        self.max_calls, self.max_turns = max_calls, max_turns
+        self.max_calls, self.max_turns, self.k = max_calls, max_turns, k
         self.calls = 0
 
     def status(self) -> str | None:
@@ -117,6 +120,19 @@ class RoadAI:
         if self.calls >= self.max_calls:
             return "CALL_LIMIT_REACHED"
         return None
+
+    # --- 검색 기록·인용 -----------------------------------------------------
+    @staticmethod
+    def _tool_trace(by: str, query, road_ids, kind, found: dict) -> dict:
+        return {"type": "AGENT_TOOL", "tool": "search_road_news", "by": by, "query": query, "road_ids": road_ids,
+                "kind": kind, "hits": [h["id"] for h in found["hits"]], "titles": [h["title"] for h in found["hits"]],
+                "chunks": [c for h in found["hits"] for c in h.get("chunk_ids", [])],
+                "method": found["method"], "road_filter": found["road_filter"]}
+
+    @staticmethod
+    def _cite(h: dict) -> str:
+        when = f"({h['published']}) " if h.get("published") else "(지침) "
+        return f"[{h['id']}] {when}{h['title']} — {h['body']}"
 
     # --- 상황 글 -----------------------------------------------------------
     @staticmethod
@@ -150,15 +166,21 @@ class RoadAI:
             return fallback(why)
         user = self.situation_text(s)
         tools = [TOOL_SEARCH, TOOL_DECIDE]
-        if self.mode == "inline":                   # A: 기사를 먼저 찾아 넣는다
-            q = f"{s['blocked_name']} 통제 해제 시각 우회 " + " ".join(n for o in s["options"] for n in o["road_names"])
-            road_ids = [s["blocked_road_id"]] + [r for o in s["options"] for r in o["road_ids"]]
-            found = self.news.search(q, s["now_s"], road_ids)
-            trace.append({"type": "AGENT_TOOL", "tool": "search_road_news", "by": "server", "query": q,
-                          "road_ids": road_ids, "hits": [h["id"] for h in found["hits"]], "titles": [h["title"] for h in found["hits"]], "method": found["method"],
-                          "road_filter": found["road_filter"]})
-            user += "\n\n참고 기사:\n" + ("\n".join(f"[{h['id']}] ({h['published']}) {h['title']} — {h['body']}"
-                                                  for h in found["hits"]) or "(없음)")
+        if self.mode == "inline":                   # A: 서버가 자료를 먼저 찾아 넣는다 (세 갈래로 나눠 찾는다)
+            route_roads = sorted({r for o in s["options"] for r in o["road_ids"]})
+            route_names = " ".join(dict.fromkeys(n for o in s["options"] for n in o["road_names"]))
+            queries = [(f"{s['blocked_name']} 통제 해제 시각", [s["blocked_road_id"]], "news"),   # 막힌 도로 소식
+                       ("통제 구간 대기 우회 기준", route_roads, "guide"),                      # 판단 기준·우회로 지침
+                       (f"{route_names} 통행 혼잡 지연", route_roads, "news")]                  # 우회로 소식
+            hits, seen = [], set()
+            for q, road_ids, kind in queries:
+                found = self.news.search(q, s["now_s"], road_ids, k=2, kind=kind)
+                trace.append(self._tool_trace("server", q, road_ids, kind, found))
+                for h in found["hits"]:
+                    if h["id"] not in seen:
+                        seen.add(h["id"])
+                        hits.append(h)
+            user += "\n\n참고 자료:\n" + ("\n".join(self._cite(h) for h in hits) or "(없음)")
             tools = [TOOL_DECIDE]
         contents = [{"role": "user", "parts": [{"text": user}]}]
         trace.append({"type": "AGENT_REQUEST", "mode": self.mode, "model": self.client.model, "prompt": user})
@@ -186,12 +208,11 @@ class RoadAI:
                 if c.get("name") == "submit_decision":
                     return self._finish(args, s, allowed, trace, t0)
                 if c.get("name") == "search_road_news":
-                    found = self.news.search(str(args.get("query", "")), s["now_s"], args.get("road_ids"))
-                    trace.append({"type": "AGENT_TOOL", "tool": "search_road_news", "by": "model",
-                                  "query": args.get("query"), "road_ids": args.get("road_ids"),
-                                  "hits": [h["id"] for h in found["hits"]], "titles": [h["title"] for h in found["hits"]], "method": found["method"],
-                                  "road_filter": found["road_filter"]})
-                    payload = {"articles": [{k: h[k] for k in ("id", "published", "title", "body", "road_ids")}
+                    kind = args.get("kind") if args.get("kind") in ("news", "guide") else None
+                    found = self.news.search(str(args.get("query", "")), s["now_s"], args.get("road_ids"),
+                                             k=self.k, kind=kind)
+                    trace.append(self._tool_trace("model", args.get("query"), args.get("road_ids"), kind, found))
+                    payload = {"articles": [{k: h[k] for k in ("id", "kind", "published", "title", "body", "road_ids")}
                                             for h in found["hits"]], "road_filter": found["road_filter"]}
                 else:
                     payload = {"error": f"없는 도구: {c.get('name')}"}

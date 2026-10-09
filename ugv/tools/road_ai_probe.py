@@ -30,8 +30,9 @@ def main():
         raise SystemExit("UGV_AGENT_API_KEY 가 없습니다 (.env 에 UGV_AGENT_API_KEY=... 한 줄)")
     client = GeminiClient(key, os.getenv("UGV_AGENT_MODEL", config.AGENT_MODEL), config.AGENT_EMBED_MODEL,
                           config.AGENT_BASE_URL, config.AGENT_TIMEOUT_S)
-    news = RoadNews.load(ROOT / config.AGENT_NEWS, embed=None if a.no_embed else client.embed)
-    ai = RoadAI(client, news, a.mode)
+    news = RoadNews.load(ROOT / config.AGENT_NEWS, embed=None if a.no_embed else client.embed,
+                         cache_dir=ROOT / config.AGENT_RAG_CACHE, embed_model=config.AGENT_EMBED_MODEL)
+    ai = RoadAI(client, news, a.mode, k=config.AGENT_RAG_K)
     start = 14 * 3600 + 45 * 60
     s = {"now_s": 3 * 60, "now_text": "14:48", "resource_id": "A-ugv1", "resource_type": "UGV",
          "target": "설악로(화점 부근)", "blocked_road_id": "682501434", "blocked_name": "설악로", "here_name": "설악로",
@@ -46,7 +47,7 @@ def main():
     for e in out["trace"]:
         e = {k: (v if k != "prompt" else v[:200] + "…") for k, v in e.items()}
         print(json.dumps(e, ensure_ascii=False))
-    print(f"LLM 호출 {ai.calls}회, 모드 {a.mode}, 모델 {client.model}")
+    print(f"LLM 호출 {ai.calls}회, 모드 {a.mode}, 모델 {client.model}, 지식 {news.stats()}, 새 임베딩 {news.embedded_new}개")
 
 
 if __name__ == "__main__":

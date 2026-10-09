@@ -81,18 +81,20 @@ SCENARIO_FILE = os.getenv("UGV_SCENARIO", "")
 
 # 도로 AI (ugv/road_ai.py) — [봉인] 기본 꺼짐. 주행 중 앞길이 막히면 우회(1·2순위)·대기를 LLM(Gemini)이 판단한다.
 #   sim 드라이버 차량만. 총괄 LLM 과 별개이고 키도 따로 (UGV_AGENT_API_KEY, 저장소 루트 .env 의 UGV_* 도 읽는다)
-#   UGV_AGENT_MODE: function_calling (모델이 기사 검색 도구를 부름, 기본) | inline (서버가 기사를 찾아 프롬프트에 넣음)
-#   실패하면 항상 1순위 우회 (끈 때와 같다). 시연 시나리오: ugv/scenarios/agent_block.csv + 기사 road_news.json
+#   UGV_AGENT_MODE: function_calling (모델이 지식 검색 도구를 부름, 기본) | inline (서버가 자료를 찾아 프롬프트에 넣음)
+#   실패하면 항상 1순위 우회 (끈 때와 같다). 시연 시나리오: ugv/scenarios/agent_block.csv + 지식 베이스 ugv/knowledge (가상 기사·지침)
 AGENT_ENABLED = os.getenv("UGV_AGENT", "0") == "1"
 AGENT_MODE = os.getenv("UGV_AGENT_MODE", "function_calling")
-AGENT_MODEL = os.getenv("UGV_AGENT_MODEL", "gemini-2.5-flash")
+AGENT_MODEL = os.getenv("UGV_AGENT_MODEL", "gemini-3.8-flash")   # 2026-10-09: gemini-2.5-flash 는 새 사용자에게 막혀(404) 교체
 AGENT_EMBED_MODEL = os.getenv("UGV_AGENT_EMBED_MODEL", "gemini-embedding-001")
-AGENT_EMBED = os.getenv("UGV_AGENT_EMBED", "1") == "1"       # 0 이면 기사 검색을 BM25 만으로
+AGENT_EMBED = os.getenv("UGV_AGENT_EMBED", "1") == "1"       # 0 이면 지식 검색을 BM25 만으로
 AGENT_BASE_URL = os.getenv("UGV_AGENT_BASE_URL", "https://generativelanguage.googleapis.com/v1beta")
 AGENT_TIMEOUT_S = float(os.getenv("UGV_AGENT_TIMEOUT_S", "20"))       # 실제 초
 AGENT_MAX_CALLS = int(os.getenv("UGV_AGENT_MAX_CALLS", "30"))          # 서버 1회 실행당 LLM 호출 한도
 AGENT_MAX_WAIT_S = float(os.getenv("UGV_AGENT_MAX_WAIT_S", "2700"))    # WAIT 상한 (시뮬레이션 초, 45분)
-AGENT_NEWS = os.getenv("UGV_AGENT_NEWS", "ugv/scenarios/road_news.json")
+AGENT_NEWS = os.getenv("UGV_AGENT_NEWS", "ugv/knowledge")                 # 지식 베이스 폴더 (ugv/road_news.py)
+AGENT_RAG_CACHE = os.getenv("UGV_AGENT_RAG_CACHE", "ugv/.state/rag_cache")   # 조각 임베딩 디스크 캐시 (바뀐 조각만 다시 만든다)
+AGENT_RAG_K = int(os.getenv("UGV_AGENT_RAG_K", "3"))                         # 검색 한 번에 돌려줄 문서 수
 
 # 주행 파라미터 — 실측 보정 필요
 CRUISE_SPEED_MPS = 2.0
