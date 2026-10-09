@@ -5,25 +5,30 @@ import os
 # 자원 배치 — Gazebo 월드 1개(kangwon)에 PX4 인스턴스 3개 (차량당 PX4 1개, 제어 프로그램은 이 서버 1개)
 # px4_instance i → PX4 가 MAVLink 를 14540 + i 로 보낸다. 0 은 UAV 몫이라 UGV 는 1 부터.
 # px4_model: PX4 Gazebo 모델 이름. 에어프레임 번호는 ugv/tools/px4-start.sh 가 모델 이름으로 찾는다.
-# max_speed_mps: 차량 최고속도(시뮬레이션 초당 m). ETA = 도로별 min(도로 제한속도, 이 값) 으로 계산한다.
+# max_speed_mps: 차량 최고속도(시뮬레이션 초당 m). ETA = 도로별 길이 ÷ (이 값 ÷ 혼잡 배율). 도로 제한속도는 보지 않는다.
 #   r1_rover 2.1 (RO_MAX_THR_SPEED), rover_ackermann 3.1, lawnmower 2.7 — PX4 v1.16 기본 파라미터 기준.
 #   실제 소방차(수십 km/h)가 아니라 Gazebo 차량 속도에 맞춘 값이다. 실제 시간감은 UGV_TIME_SCALE 로 맞춘다.
+# sim_speed_mps: sim 드라이버(PX4 없이)로 달릴 때만 쓰는 속도. 없으면 max_speed_mps. ETA 도 같은 값으로 낸다.
+#   세 대 모두 19.4 m/s ≈ 70 km/h (실제 차량 주행 속도 60~80 km/h). PX4 는 r1_rover 라 2.0 그대로.
 # 스폰 위치는 ugv/data/road_network.json 의 spawn[resource_id] (build_road_network.py 가 계산).
 RESOURCES = [
     {"resource_id": "A-ugv1",  "resource_type": "UGV",
-     "base": "A", "home_node": "A", "px4_instance": 1, "px4_model": "r1_rover", "max_speed_mps": 2.0},
+     "base": "A", "home_node": "A", "px4_instance": 1, "px4_model": "r1_rover", "max_speed_mps": 2.0,
+     "sim_speed_mps": 19.4},
     # 소방차도 r1_rover 기반 (2026-10-03 WSL): rover_ackermann 은 명령 없이(disarm 상태) 조향된 채 굴러가
     # 도로 밖으로 떨어졌다. 경광등·방수포는 px4-start.sh 가 r1_rover 위에 붙인다 (ugv/gazebo/fire_truck)
     {"resource_id": "A-fire1", "resource_type": "FIRE_ENGINE",
-     "base": "A", "home_node": "A", "px4_instance": 3, "px4_model": "r1_rover", "max_speed_mps": 2.0},
+     "base": "A", "home_node": "A", "px4_instance": 3, "px4_model": "r1_rover", "max_speed_mps": 2.0,
+     "sim_speed_mps": 19.4},
     {"resource_id": "B-ugv1",  "resource_type": "UGV",
-     "base": "B", "home_node": "B", "px4_instance": 2, "px4_model": "r1_rover", "max_speed_mps": 2.0},
+     "base": "B", "home_node": "B", "px4_instance": 2, "px4_model": "r1_rover", "max_speed_mps": 2.0,
+     "sim_speed_mps": 19.4},
 ]
 for _r in RESOURCES:
     _r["px4_port"] = 14540 + _r["px4_instance"]
 
 # 장비 (ugv/equipment.py) — 잠정값
-#   소방차: 물탱크·방수량. 도착하면 자동으로 진압(SUPPRESSING) — 물이 바닥나거나 /suppress stop 까지.
+#   소방차: 물탱크·방수량. [봉인 — UGV_SUPPRESSION=1 일 때만] 도착하면 자동으로 진압(SUPPRESSING) — 물이 바닥나거나 /suppress stop 까지.
 #     3,000 L 탱크 + 분당 1,800 L(30 L/s) 방수는 중형 펌프차 수준 → 100 초. 거점 노드에 도착하면 다시 채운다.
 #   UGV: 적재 한도. execute 의 cargo(이름, kg) + via_node(싣는 곳) → 싣기(LOADING)·내리기(UNLOADING) 자동.
 #   경광등(siren)은 소방차가 출동·진압 중일 때 켠다 (Gazebo 표시: ugv/gz_fx.py).
@@ -33,7 +38,11 @@ EQUIPMENT = {
 }
 LOAD_S = float(os.getenv("UGV_LOAD_S", "60"))       # 짐 싣기 (시뮬레이션 초)
 UNLOAD_S = float(os.getenv("UGV_UNLOAD_S", "60"))   # 짐 내리기
-AUTO_SUPPRESS = os.getenv("UGV_AUTO_SUPPRESS", "1") != "0"   # 소방차 도착 즉시 진압 시작
+# 진압(방수) 봉인 (2026-10-08 발표 범위 결정): 이번 발표는 진화를 다루지 않는다 — 소방차는 이동·환경 센서 자원으로만 쓴다.
+# 코드는 남겨 두고 기본으로 끈다. 켜면(UGV_SUPPRESSION=1) 예전처럼 도착 즉시 진압·/suppress start 가 동작한다.
+# 환경에 진화 효과(ENV-07)가 없으므로 켜도 물만 줄 뿐 화재는 바뀌지 않는다.
+SUPPRESSION_ENABLED = os.getenv("UGV_SUPPRESSION", "0") == "1"
+AUTO_SUPPRESS = SUPPRESSION_ENABLED and os.getenv("UGV_AUTO_SUPPRESS", "1") != "0"   # 소방차 도착 즉시 진압 시작
 
 # PX4 연결
 # PX4 SITL 은 MAVLink 를 자기 호스트의 127.0.0.1 로만 보낸다. Gazebo/PX4 가 원격(WSL)이면
@@ -58,9 +67,17 @@ SECONDS_PER_ENV_STEP = float(os.getenv("UGV_SECONDS_PER_ENV_STEP", "60"))
 # 기본 꺼짐: 총괄이 1초마다 조회(polling)하므로 필요 없다. 켜려면 UGV_REPORT_URL=http://127.0.0.1:8200
 # 꺼져 있어도 GET /reports 에 기록은 남는다.
 REPORT_URL = os.getenv("UGV_REPORT_URL", "")
+# 환경 시계 따라가기 (ugv/sim_clock.py): 환경 서버(/health 의 simulation_time_s)가 바뀔 때마다 UGV 시계를 그 값으로 맞추고,
+# 그 사이는 벽시계 × UGV_TIME_SCALE 로 채운다. 시나리오 시작 시각(scenario_start_kst)도 받아 상황판이 시각으로 보여 준다.
+# 비우면 UGV 서버 혼자 시계 (서버 시작 = 0). 환경이 없으면 조용히 혼자 간다.
+ENV_URL = os.getenv("UGV_ENV_URL", "http://127.0.0.1:8300")
+ENV_CLOCK_POLL_S = float(os.getenv("UGV_ENV_CLOCK_POLL_S", "1.0"))
+# 총괄 주소 — 도로 상황판의 노드 클릭 출동 요청을 여기 POST /tasks 로 전달한다 (ugv/server.py /view/dispatch)
+ORCH_URL = os.getenv("UGV_ORCH_URL", "http://127.0.0.1:8200")
 
-# 도로 환경 시나리오(차단 도로·경유 불가 노드·혼잡의 시간대, CSV 또는 JSON). 비우면 시나리오 없음
-SCENARIO_FILE = os.getenv("UGV_SCENARIO", "ugv/scenarios/inje_girin.csv")
+# 도로 환경 시나리오(차단 도로·경유 불가 노드·혼잡의 시간대, CSV 또는 JSON). 기본은 시나리오 없음(도로 전부 열림)
+# — 2026-10-08 발표 범위에서 길막·혼잡 제외. 켜기: UGV_SCENARIO=ugv/scenarios/inje_girin.csv
+SCENARIO_FILE = os.getenv("UGV_SCENARIO", "")
 
 # 주행 파라미터 — 실측 보정 필요
 CRUISE_SPEED_MPS = 2.0
@@ -89,6 +106,9 @@ FAULT_CONFIRM_S = 3.0        # 차량 이상이 이 시간 이상 계속돼야 �
 #   UGV_APPROACH_FALLBACK=1: 가장 가까운 노드로 못 가면 APPROACH_MAX_M 안의 다음 노드로 접근
 TARGET_SNAP_M = float(os.getenv("UGV_TARGET_SNAP_M", "2000"))      # 가장 가까운 노드가 이보다 멀면 TARGET_UNREACHABLE (루트 config.UGV_TARGET_SNAP_M 과 같은 값)
 APPROACH_FALLBACK = os.getenv("UGV_APPROACH_FALLBACK", "0") == "1"
+# 목적지 방식 (ugv/road_point.py): node = 목표에서 가장 가까운 도로 노드(기본, 지금까지 동작) /
+#   road_point = 목표에서 가장 가까운 도로 위 점에 선다 (교차로 사이 긴 도로 중간 계측용). 요청마다 target_mode 로 바꿀 수 있다
+TARGET_MODE = os.getenv("UGV_TARGET_MODE", "node")
 APPROACH_MAX_M = float(os.getenv("UGV_APPROACH_MAX_M", "500"))     # fallback 접근 노드의 화재 거리 상한
 
 # 시연용 가속 — 6노드 시연 도로망(graph_data_demo, 총괄 orchestrator_v012 데모)에서만 쓴다.
