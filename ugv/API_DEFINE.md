@@ -170,9 +170,9 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 경로(`/ugv/{id}/route` 의 `legs`, 실행 기록 `ROUTE`) 마지막에 꼬리 구간이 `to: null`, `to_point: {lat, lon}` 으로 붙는다.
 보고(`UGV_TASK_STARTED`·`UGV_ARRIVED`)와 task 상태에 `stop_point` 가 실린다. 총괄은 이 필드를 몰라도 된다 (노드 방식과 같은 흐름).
 
-ETA(시뮬레이션 초)는 도로마다 `길이 ÷ 차량 속도 × 혼잡 배율` 의 합이다. 도로 제한속도는 보지 않는다 — 막힘·혼잡만 차를 늦춘다.
+ETA(시뮬레이션 초)는 도로마다 `길이 ÷ min(max(도로 제한속도, 50 km/h), 차량 속도) × 혼잡 배율` 의 합이다 (하한 `UGV_MIN_ROAD_SPEED_KMH`).
 차량 속도는 `ugv/config.py`: PX4 주행은 `max_speed_mps` (Gazebo r1_rover 2.0 m/s, A→B 29 km ≈ 4.1 h),
-sim 드라이버 주행은 `sim_speed_mps` — 세 대 모두 19.4 m/s(약 70 km/h, A→B 약 25분). ETA 와 주행이 같은 값을 쓴다.
+sim 드라이버 주행은 `sim_speed_mps` — 세 대 모두 60 km/h(상한)라 도로마다 50~60 km/h. ETA 와 주행이 같은 값을 쓴다.
 PX4 차량도 같은 구간 속도로 달린다 (미션 항목별 속도).
 
 ## POST /ugv/{resource_id}/execute

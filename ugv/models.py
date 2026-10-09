@@ -31,12 +31,12 @@ class Road:
         return self.base_time_s * self.congestion
 
     def speed_mps(self, max_speed_mps: float | None = None) -> float:
-        """이 도로에서 실제로 낼 속도 = 차량 속도 / 혼잡 배율. 도로 제한속도는 보지 않는다 (막힘·혼잡만 차를 늦춘다).
-        차량 속도를 안 주면(시연 도로망) 도로 제한속도 / 혼잡 배율.
-        PX4 차량(2.0 m/s)은 어느 도로 제한속도(최저 20 km/h ≈ 5.6 m/s)보다 느려서 예전 min() 과 결과가 같다."""
-        if max_speed_mps is not None:
-            return max_speed_mps / self.congestion
+        """이 도로에서 실제로 낼 속도 = min(도로 제한속도, 차량 최고속도) / 혼잡 배율."""
         road = self.speed_kmh / 3.6 if self.speed_kmh else self.distance_m / max(self.base_time_s, 1e-6)
+        if max_speed_mps is not None:
+            from . import config                       # 느린 도로 하한 (UGV_MIN_ROAD_SPEED_KMH, 기본 50 km/h)
+            road = max(road, config.MIN_ROAD_SPEED_KMH / 3.6)
+            road = min(road, max_speed_mps)
         return road / self.congestion
 
     def travel_s(self, max_speed_mps: float | None = None) -> float:
