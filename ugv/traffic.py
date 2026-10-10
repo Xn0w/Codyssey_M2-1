@@ -58,6 +58,40 @@ def link_loss_reach(sp, i0: int, vel: float) -> float:
     return sp.cum[k] - sp.cum[i0] + v_end * v_end / (2 * LINK_LOSS_SKID_DECEL) + LINK_LOSS_MARGIN_M
 
 
+def _along(path, x, y, d):
+    """선형 path 위 (x, y)에 가장 가까운 곳부터 앞으로 d m 까지 TRAFFIC_SAMPLE_M 간격 표본 [(x, y, 0, s, hx, hy)] (정지 점유)."""
+    best, bi, bt = math.inf, 0, 0.0
+    for i in range(len(path) - 1):
+        (ax, ay), (bx, by) = path[i], path[i + 1]
+        dx, dy = bx - ax, by - ay
+        L2 = dx * dx + dy * dy
+        t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((x - ax) * dx + (y - ay) * dy) / L2))
+        dd = math.hypot(x - ax - t * dx, y - ay - t * dy)
+        if dd < best:
+            best, bi, bt = dd, i, t
+    out, s_acc, nxt = [], 0.0, TRAFFIC_SAMPLE_M
+    (ax, ay), (bx, by) = path[bi], path[bi + 1]
+    cx, cy = ax + bt * (bx - ax), ay + bt * (by - ay)
+    for i in range(bi, len(path) - 1):
+        tx, ty = path[i + 1]
+        seg = math.hypot(tx - cx, ty - cy)
+        if seg <= 0:
+            continue
+        ux, uy = (tx - cx) / seg, (ty - cy) / seg
+        while nxt <= s_acc + seg and nxt <= d:
+            f = nxt - s_acc
+            out.append((cx + ux * f, cy + uy * f, 0.0, nxt, ux, uy))
+            nxt += TRAFFIC_SAMPLE_M
+        s_acc += seg
+        cx, cy = tx, ty
+        if s_acc >= d:
+            break
+    if out and out[-1][3] < min(d, s_acc) - 0.1:      # 끝점
+        u = out[-1][4:]
+        out.append((cx, cy, 0.0, min(d, s_acc), *u))
+    return out
+
+
 def _immovable(v) -> bool:
     """지시 없이는 움직이지 않을 차: 임무 없음, 고장·위험(운영자 해제 전), 통신 끊김."""
     return (v.current_task() is None or v.state in ("FAULT", "DANGER", "IDLE")
@@ -118,12 +152,26 @@ class TrafficManager:
                 pts.append((b[0], b[1], 0.0, sp.cum[k] - sp.cum[i0], (b[0] - a[0]) / d, (b[1] - a[1]) / d))
             return _Pred(v, pts, True, 0.0, 0.0, 0.0)
         if not moving_plan:
-            # 정지·고장·대기·정지 중: 지금 자리(정지 중이면 앞쪽 정지 경로까지)를 계속 차지한다
+            # 정지·고장·대기·정지 중: 지금 자리와 앞으로 갈 수 있는 곳을 계속 차지한다. 실제로 보낸 정지 경로(도로 곡선)를 따라
+            # 정지거리 + 명령 지연 거리. 정지 경로를 모르면 직선과 남은 계획 경로를 함께, 정지 명령이 실패했으면(command_uncertain)
+            # 남은 계획 경로를 링크 단절과 같은 범위까지 (2026-10-10 검토: 곡선을 따라 서는 차를 직선으로만 예측했다)
             pts = [(tel.x, tel.y, 0.0, 0.0, hx, hy)]
-            if vel > 0.3:
-                d = v.profile.stop_distance(vel)
-                n = max(1, int(d / TRAFFIC_SAMPLE_M))
-                pts += [(tel.x + hx * d * k / n, tel.y + hy * d * k / n, 0.0, d * k / n, hx, hy) for k in range(1, n + 1)]
+            uncertain = bool(getattr(v, "command_uncertain", False))
+            if vel > 0.3 or uncertain:
+                d = v.profile.stop_distance(vel) + vel * lat_s
+                paths = []
+                sp_pts = getattr(v, "stop_path_pts", None)
+                if sp_pts and len(sp_pts) >= 2 and not uncertain:
+                    paths.append(sp_pts)
+                else:
+                    paths.append([(tel.x, tel.y), (tel.x + hx * d, tel.y + hy * d)])
+                    if v.speed is not None:
+                        i0 = max(0, min(v._near_i, len(v.speed.pts) - 1))
+                        paths.append([(tel.x, tel.y)] + [tuple(q) for q in v.speed.pts[i0 + 1:]])
+                        if uncertain:
+                            d = max(d, link_loss_reach(v.speed, i0, vel))
+                for path in paths:
+                    pts += _along(path, tel.x, tel.y, d)
             return _Pred(v, pts, True, 0.0, vel, committed)
         sp = v.speed
         key = id(sp)

@@ -85,6 +85,8 @@ def _dist_to_polyline(x, y, pts, lo=0, hi=None):
 
 _log = logging.getLogger("ugv.vehicle")
 BLOCK_REPLAN_MAX = 3      # 한 임무에서 서 있는 차에 막혀 다시 계획하는 최대 횟수
+HOLD_FAIL_MAX = 2         # 양보 정지 명령이 연속 이만큼 실패하면 고장(STOP_COMMAND_FAILED)으로 처리
+STOP_RETRY_S = 2.0        # 정지 명령이 실패한 차(명령 불확실)는 이 간격으로 정지를 다시 보낸다
 
 
 def _progress_index(x, y, pts, cum, near_i, back=20, ahead=200, tol_m=3.0, gap_m=30.0):
@@ -163,6 +165,13 @@ class Vehicle:
         self._last_safety = -math.inf
         self._near_i = 0
         self._drive_started_sim = None
+        # 정지 명령 상태 (ugv/traffic.py 점유 예측이 쓴다). stop_path_pts: 실제로 보낸 정지·대기 경로 선형 (모르면 None).
+        # command_uncertain: 정지·양보 명령이 실패해 차가 무엇을 따라가는지 확신할 수 없음 → 남은 계획 경로 전체를 점유로 보고
+        # STOP_RETRY_S 마다 정지를 다시 보낸다 (2026-10-10 검토: 명령 실패 뒤에도 정지 중·대기로 보던 결함)
+        self.stop_path_pts = None
+        self.command_uncertain = False
+        self._stop_retry_at = -1e9
+        self._hold_failures = 0
         self._task: Optional[asyncio.Task] = None
         self.last_clearance_m = None
         self.last_stop: dict = {}
@@ -498,6 +507,7 @@ class Vehicle:
             items = keep
         self.seq = await self.driver.follow(items)
         self.state = state
+        self.stop_path_pts, self.command_uncertain, self._hold_failures = None, False, 0
         self._off_since, self._near_i = None, 0
         self._move_ref = (self.clock.now(), t.x, t.y) if t else None
         self._drive_started_sim = self.clock.now()
@@ -536,12 +546,20 @@ class Vehicle:
                                 "body_violations": chk["body_violations"], "worst_excess_m": chk["worst_excess_m"]}
             if items:
                 self.seq = await self.driver.follow(items)
+                self.stop_path_pts = [tuple(q) for q in pts]
             else:
                 self.seq = await self.driver.stop()
+                if tel is not None and tel.speed_mps >= 0.3:       # 드라이버 기본 정지 = 진행 방향 직선
+                    hd = math.radians(tel.heading_deg)
+                    d = self.profile.stop_distance(tel.speed_mps)
+                    self.stop_path_pts = [(tel.x, tel.y), (tel.x + d * math.sin(hd), tel.y + d * math.cos(hd))]
+                else:
+                    self.stop_path_pts = None
                 info = {**info, "basis": info.get("basis", "STANDSTILL") if tel is not None and tel.speed_mps < 0.3
                         else "DRIVER_DEFAULT (진행 방향 직선 — 도로를 따르지 않을 수 있음)"}
                 if tel is not None and tel.speed_mps >= 0.3:
                     info["drivable"] = None
+            self.command_uncertain = False
             self.state = "STOPPING"
             problems = []
             if info.get("short"):
@@ -554,6 +572,8 @@ class Vehicle:
             self._event("STOP_PATH", **info)
         except DriverError as e:
             info = {"basis": "FAILED", "problems": [f"정지 명령 실패: {e}"]}
+            self.command_uncertain, self.stop_path_pts = True, None
+            self._stop_retry_at = self.clock.now()
             self._event("STOP_FAILED", detail=str(e))
         self.last_stop = info
         return info
@@ -638,9 +658,24 @@ class Vehicle:
                 await self._safe_stop()
                 self.state = "FAULT"
             return
-        if self.state == "STOPPING" and tel.speed_mps < 0.2:
+        if self.state == "STOPPING" and tel.speed_mps < 0.2 and tel.age_s() <= config.TELEMETRY_STALE_S:
             self.state = "IDLE"
+            self.stop_path_pts = None
+            for t in self.store.tasks.values():           # 정지 중으로 끝낸 임무의 물리 상태를 정차로 (임무 실패와 정차를 따로)
+                if t.get("resource_id") == self.resource_id and str(t.get("physical_state", "")).startswith("STOPPING"):
+                    t["physical_state"] = "STOPPED" + t["physical_state"][len("STOPPING"):]
+            self.store.save()
             self._event("STOPPED", position={"lat": tel.lat, "lon": tel.lon})
+        if (self.command_uncertain and now - self._stop_retry_at >= STOP_RETRY_S
+                and tel.age_s() <= config.TELEMETRY_STALE_S):
+            # 정지 명령이 실패했던 차: 다시 보낸다 (고장·위험 상태는 그대로 둔다)
+            self._stop_retry_at = now
+            async with self.lock:
+                keep = self.state
+                await self._safe_stop()
+                if keep in ("FAULT", "DANGER"):
+                    self.state = keep
+                self._event("STOP_RETRY", ok=not self.command_uncertain)
         if moving:
             await self._supervise_drive(now, tel)
         await self._comm_watch(tel)
@@ -721,6 +756,22 @@ class Vehicle:
     def _s_now(self) -> float:
         return self.speed.cum[max(0, min(self._near_i, len(self.speed.cum) - 1))] if self.speed else 0.0
 
+    def _path_between(self, s_to: Optional[float]):
+        """지금 위치 → 계획 선형 위 s_to(없으면 목적지)까지 선형 (점유 예측용)."""
+        sp = self.speed
+        tel = self.driver.telemetry()
+        i0 = max(0, min(self._near_i, len(sp.pts) - 1))
+        out = [(tel.x, tel.y)] if tel is not None else []
+        for k in range(i0 + 1, len(sp.pts)):
+            if s_to is not None and sp.cum[k] > s_to:
+                a, b = sp.pts[k - 1], sp.pts[k]
+                seg = sp.cum[k] - sp.cum[k - 1]
+                f = 0.0 if seg <= 0 else (s_to - sp.cum[k - 1]) / seg
+                out.append((a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f))
+                break
+            out.append(tuple(sp.pts[k]))
+        return out
+
     def _items_between(self, s_to: Optional[float]):
         """지금 위치 → 계획 선형 위 s_to(없으면 목적지)까지 미션 지점. 검증된 경로의 일부만 쓴다 (형상 그대로)."""
         sp = self.speed
@@ -756,12 +807,20 @@ class Vehicle:
             if self.state not in ("DRIVING", "EVADING"):
                 return
             items = self._items_between(s_hold)
-            self.hold = {"s": s_hold, **info, "since_sim": round(self.clock.now(), 2)}
             try:
-                self.seq = await self.driver.follow(items)
+                seq = await self.driver.follow(items)
             except DriverError as e:
-                self._event("YIELD_FAILED", detail=str(e))
+                # 대기를 확정하지 않는다 (예전에는 먼저 hold 를 기록해, 실패한 뒤 같은 대기 요청을 '이미 명령함' 으로 보고 다시 보내지
+                # 않았다 — 차는 원래 미션을 계속 달린다). 다음 판단 주기에 다시 보내고, 연속 HOLD_FAIL_MAX 번이면 고장으로 처리
+                self._hold_failures += 1
+                self._event("YIELD_FAILED", detail=str(e), failures=self._hold_failures)
+                if self._hold_failures >= HOLD_FAIL_MAX:
+                    self._fail("STOP_COMMAND_FAILED", f"양보 정지 명령 {self._hold_failures}회 실패: {e}")
+                    await self._safe_stop()
+                    self.state = "FAULT"
                 return
+            self.seq, self._hold_failures = seq, 0
+            self.hold = {"s": s_hold, **info, "since_sim": round(self.clock.now(), 2)}
             self._event("YIELD", s_m=round(s_hold, 1), ahead_m=round(s_hold - self._s_now(), 1), **info)
 
     async def clear_hold(self):
@@ -840,13 +899,16 @@ class Vehicle:
                 return
             rec["result"] = "FAILED_NO_DETOUR"
             rec["why"] = why
-            # 대기 지점 정지 미션은 그대로 둔다 (새 명령을 보내지 않는다 — 이미 서 있거나 그 앞에서 선다)
+            # 대기 지점 정지 미션은 그대로 둔다 (새 명령을 보내지 않는다 — 그 앞에서 선다). 임무 실패와 차량 정차를 나눈다:
+            # 신선한 텔레메트리로 정차를 확인할 때까지 STOPPING (READY 아님 → 총괄이 반납·재배정하지 않음), 확인되면 STOPPED_BLOCKED
+            # (예전에는 바로 IDLE·STOPPED_BLOCKED → READY. Gazebo pair_block: 보고 때 2.4 m/s, 그 뒤 40.7 m 더 감)
+            self.stop_path_pts = self._path_between(self.hold["s"])
             self.hold = None
-            self.state = "IDLE"
+            self.state = "STOPPING"
             self._finish(self.task_key, "FAILED",
                          error=f"BLOCKED_BY_VEHICLE: {other_id} 가 선 도로 {blocked_road} 에 막힘, 우회 경로 없음 "
                                f"({why}), {waited_s:.0f} s 대기",
-                         physical_state="STOPPED_BLOCKED")
+                         physical_state="STOPPING_BLOCKED")
             self._event("TRAFFIC_BLOCKED_NO_DETOUR", other=other_id, blocked_road=blocked_road, waited_s=waited_s,
                         why=why, reported_to="ORCHESTRATOR_TASK_FAILED")
 
@@ -863,14 +925,22 @@ class Vehicle:
                 s_stop = self._s_now() + d
                 if self.hold is not None:
                     s_stop = min(s_stop, max(self.hold["s"], self._s_now()))
+                path = self._path_between(s_stop)
                 try:
                     self.seq = await self.driver.follow(self._items_between(s_stop))
                     self._event("STOP_PATH", basis="TRAFFIC_EMERGENCY", length_m=round(s_stop - self._s_now(), 1),
                                 speed_mps=round(v, 2), decel_mps2=self.profile.emergency_decel_mps2)
+                    self.stop_path_pts, self.command_uncertain = path, False
+                    self.hold = None
+                    self.state = "STOPPING"
                 except DriverError as e:
-                    self._event("STOP_FAILED", detail=str(e))
-                self.hold = None
-                self.state = "STOPPING"
+                    # 정지 명령이 안 갔다 → 원래 미션이 계속될 수 있다. 정지 중으로 보지 않고 고장으로 — 감시·재시도·보수적 점유 유지
+                    # (예전에는 이벤트만 남기고 STOPPING 으로 바꿔 주행 감독에서 빠졌다 — 2026-10-10 검토, 실패 주입 10 m/s)
+                    self.command_uncertain, self.stop_path_pts = True, None
+                    self._stop_retry_at = self.clock.now()
+                    self._event("STOP_FAILED", detail=str(e), basis="TRAFFIC_EMERGENCY")
+                    self.hold = None
+                    self._fail("STOP_COMMAND_FAILED", f"비상 정지 명령 실패: {e} (차량 간 충돌 회피 불가 {info})")
             elif self.state in ("DRIVING", "EVADING"):
                 self.hold = None
                 self.state = "STOPPING"                 # 이미 멈춰 있음 — 더 보내지 않는다
