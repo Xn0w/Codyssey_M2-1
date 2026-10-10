@@ -11,6 +11,8 @@
 - 정차 유지 = 시동 끄기(disarm): 미션이 끝나 멈추면(0.3 m/s 미만 PARK_AFTER_S) 시동을 끈다. 이 rover 는 미션 끝 '대기(loiter)'
   에서 조금 지나친 마지막 지점으로 돌아가려다 다시 달리거나 맴돌았다 (2026-10-10 Gazebo: 정차 5 s 뒤 스스로 출발, 26분 6 km).
   시동이 꺼지면 바퀴 속도 명령이 0 이라 그 자리에 선다. 다음 미션(follow)에서 다시 시동을 건다.
+  미션이 끝났는데 서지 않고 RUNAWAY_PARK_S 넘게 달리면 그래도 시동을 끈다: 마지막 지점 속도(> 0)를 그대로 유지한 채 대기(HOLD)에서
+  직진했다 (2026-10-11 Gazebo 지속 운용: 고장 주입 → 정지 경로 64 m 끝 2.9 m/s → FAULT 상태로 15분 넘게 직진 2.6 km 이상).
 - 텔레메트리는 구독을 계속 열어 두고 마지막 값을 보관한다. 위치가 끊기면 Telemetry.age_s() 가 커진다 (감시는 vehicle.py).
 검증 (2026-10-09, 평지 월드): 직선 60.5 km/h, 정지 57 m, 90°·45°·135° 꺾임 17.9/36.1/17.7 km/h. ugv/tools/drive_test.py
 """
@@ -26,6 +28,7 @@ from .base import Driver, DriverError, Item, Progress, Telemetry
 
 START_RETRIES = 20
 PARK_AFTER_S = 1.0          # 미션 끝 + 0.3 m/s 미만이 이만큼 이어지면 시동을 꺼 정차 유지
+RUNAWAY_PARK_S = 4.0        # 미션 끝 + 0.3 m/s 이상이 이만큼 이어지면 (미션 끝에서 서지 않고 달림) 그래도 시동을 끈다
 LEAD_BASE_M = 5.0           # 선행 지점 = 지금 위치에서 경로를 따라 LEAD_BASE_M + 속도 × LEAD_TIME_S 앞
 LEAD_TIME_S = 2.0           #   (업로드·시작에 걸리는 동안 지나쳐 뒤에 남지 않게. 뒤에 남으면 rover 가 되돌아간다)
 ACCEPT_M = float(os.getenv("UGV_PX4_ACCEPT_M", "3.0"))   # 미션 지점 도착 반경 (airframe NAV_ACC_RAD 와 맞춘다. 환경변수는 시험용)
@@ -52,6 +55,16 @@ def mavsdk_plan(items: List[Item], here, v_now: float):
         last = k == len(items) - 1
         out.append((x, y, v if last else items[k + 1][2], not last))
     return out
+
+
+def park_due(speed_mps: float, now: float, still_since, fast_since):
+    """미션이 끝난 차의 정차 유지(시동 끔) 판단 → (끌지, still_since, fast_since).
+    0.3 m/s 미만이 PARK_AFTER_S 이어지면 끈다 (정상 정차). 0.3 m/s 이상이 RUNAWAY_PARK_S 이어져도 끈다 (미션 끝에서 서지 않고 달림)."""
+    if speed_mps >= 0.3:
+        fast_since = fast_since if fast_since is not None else now
+        return now - fast_since >= RUNAWAY_PARK_S, None, fast_since
+    still_since = still_since if still_since is not None else now
+    return now - still_since >= PARK_AFTER_S, still_since, None
 
 
 def _mission_item(lat, lon, speed, through):
@@ -129,25 +142,24 @@ class Px4Driver(Driver):
 
     async def _park_watch(self):
         """미션이 끝나고 멈춘 차의 시동을 끈다 (정차 유지). 다음 follow 가 다시 시동을 건다."""
-        still_since = None
+        still_since = fast_since = None
         while True:
             await asyncio.sleep(0.5)
             try:
                 tel = self.telemetry()
                 prog = self._prog
                 if tel is None or not self._armed or not prog.finished or self.parked_seq == prog.mission_seq:
-                    still_since = None
-                    continue
-                if tel.speed_mps >= 0.3:
-                    still_since = None
+                    still_since = fast_since = None
                     continue
                 import time
-                still_since = still_since or time.monotonic()
-                if time.monotonic() - still_since < PARK_AFTER_S:
+                due, still_since, fast_since = park_due(tel.speed_mps, time.monotonic(), still_since, fast_since)
+                if not due:
                     continue
                 async with self._cmd:
                     if self._prog.mission_seq != prog.mission_seq or not self._prog.finished:
                         continue
+                    if tel.speed_mps >= 0.3:
+                        self.last_error = f"park: 미션 끝 뒤 {tel.speed_mps:.1f} m/s 로 계속 주행 → 시동 끔"
                     await self._act.disarm()
                     self.parked_seq = prog.mission_seq
             except asyncio.CancelledError:

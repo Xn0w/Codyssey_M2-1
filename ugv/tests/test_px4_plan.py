@@ -35,3 +35,18 @@ def test_first_mission_item_is_not_glued_to_start():
     sp = plan_speeds(Route(pts, [16.7] * 4, [], None, None, 0.0), 0.0)
     assert math.hypot(*sp.items[0][:2]) >= config.ITEM_FIRST_MIN_M - 1e-6
     assert sp.items[0][2] > 1.5
+
+
+def test_park_due_also_parks_a_vehicle_that_keeps_driving_after_mission_end():
+    """미션 끝 뒤 0.3 m/s 이상으로 계속 달리면 RUNAWAY_PARK_S 뒤 시동을 끈다 (2026-10-11 Gazebo: 정지 경로 끝 2.9 m/s 로 FAULT 직진)."""
+    from ugv.drivers.px4 import PARK_AFTER_S, RUNAWAY_PARK_S, park_due
+    due, still, fast = park_due(2.9, 100.0, None, None)
+    assert not due and still is None and fast == 100.0
+    due, still, fast = park_due(2.9, 100.0 + RUNAWAY_PARK_S - 0.5, still, fast)
+    assert not due
+    due, _, _ = park_due(2.9, 100.0 + RUNAWAY_PARK_S, still, fast)
+    assert due
+    # 정상 정차: 느려지면 달림 시각을 지우고 PARK_AFTER_S 정지로 끈다
+    due, still, fast = park_due(0.1, 200.0, None, 199.0)
+    assert not due and fast is None and still == 200.0
+    assert park_due(0.1, 200.0 + PARK_AFTER_S, still, fast)[0]
