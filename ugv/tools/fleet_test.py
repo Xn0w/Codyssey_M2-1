@@ -50,9 +50,31 @@ class Run:
             self.csv[rid] = p
             self.trackers[rid] = start_tracker(p, track_s, world=WORLD, model=model)
         time.sleep(3)
+        from ugv import version
         self.log = {"tag": tag, "stamp": self.stamp, "start_wall": time.time(), "start_local": time.strftime("%F %T"),
-                    "health": self.c.get("/health").json(), "commands": [], "polls": [], "csv": {k: str(v) for k, v in self.csv.items()}}
+                    "health": self.c.get("/health").json(), "commands": [], "polls": [], "csv": {k: str(v) for k, v in self.csv.items()},
+                    # 시험 도구 쪽 코드·설정 (서버 쪽은 health.code·health.env), 월드
+                    "tool_code": version.code_info(), "tool_env": version.env_info(), "world": WORLD,
+                    "status": "RUNNING"}
         self.t0 = time.time()
+        self._last_ckpt = time.time()
+        self.checkpoint()
+
+    def _write(self, path, data):
+        """원자 저장 (임시 파일 → 바꾸기) — 쓰는 도중 죽어도 이전 기록이 남는다."""
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+        os.replace(tmp, path)
+
+    def checkpoint(self, every_s: float = 0.0):
+        """중간 기록 (fleet_<tag>_<stamp>.partial.json). 시험이 죽어도 원시 기록 경로·명령·상태가 남는다 (커버리지는 불완전으로)."""
+        if every_s and time.time() - self._last_ckpt < every_s:
+            return
+        self._last_ckpt = time.time()
+        try:
+            self._write(LOG_DIR / f"fleet_{self.tag}_{self.stamp}.partial.json", {**self.log, "status": "PARTIAL"})
+        except Exception as e:  # noqa: BLE001
+            print("중간 기록 실패:", e, flush=True)
 
     def t(self):
         return round(time.time() - self.t0, 1)
@@ -90,6 +112,7 @@ class Run:
                "traffic_waits": {k: {x: v.get(x) for x in ("other", "kind", "why")} for k, v in tr["waits"].items()},
                "deadlocks": tr["deadlocks"], "unavoidable": tr["unavoidable"], "tick_ms": tr["tick_ms"]}
         self.log["polls"].append(rec)
+        self.checkpoint(every_s=60.0)
         return rec
 
     def task(self, rid, key):
@@ -110,23 +133,44 @@ class Run:
             time.sleep(every)
         return False
 
-    def finish(self):
+    def finish(self, aborted: str = None):
+        """마무리 기록. 서버가 죽었거나 시험이 예외로 끝나도(aborted) 남는 만큼 저장한다 — 실패 사유와 함께.
+        aborted 가 있으면 status=ABORTED (커버리지·판정은 불완전 기록으로 다룬다)."""
         self.log["end_local"] = time.strftime("%F %T")
+        self.log["status"] = "ABORTED" if aborted else "FINISHED"
+        if aborted:
+            self.log["aborted"] = aborted
+        errs = []
         ev = {}
-        for rid in self.trackers:                          # 서버에 없는 차량(일부만 띄운 시험)은 빼고
-            r = self.c.get(f"/ugv/{rid}/events?limit=200")
-            if r.status_code == 200 and isinstance(r.json(), list):
-                ev[rid] = r.json()
+        try:
+            for rid in self.trackers:                      # 서버에 없는 차량(일부만 띄운 시험)은 빼고
+                r = self.c.get(f"/ugv/{rid}/events?limit=200")
+                if r.status_code == 200 and isinstance(r.json(), list):
+                    ev[rid] = r.json()
+        except Exception as e:  # noqa: BLE001
+            errs.append(f"events: {type(e).__name__}: {e}")
         self.log["events"] = ev
-        self.log["tasks"] = {c["key"]: self.task(c["rid"], c["key"]) for c in self.log["commands"]}
-        self.log["traffic_final"] = self.c.get("/traffic").json()
+        try:
+            self.log["tasks"] = {c["key"]: self.task(c["rid"], c["key"]) for c in self.log["commands"]}
+            self.log["traffic_final"] = self.c.get("/traffic").json()
+        except Exception as e:  # noqa: BLE001
+            errs.append(f"tasks/traffic: {type(e).__name__}: {e}")
         for p in self.trackers.values():
             p.terminate()
         time.sleep(2)
         out = LOG_DIR / f"fleet_{self.tag}_{self.stamp}.json"
-        self.log["analysis"] = analyze(self.log)
-        out.write_text(json.dumps(self.log, ensure_ascii=False, indent=1), encoding="utf-8")
-        print(json.dumps(self.log["analysis"], ensure_ascii=False, indent=1))
+        try:
+            self.log["analysis"] = analyze(self.log)
+        except Exception as e:  # noqa: BLE001
+            errs.append(f"analysis: {type(e).__name__}: {e}")
+        if errs:
+            self.log["finish_errors"] = errs
+        self._write(out, self.log)
+        try:
+            (LOG_DIR / f"fleet_{self.tag}_{self.stamp}.partial.json").unlink()
+        except OSError:
+            pass
+        print(json.dumps(self.log.get("analysis"), ensure_ascii=False, indent=1))
         print("기록:", out)
         return out
 

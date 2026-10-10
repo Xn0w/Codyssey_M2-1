@@ -37,7 +37,7 @@ from fastapi.responses import JSONResponse
 
 from interfaces.exec_store import ExecStore
 
-from . import config
+from . import config, version
 from .clock import SimClock
 from .fire import build_source
 from .roads import RoadNetwork
@@ -196,7 +196,10 @@ def create_app(fleet: Optional[Fleet] = None, *, autostart: bool = True) -> Fast
                 "vehicles": {r: {"resource_type": v.resource_type, "profile": v.profile.name, "base": v.station["base_id"],
                                  "access_point": v.station["access_point"]} for r, v in f.vehicles.items()},
                 "unplaced": f.unplaced,
-                "road_network": {"source": f.net.source, "roads": len(f.net.roads), "nodes": len(f.net.nodes)},
+                "road_network": {"source": f.net.source, "roads": len(f.net.roads), "nodes": len(f.net.nodes),
+                                 "sha1": version.file_sha1(f.net.source) if f.net.source and os.path.exists(str(f.net.source)) else None},
+                # 실제로 도는 서버 코드·설정 (시험 기록이 수정 전후를 가를 수 있게)
+                "code": version.code_info(), "env": version.env_info(),
                 "fire_source": src.status() if hasattr(src, "status") else src.area().summary(),
                 "clock": {"sim_time_s": round(f.clock.now(), 2), "time_scale": f.clock.scale},
                 "rules": {"max_speed_mps": round(config.MAX_SPEED_MPS, 2), "fire_standoff_m": config.FIRE_STANDOFF_M,

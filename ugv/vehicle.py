@@ -443,8 +443,9 @@ class Vehicle:
                 for k in range(i0, len(sp.pts)):
                     if sp.cum[k] - sp.cum[i0] > reach:
                         break
-                    rid_k = self.net.snap(*sp.pts[k]).road_id
-                    if not (home and rid_k == self.access.road_id):
+                    q = self.net.snap(*sp.pts[k])
+                    rid_k = q.road_id if q is not None else None
+                    if rid_k is not None and not (home and rid_k == self.access.road_id):
                         out[rid_k] = p.resource_id
                 continue
             if t is None or t.speed_mps >= 0.3 or p.state in ("DRIVING", "EVADING"):
@@ -453,7 +454,12 @@ class Vehicle:
             # (2026-10-10 Gazebo: 목적지에 서 있던 B-fire1 을 지나야 하는 B-ugv1 복귀 경로를 골라 길이 막혔다)
             if p.current_task() is not None and p.state not in ("FAULT", "DANGER"):
                 continue
-            rid = self.net.snap(t.x, t.y).road_id
+            q = self.net.snap(t.x, t.y)
+            if q is None:
+                # 도로망에 붙일 수 없는 곳(도로 밖·월드 밖)에 있는 차 — 막는 도로가 없다 (2026-10-11 Gazebo 지속 운용: 바닥 밖으로 떨어진
+                # 차 때문에 이 함수가 예외로 죽어 /state 가 500)
+                continue
+            rid = q.road_id
             if home and rid == self.access.road_id:
                 continue
             out[rid] = p.resource_id
@@ -1133,7 +1139,8 @@ class Vehicle:
                 return
             other = next((p for p in self.peers() if p.resource_id == other_id), None)
             tel_o = other.driver.telemetry() if other is not None else None
-            blocked_road = self.net.snap(tel_o.x, tel_o.y).road_id if tel_o is not None else None
+            q_o = self.net.snap(tel_o.x, tel_o.y) if tel_o is not None else None
+            blocked_road = q_o.road_id if q_o is not None else None
             hist = t.setdefault("blocked", [])
             rec = {"sim_time_s": round(self.clock.now(), 2), "other": other_id, "waited_s": waited_s,
                    "blocker_immovable": immovable, "blocked_road": blocked_road}
