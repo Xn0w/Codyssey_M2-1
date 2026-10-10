@@ -282,3 +282,29 @@ def test_return_home_from_ignition_area_after_second_relax_and_dense_items(tmp_p
     acc = V.access
     r = asyncio.run(V.evaluate({"task_id": "H", "decision_id": "D", "target_node": f"RP:{acc.road_id}:{acc.s:.1f}"}))
     assert r["verdict"] == "ACCEPT", (r.get("reason"), r.get("detail"))
+
+
+def test_execute_reuses_evaluate_plan_for_same_target(tmp_path):
+    """평가 직후 같은 목표(평가가 고른 목적지 지점 포함)의 실행은 같은 계획을 다시 쓴다 — 장거리 계획을 두 번 하지 않는다
+    (2026-10-10 Gazebo 총괄 고장 인계: B-ugv1 실행 응답이 10 s 를 넘어 '응답 불명')."""
+    import asyncio
+    import time
+    from ugv.tests.test_multi_vehicle import make_fleet
+    f, _ = make_fleet(tmp_path, [{**FLEET_CFG[0], "driver": "sim"}])
+    V = f.vehicles["A-ugv1"]
+    body = {"task_id": "E1", "decision_id": "D1", "target": {"lat": 38.0548798, "lon": 128.16218}}
+    ev = asyncio.run(V.evaluate(body))
+    assert ev["verdict"] == "ACCEPT"
+    calls = {"n": 0}
+    import ugv.vehicle as VM
+    real = VM.plan_approach
+
+    def counting(*a, **k):
+        calls["n"] += 1
+        return real(*a, **k)
+    VM.plan_approach = counting
+    try:
+        ex = asyncio.run(V.execute({**body, "target_node": ev["target_node"]["node_id"]}))
+    finally:
+        VM.plan_approach = real
+    assert ex["status"] == "STARTED" and ex["eta_sec"] == ev["eta_sec"] and calls["n"] == 0

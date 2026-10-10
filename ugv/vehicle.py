@@ -316,10 +316,25 @@ class Vehicle:
                 raise HttpError(422, "target(lat, lon) 또는 target_node 필요")
             tgt = dict(zip(("lat", "lon"), fixed.ll()))
         home = fixed is not None and fixed.road_id == self.access.road_id and abs(fixed.s - self.access.s) < 1.0
-        plan = plan_approach(self.net, fire, start, float(tgt["lat"]), float(tgt["lon"]), v0=v0, access=self.access,
-                             fixed_dest=fixed, graph=self.graph,
-                             avoid_roads={**self.occupied_roads(home=home), **(extra_avoid or {})},
-                             arrive_toward=self.access_toward if home else None)
+        avoid = {**self.occupied_roads(home=home), **(extra_avoid or {})}
+        # 같은 조건(목표·출발 상태·피할 도로·화재 판)의 직전 계획을 다시 쓴다 — 총괄은 평가 직후 같은 목표로 실행을 보내는데,
+        # 장거리(B→A)는 계획이 수 초라 실행 응답이 총괄 제한(10 s)을 넘어 '응답 불명'이 됐다 (2026-10-10 Gazebo 총괄 고장 인계).
+        # 계획은 상태가 없는 함수라 같은 입력이면 같은 결과. 60 s 안에서만, 정지 상태(v0 = 0)에서만
+        nid = body["target_node"]["node_id"] if isinstance(body.get("target_node"), dict) else body.get("target_node")
+        key = (json.dumps(body.get("target") or {"n": nid}, sort_keys=True, default=str),
+               start.road_id, round(start.pos.s, 1), start.toward, tuple(sorted(avoid.items())),
+               getattr(fire, "version", None), getattr(fire, "source", None), len(getattr(fire, "cells", ()) or ()))
+        cached = getattr(self, "_plan_cache", None)
+        # 실행 요청은 평가가 고른 목적지 지점(target_node)을 함께 보낸다 — 그 지점이 직전 계획의 목적지와 같으면 같은 계획
+        same_dest = nid is None or (cached is not None and cached[2].dest is not None and node_id_of(cached[2].dest) == nid)
+        if v0 < 0.05 and cached is not None and cached[0] == key and same_dest and self.clock.now() - cached[1] <= 60.0:
+            plan = cached[2]
+        else:
+            plan = plan_approach(self.net, fire, start, float(tgt["lat"]), float(tgt["lon"]), v0=v0, access=self.access,
+                                 fixed_dest=fixed, graph=self.graph, avoid_roads=avoid,
+                                 arrive_toward=self.access_toward if home else None)
+            if v0 < 0.05:
+                self._plan_cache = (key, self.clock.now(), plan)
         return self._check_start_road_blocker(plan, start, home)
 
     def _check_start_road_blocker(self, plan: ApproachPlan, start: DirPos, home: bool) -> ApproachPlan:
@@ -352,12 +367,14 @@ class Vehicle:
                 dest_ahead = (plan.dest.s - start.pos.s) if fwd else (start.pos.s - plan.dest.s)
             if dest_ahead is not None and dest_ahead <= ahead - need:
                 continue                         # 막은 차 앞(간격 확보)에서 끝나는 경로
-            plan.status = "ROAD_BLOCKED"
-            plan.reason = (f"BLOCKED_BY_VEHICLE: {p.resource_id} 가 출발 도로 {start.road_id} 앞 {ahead:.0f} m 에 서 있음 "
-                           f"({p.state}), 유턴·추월 없이 지날 수 없음")
-            plan.detail["start_road_blocker"] = {"resource_id": p.resource_id, "road_id": start.road_id,
-                                                 "ahead_m": round(ahead, 1), "state": p.state}
-            return plan
+            import copy
+            blocked = copy.copy(plan)                       # 원본(계획 재사용 캐시)은 그대로 둔다
+            blocked.status = "ROAD_BLOCKED"
+            blocked.reason = (f"BLOCKED_BY_VEHICLE: {p.resource_id} 가 출발 도로 {start.road_id} 앞 {ahead:.0f} m 에 서 있음 "
+                              f"({p.state}), 유턴·추월 없이 지날 수 없음")
+            blocked.detail = {**plan.detail, "start_road_blocker": {"resource_id": p.resource_id, "road_id": start.road_id,
+                                                                    "ahead_m": round(ahead, 1), "state": p.state}}
+            return blocked
         return plan
 
     def occupied_roads(self, home: bool = False) -> dict:
