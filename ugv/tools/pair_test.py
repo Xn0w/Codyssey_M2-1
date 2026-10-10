@@ -92,7 +92,7 @@ def _pose_on(net, rid, s, toward):
     return p, q
 
 
-SPECIAL = ("static_ahead", "linkloss_approach")
+SPECIAL = ("static_ahead", "linkloss_approach", "follow_close")
 
 
 TEST_ROAD = "682501747"     # A 지역 직선 국도 1,277 m (양방향, UGV·소방차 주행 묶음, 급커브 아님) — 시험용 배치
@@ -101,7 +101,8 @@ TEST_ROAD = "682501747"     # A 지역 직선 국도 1,277 m (양방향, UGV·�
 def make_special(sc):
     """시험용 배치 (운영 거점·기본 배치와 별개, 시작 자세만): TEST_ROAD 위 a→b 방향.
     static_ahead: A-ugv1 s=100 출발 → 목적지 s=900, 그 사이 s=400 에 고장 차(B-fire1). 정지거리 밖에서 빠르게 다가가 서야 한다.
-    linkloss_approach: A-ugv1 s=250(앞), A-fire1 s=130(뒤), 둘 다 목적지 s=1150. 둘 다 움직이면 앞차 링크를 끊는다."""
+    linkloss_approach: A-ugv1 s=250(앞), A-fire1 s=130(뒤), 둘 다 목적지 s=1150. 둘 다 움직이면 앞차 링크를 끊는다.
+    follow_close: A-fire1 s=250(앞), A-ugv1 s=130(뒤), 둘 다 s=1150 — 빠른 UGV 가 느린 소방차에 따라붙는 간격."""
     net = RoadNetwork()
     rid = TEST_ROAD
     r = net.roads[rid]
@@ -110,6 +111,10 @@ def make_special(sc):
     if sc == "static_ahead":
         poses = {"A-ugv1": _pose_on(net, rid, 100.0, toward), "B-fire1": _pose_on(net, rid, 400.0, toward)}
         plan = {"moving": {"A-ugv1": ll(900.0)}, "faulted": ["B-fire1"], "road": rid}
+    elif sc == "follow_close":
+        # 같은 방향 따라가기: 느린 소방차(51 km/h)가 앞 s=250, 빠른 UGV(60 km/h)가 뒤 s=130 — 같은 목적지 s=1150 으로 UGV 가 따라붙는다
+        poses = {"A-fire1": _pose_on(net, rid, 250.0, toward), "A-ugv1": _pose_on(net, rid, 130.0, toward)}
+        plan = {"moving": {"A-fire1": ll(1150.0), "A-ugv1": ll(1150.0)}, "road": rid}
     else:
         poses = {"A-ugv1": _pose_on(net, rid, 250.0, toward), "A-fire1": _pose_on(net, rid, 130.0, toward)}
         plan = {"moving": {"A-ugv1": ll(1150.0), "A-fire1": ll(1150.0)}, "cut": "A-ugv1", "road": rid}
