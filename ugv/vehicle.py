@@ -501,8 +501,9 @@ class Vehicle:
             _, iv = _dist_to_polyline(t.x, t.y, sp.pts, 0, hi)
             s_veh = sp.cum[iv] + math.dist(sp.pts[iv], (t.x, t.y)) if iv > 0 else 0.0
             keep, j = [], 0
-            for it in items:                                  # 미션 지점은 속도 계획 점의 부분열 — 차례로 맞춘다
-                while j < len(sp.pts) - 1 and math.dist(sp.pts[j], it[:2]) > 1e-6:
+            # 미션 지점(보정 전 좌표)은 속도 계획 점의 부분열 — 차례로 맞춘다
+            for it, on in zip(items, sp.items_on_path or items):
+                while j < len(sp.pts) - 1 and math.dist(sp.pts[j], on[:2]) > 1e-6:
                     j += 1
                 if sp.cum[j] >= s_veh + 2.0 or it is items[-1]:
                     keep.append(it)
@@ -803,6 +804,7 @@ class Vehicle:
             pts.append(pts[0])
             caps.append(1.0)
         r = Route(pts, [max(c, 1.0) for c in caps], [], self.plan.dest, self.plan.dest, 0.0)
+        r.item_comp_l = getattr(self.plan.route, "item_comp_l", None)     # 원래 경로 검사에서 보정을 껐으면 정지 경로도 끈다
         return plan_speeds(r, tel.speed_mps, profile=self.profile).items
 
     async def set_hold(self, s_hold: float, info: dict):

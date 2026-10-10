@@ -69,6 +69,7 @@ class SpeedPlan:
     items: List[Tuple[float, float, float]]   # PX4 미션 지점 (x, y, 그 지점까지 구간 속도)
     v_max: float
     max_chord_dev_m: float = 0.0              # 미션 지점을 이은 직선과 계획 선형의 최대 차이
+    items_on_path: Optional[List[Tuple[float, float, float]]] = None   # 곡선 보정 전 미션 지점 (계획 선형 위)
 
 
 class RoadNetwork:
@@ -270,6 +271,40 @@ def _curvature(pts, cum, i, w):
     return 0.0 if den <= 1e-9 else 2.0 * area2 / den
 
 
+def _signed_curvature(pts, cum, i, w):
+    """점 i 의 부호 있는 곡률 (+ = 왼쪽(반시계) 회전). 앞뒤 w m 점과 세 점 원."""
+    j = bisect.bisect_left(cum, cum[i] - w)
+    k = min(len(pts) - 1, bisect.bisect_left(cum, cum[i] + w))
+    if j >= i or k <= i:
+        return 0.0
+    a, b, c = pts[j], pts[i], pts[k]
+    cross = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+    den = math.dist(a, b) * math.dist(b, c) * math.dist(a, c)
+    return 0.0 if den <= 1e-9 else 2.0 * cross / den
+
+
+def curve_compensate(pts, cum, idx, L=None):
+    """미션 지점(계획선 위 점 번호 idx)을 곡선 바깥으로 min(L²/2R, 상한) 옮긴 좌표 목록. 마지막 지점(도착점)은 옮기지 않는다."""
+    L = config.ITEM_CURVE_COMP_L_M if L is None else L
+    out = []
+    for n, i in enumerate(idx):
+        x, y = pts[i]
+        if L <= 0 or n == len(idx) - 1:
+            out.append((x, y))
+            continue
+        k = _signed_curvature(pts, cum, i, config.ITEM_CURVE_WINDOW_M)
+        c = min(config.ITEM_CURVE_COMP_MAX_M, L * L / 2.0 * abs(k))
+        a, b = pts[max(0, i - 1)], pts[min(len(pts) - 1, i + 1)]
+        d = math.dist(a, b)
+        if c < 0.02 or d < 1e-6:
+            out.append((x, y))
+            continue
+        nx, ny = -(b[1] - a[1]) / d, (b[0] - a[0]) / d        # 왼쪽 법선
+        sgn = -1.0 if k > 0 else 1.0                            # 왼쪽 회전이면 바깥 = 오른쪽
+        out.append((x + sgn * c * nx, y + sgn * c * ny))
+    return out
+
+
 def plan_speeds(route: Route, v0: float = 0.0, *, profile=None, lat_accel=None, accel=None, decel=None,
                 spacing=None, turn_deg=None) -> SpeedPlan:
     """곡선·도착 구간 감속을 반영한 속도 계획과 PX4 미션 지점. profile(ugv/profiles.py) 의 횡가속·가감속·최고속도를 쓴다."""
@@ -301,7 +336,7 @@ def plan_speeds(route: Route, v0: float = 0.0, *, profile=None, lat_accel=None, 
     def chord_dev(a, b):
         return max((_seg_point_dist(pts[k], pts[a], pts[b]) for k in range(a + 1, b)), default=0.0)
 
-    items, last, last_hd, max_dev = [], 0, None, 0.0
+    items, idx, last, last_hd, max_dev = [], [], 0, None, 0.0
     for i in range(1, len(pts)):
         hd = bearing_deg(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]) if math.dist(pts[i], pts[i - 1]) > 0 else last_hd
         turn = 0.0 if last_hd is None or hd is None else abs((hd - last_hd + 180) % 360 - 180)
@@ -318,10 +353,13 @@ def plan_speeds(route: Route, v0: float = 0.0, *, profile=None, lat_accel=None, 
             if i == len(pts) - 1:
                 seg_v = min(v[last + 1:i]) if i - 1 > last else 1.0
             items.append((pts[i][0], pts[i][1], max(math.floor(seg_v * 100) / 100, 1.0)))
+            idx.append(i)
             last, last_hd = i, hd
         elif last_hd is None:
             last_hd = hd
-    return SpeedPlan(pts, v, cum, eta, items, max(v) if v else 0.0, round(max_dev, 3))
+    comp = curve_compensate(pts, cum, idx, getattr(route, "item_comp_l", None))
+    sent = [(x, y, it[2]) for (x, y), it in zip(comp, items)]
+    return SpeedPlan(pts, v, cum, eta, sent, max(v) if v else 0.0, round(max_dev, 3), items_on_path=items)
 
 
 def _seg_point_dist(q, a, b):

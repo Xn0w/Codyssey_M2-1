@@ -139,8 +139,17 @@ def verify_route(net: RoadNetwork, route: Route, graph=None) -> dict:
     if not chk["ok"]:
         return out
     sp = plan_speeds(route, profile=g.p)
-    line = [route.pts[0]] + [(x, y) for x, y, _ in sp.items]
+    # 실제 궤적은 계획선 위 지점을 이은 선(보정이 맞을 때)과 곡선 바깥으로 옮긴 지점을 이은 선(보정이 지나칠 때) 사이 → 둘 다 본다.
+    # 옮긴 선만 바깥 가장자리에 걸리면 이 경로는 보정 없이 보낸다 (예전 방식, 안쪽 질러가기 남음)
+    line = [route.pts[0]] + [(x, y) for x, y, _ in (sp.items_on_path or sp.items)]
     mchk = g.check_route(line, check_radius=False, label="MISSION_ITEMS")
+    comp = "OFF"
+    if mchk["ok"] and sp.items_on_path is not None and sp.items != sp.items_on_path:
+        cchk = g.check_route([route.pts[0]] + [(x, y) for x, y, _ in sp.items], check_radius=False, label="MISSION_ITEMS_COMP")
+        comp = "ON" if cchk["ok"] else "OFF_OUTER_EDGE"
+        if not cchk["ok"]:
+            route.item_comp_l = 0.0
+    mchk["curve_comp"] = comp
     mchk["items"] = len(sp.items)
     mchk["max_chord_dev_m"] = sp.max_chord_dev_m
     out["mission"] = mchk
