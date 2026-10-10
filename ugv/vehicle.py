@@ -335,7 +335,39 @@ class Vehicle:
                                  arrive_toward=self.access_toward if home else None)
             if v0 < 0.05:
                 self._plan_cache = (key, self.clock.now(), plan)
-        return self._check_start_road_blocker(plan, start, home)
+        plan = self._check_start_road_blocker(plan, start, home)
+        return plan if home else self._check_return_from_dest(plan, fire)
+
+    RETURN_CHECK_BEND_FACTOR = 1.5
+
+    def _check_return_from_dest(self, plan: ApproachPlan, fire) -> ApproachPlan:
+        """도착할 도로에 급커브에 가까운 굽음(도로 최소 반경 < 최소 회전반경 × RETURN_CHECK_BEND_FACTOR)이 있으면, 도착 자세(도착 방향)에서
+        소속 거점까지 복귀 계획을 실제로 세워 최종 검사를 통과하는지 본다. 나가는 경로는 도로의 들어온 쪽 절반만 지나므로, 남은 쪽 굽음이
+        최종 검사(±3 m 창)에서 최소 회전반경에 걸려 도착한 뒤 갇힐 수 있다 (2026-10-11 Gazebo: 소방차가 682502608 가운데 목표에서
+        모든 경로 반경 5.21 m 로 거절 — 도로 급커브 판정은 ±7.5 m 창이라 놓침). 드문 경우만 계산 (평가 시간 영향 작음)."""
+        if plan.status != "OK" or plan.route is None or plan.dest is None:
+            return plan
+        rid = plan.dest.road_id
+        if self.graph.min_radius.get(rid, math.inf) >= self.profile.r_min * self.RETURN_CHECK_BEND_FACTOR:
+            return plan
+        toward = plan.route.arrive_toward or (plan.route.legs[-1][2] if plan.route.legs else None)
+        if toward is None:
+            return plan
+        from .drive_graph import DirPos as _DP
+        start = _DP(plan.dest, toward)
+        acc = self.access
+        back = plan_approach(self.net, fire, start, *acc.ll(), v0=0.0, access=acc, fixed_dest=acc, graph=self.graph,
+                             arrive_toward=self.access_toward)
+        if back.status == "OK":
+            plan.detail["return_check_from_dest"] = {"ok": True, "road": rid, "length_m": round(back.route.length, 1)}
+            return plan
+        import copy
+        bad = copy.copy(plan)
+        bad.status = "TARGET_UNREACHABLE"
+        bad.reason = (f"NO_RETURN_FROM_DEST_AFTER_CHECK: 도착 도로 {rid} (최소 반경 {self.graph.min_radius[rid]:.1f} m) 에 서면 "
+                      f"거점 복귀 경로가 최종 검사를 통과하지 못함 ({back.status}: {back.reason})")
+        bad.detail = {**plan.detail, "return_check_from_dest": {"ok": False, "road": rid, "reason": back.reason}}
+        return bad
 
     def _check_start_road_blocker(self, plan: ApproachPlan, start: DirPos, home: bool) -> ApproachPlan:
         """출발 도로 앞쪽에 스스로 움직이지 않을 차(occupied_roads 와 같은 기준)가 서 있으면, 그 차 앞에서 끝나는 경로 말고는

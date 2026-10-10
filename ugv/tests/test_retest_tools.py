@@ -308,3 +308,27 @@ def test_execute_reuses_evaluate_plan_for_same_target(tmp_path):
     finally:
         VM.plan_approach = real
     assert ex["status"] == "STARTED" and ex["eta_sec"] == ev["eta_sec"] and calls["n"] == 0
+
+
+def test_destination_with_near_sharp_bend_requires_return_check(tmp_path, monkeypatch):
+    """도착 도로에 급커브에 가까운 굽음이 있으면 도착 자세에서 거점 복귀를 실제로 계획해 본다 — 못 돌아오면 거절
+    (2026-10-11 Gazebo 지형 구역 tz_a33: 소방차가 682502608 가운데 목표에 들어간 뒤 모든 경로가 반경 5.21 m 로 거절돼 갇힘.
+    나가는 경로는 도로 들어온 쪽 절반만 지났고 도로 급커브 판정(±7.5 m 창)은 남은 쪽 굽음을 놓쳤다)."""
+    import asyncio
+    import pathlib
+    from ugv import config as C
+    from ugv.roads import RoadNetwork
+    import ugv.tests.test_multi_vehicle as tm
+    from ugv.approach import node_id_of
+    from ugv.geo import bearing_deg
+    monkeypatch.setattr(C, "ROAD_SUBSET", str(pathlib.Path(__file__).parent / "data" / "road_subset_tz_a33.json"))
+    net = RoadNetwork()
+    monkeypatch.setattr(tm, "NET", net)
+    cfg = {c["resource_id"]: c for c in tm.FLEET_CFG}["A-fire1"]
+    r = net.roads["682502608"]
+    p, q = net.at("682502608", r.length - 15), net.at("682502608", r.length - 16)
+    la, lo = FRAME.to_ll(p.x, p.y)
+    f, _ = tm.make_fleet(tmp_path, [{**cfg, "initial": {"lat": la, "lon": lo, "heading_deg": bearing_deg(q.x - p.x, q.y - p.y)}}])
+    V = f.vehicles["A-fire1"]
+    ev = asyncio.run(V.evaluate({"task_id": "T", "decision_id": "D", "target_node": node_id_of(net.at("682502608", r.length / 2))}))
+    assert ev["verdict"] == "REJECT" and "NO_RETURN_FROM_DEST_AFTER_CHECK" in ev["detail"], ev.get("detail")
