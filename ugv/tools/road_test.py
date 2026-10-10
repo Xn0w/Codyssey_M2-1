@@ -365,6 +365,8 @@ def main():
     ap.add_argument("--abort-after", type=float, help="첫 출발 뒤 몇 초(벽시계)에 임무 중단")
     ap.add_argument("--abort-on-curve", type=float, default=None,
                     help="--abort-after 뒤, 정지 거리 안 계획 선형이 이 각도(°) 넘게 꺾이고 5 m/s 넘을 때 중단 (곡선 위 정지 시험)")
+    ap.add_argument("--abort-on-downhill", type=float, default=None,
+                    help="--abort-after 뒤, 차 위치부터 정지 거리 구간 지형 타일 표면 경사가 -값 이하(내리막)이고 8 m/s 넘을 때 중단")
     ap.add_argument("--fail-stop-n", type=int, default=0, help="중단 직전 미션 전송 n 번 실패 주입 (UGV_TEST_HOOKS=1 서버)")
     ap.add_argument("--track-s", type=float, default=900.0)
     ap.add_argument("--world", default=config.DEFAULT_VEHICLES[0]["px4"]["gz_world"])
@@ -484,6 +486,40 @@ def main():
             return True
         return False
 
+    surf = {"S": None}
+
+    def downhill_ahead():
+        """정지 거리 구간(감속 1.5 m/s² + 15 m) 계획 선형 위 지형 타일 표면(생성된 충돌면 값) 평균 경사. 내리막 정지 시험."""
+        if a.abort_on_downhill is None:
+            return True
+        st = c.get(f"/ugv/{a.rid}/state").json()
+        v = st.get("speed_mps") or 0
+        if v < 8.0 or st["position"]["lat"] is None:
+            return False
+        if surf["S"] is None:
+            from ugv.tools.build_terrain_tiles import Surface
+            surf["S"] = Surface()
+        S = surf["S"]
+        pts = c.get(f"/ugv/{a.rid}/route").json().get("plan_xy") or []
+        if len(pts) < 3:
+            return False
+        x, y = FRAME.to_xy(st["position"]["lat"], st["position"]["lon"])
+        i0 = min(range(len(pts)), key=lambda i: (pts[i][0] - x) ** 2 + (pts[i][1] - y) ** 2)
+        win = v * v / 3.0 + 15.0
+        d, k = 0.0, i0
+        while k < len(pts) - 1 and d < win:
+            d += math.dist(pts[k], pts[k + 1])
+            k += 1
+        if d < win * 0.8:
+            return False
+        z0, z1 = S.z(*pts[i0]), S.z(*pts[k])
+        g = (z1 - z0) / d
+        if g <= -a.abort_on_downhill:
+            log["downhill_trigger"] = {"grade": round(g, 4), "speed_mps": v, "window_m": round(d, 1), "z0": round(z0, 2), "z1": round(z1, 2)}
+            print(f"  앞 {d:.0f} m 내리막 {g * 100:.1f} %, {v:.1f} m/s → 중단", flush=True)
+            return True
+        return False
+
     if a.target or a.target_node:
         k1 = run(f"RT1-{stamp}", *(a.target or (None, None)), node=a.target_node)
     else:
@@ -511,7 +547,7 @@ def main():
         if a.second and not second_sent and time.time() - t0 >= a.second_after and junction_ready():
             active, second_sent = run(f"RT2-{stamp}", *a.second), True
             continue
-        if a.abort_after is not None and not aborted and time.time() - t0 >= a.abort_after and curve_ahead():
+        if a.abort_after is not None and not aborted and time.time() - t0 >= a.abort_after and curve_ahead() and downhill_ahead():
             sim_t = last_sim_t(out_csv)
             if a.fail_stop_n:                    # 정지 명령 실패 주입 (서버 UGV_TEST_HOOKS=1) — 실패 뒤 재시도로 실제 서는지
                 log["fail_injected"] = c.post(f"/ugv/{a.rid}/_test/fail_next", json={"n": a.fail_stop_n}).json()
