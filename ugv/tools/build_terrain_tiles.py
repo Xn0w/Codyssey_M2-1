@@ -13,7 +13,8 @@
 - 도로 띠 = 포함 도로 중심선 ± est_half_width (차로 수 × 3.25 / 2 + 0.5 m, 완화 없음). 띠 안 = Z, 띠 밖 BLEND_M 까지 Z → D 선형 전이, 그 밖 = D.
 - 제외 (도로면을 만들지 않고 지형 D 그대로): 시설 코드 FACIL_KIND 1·2 (교량·터널 추정 — 높이·연결 미확인, 임의 생성 안 함),
   자동차전용(AUTO_EXCLU, 입체교차 정보 없음), DEM 밖에 걸친 링크.
-- 16 bit PNG 양자화: 모든 타일이 같은 간격 Q (10 mm), 타일 최저값도 Q 의 배수 → 공유 가장자리 정수값이 같다 (이음매 0).
+- 16 bit PNG 양자화: 타일마다 실제 높이 범위 / 65535 (수 mm). 이웃 가장자리 차이 ≤ 두 간격 절반 합 (static_checks 가 잰다).
+  (모든 타일 공통 1 cm·세로 655 m 는 이음매 0 이었지만 Gazebo 높이장 충돌이 깨져 차량이 튕겨 나갔다)
 - 90 m DEM 을 보간한 면이다. 고해상도 측량처럼 보이지만 지형 세부(사면·하천·옹벽)는 없다 (메타데이터에 남긴다).
 결과: <out>/<타일>/{heightmap.png, model.config, model.sdf}, <out>/tiles.json (타일·제외 도로·생성 시간), --check 는 static_checks.json.
 """
@@ -255,21 +256,19 @@ def build_tile(net, F, inc, half_w, i, j):
 
 
 def quantize(H):
-    """절대 높이를 Q 단위 정수로 반올림한 뒤 타일 최저 정수를 뺀다 — 같은 점은 어느 타일에서도 같은 정수 (이음매 0).
-    (타일 최저값을 먼저 빼고 반올림하면 부동소수 오차로 이웃 타일과 한 칸씩 달랐다 — 2026-10-10 첫 생성 1182 쌍 대부분 0.01 m)"""
-    k = np.round(H / Q).astype(np.int64)
-    k0 = int(k.min())
-    q = k - k0
-    if q.max() > 65535:
-        raise ValueError(f"타일 높이 범위 {float(H.max() - H.min()):.1f} m > {65535 * Q:.1f} m (Q {Q} m)")
-    return k0 * Q, q.astype(np.uint16)
+    """타일마다 실제 높이 범위로 16 bit 양자화 (간격 = 범위 / 65535, 범위 110 m 면 1.7 mm). 반환 (최저, 범위, 영상).
+    모든 타일을 같은 간격(1 cm, 세로 크기 655 m)으로 맞추면 공유 가장자리 정수가 같았지만, 그 세로 크기에서 Gazebo(DART) 높이장
+    충돌이 깨져 차량이 출발하자마자 튕겨 나갔다 (2026-10-11: 같은 타일 하나를 세로 655 m → 튕김, 실제 범위 110 m → 정상 주행).
+    대신 이웃 타일 가장자리 차이는 두 간격 절반 이하 (수 mm) — static_checks 가 실제 값으로 잰다."""
+    zmin = float(np.nanmin(H))
+    span = max(float(np.nanmax(H)) - zmin, 1.0)
+    return zmin, span, np.round((H - zmin) / span * 65535).astype(np.uint16)
 
 
-def write_tile(name, zmin, img, i, j):
+def write_tile(name, zmin, span, img, i, j):
     d = OUT / name
     d.mkdir(parents=True, exist_ok=True)
     write_png16(d / "heightmap.png", img)
-    span = 65535 * Q
     x0, y0, x1, y1 = tile_bounds(i, j)
     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
     model = f"kangwon_tile_{name}"
@@ -322,14 +321,14 @@ def build_all(only=None):
             if T["outside_dem"].all():
                 tracemalloc.stop()
                 continue
-            zmin, img = quantize(T["H"])
-            write_tile(name, zmin, img, i, j)
+            zmin, span, img = quantize(T["H"])
+            write_tile(name, zmin, span, img, i, j)
             _, peak = tracemalloc.get_traced_memory()
             tracemalloc.stop()
             rm = T["road_mask"]
             cut = (T["D"] - T["H"])[rm & ~np.isnan(T["D"])]
             meta["tiles"][name] = {
-                "i": i, "j": j, "bounds": list(tile_bounds(i, j)), "zmin": round(zmin, 4),
+                "i": i, "j": j, "bounds": list(tile_bounds(i, j)), "zmin": zmin, "span": span, "q_m": round(span / 65535, 5),
                 "z_range_m": round(float(T["H"].max() - T["H"].min()), 2), "roads": sorted(T["roads"]),
                 "road_cells": int(rm.sum()), "outside_dem_cells": int(T["outside_dem"].sum()),
                 "dem_minus_surface_in_road_m": None if cut.size == 0 else
@@ -379,7 +378,8 @@ class Surface:
         g = self.cache.get(name)
         if g is None:
             img = read_png16(OUT / name / "heightmap.png").astype(float)
-            g = (round(self.meta["tiles"][name]["zmin"] / Q) + img) * Q
+            t = self.meta["tiles"][name]
+            g = t["zmin"] + img / 65535.0 * t["span"]
             self.cache[name] = g
             if len(self.cache) > 40:
                 self.cache.pop(next(iter(self.cache)))
@@ -415,10 +415,11 @@ def static_checks():
             a, b = S.grid(name), S.grid(nb)
             ea, eb = (a[:, -1], b[:, 0]) if di else (a[0, :], b[-1, :])
             m = float(np.abs(ea - eb).max())
+            tol = (t["q_m"] + meta["tiles"][nb]["q_m"]) / 2 + 1e-6
             seam["pairs"] += 1
-            seam["max_abs_m"] = max(seam["max_abs_m"], round(m, 4))
-            if m > 1e-6:
-                seam["mismatch_pairs"].append([name, nb, round(m, 4)])
+            seam["max_abs_m"] = max(seam["max_abs_m"], round(m, 5))
+            if m > tol:
+                seam["mismatch_pairs"].append([name, nb, round(m, 5), round(tol, 5)])
     out["tile_seams"] = seam
     # 2) 도로 띠 안 격자 경사 (실제 최대 경사) — 타일별
     cell = TILE_M / (N - 1)
