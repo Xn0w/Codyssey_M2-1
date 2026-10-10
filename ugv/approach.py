@@ -195,7 +195,55 @@ def _ban(g, route, issue, start: DirPos, banned_turns, banned_roads, tried) -> b
     return True
 
 
-def plan_approach(net: RoadNetwork, fire: FireArea, start: DirPos, target_lat: float, target_lon: float, *,
+LOW_MARGIN_SPEED_MPS = 2.5      # 추종 여유가 모자란 구간 속도 상한 (감속 대안 — 이 속도의 추종 오차는 Gazebo 검증 필요)
+LOW_MARGIN_SPAN_M = 20.0        # 여유 부족 지점 앞뒤로 상한을 거는 거리
+
+
+def plan_approach(net: RoadNetwork, fire: FireArea, start: DirPos, target_lat: float, target_lon: float, **kw) -> ApproachPlan:
+    """추종 여유(차종 track_margin_m) 포함 계획 → 실패했고 원인에 여유 부족(차체는 도로 안, 여유만 모자람)이 있으면
+    차체 도로 포함만 요구해 다시 계획하고, 찾은 경로의 여유 부족 구간 앞뒤 LOW_MARGIN_SPAN_M 에 속도 상한 LOW_MARGIN_SPEED_MPS
+    (사용자 결정 2026-10-11: 여유 부족 → 감속 → 그래도 안 되면 다른 경로·거절. 다른 경로 탐색은 1차 계획이 회전 제외로 이미 했다).
+    결과 detail.track_margin 에 여유 충족 여부·감속 구간·검증 상태. 차체가 도로 밖이면 예전처럼 거절."""
+    from .drive_graph import _MARGIN_TLS
+    plan = _plan_approach(net, fire, start, target_lat, target_lon, **kw)
+    if plan.status == "OK":
+        if plan.detail is not None:
+            plan.detail["track_margin"] = {"ok": True}
+        return plan
+    tried = (plan.detail or {}).get("route_check_rejected") or []
+    if not any((t.get("issue") or {}).get("margin_m") and (t["issue"].get("value") or 0) <= 0.02 for t in tried):
+        return plan
+    _MARGIN_TLS.margin = 0.0
+    try:
+        alt = _plan_approach(net, fire, start, target_lat, target_lon, **kw)
+    finally:
+        _MARGIN_TLS.margin = None
+    if alt.status != "OK" or alt.route is None:
+        return plan
+    g = kw.get("graph") or net.graph
+    chk = g.check_route(alt.route)                      # 여유 포함 — 부족 지점
+    cum = [0.0]
+    for a, b in zip(alt.route.pts, alt.route.pts[1:]):
+        cum.append(cum[-1] + math.dist(a, b))
+    segs = sorted({i["s_m"] for i in chk["issues"] if i.get("kind") == "BODY"})
+    for k, sv in enumerate(cum):
+        if any(abs(sv - x) <= LOW_MARGIN_SPAN_M for x in segs):
+            alt.route.vlim[k] = min(alt.route.vlim[k], LOW_MARGIN_SPEED_MPS)
+    spans = []
+    for x in segs:
+        if spans and x - spans[-1][1] <= 2 * LOW_MARGIN_SPAN_M:
+            spans[-1][1] = x
+        else:
+            spans.append([x, x])
+    alt.detail = {**(alt.detail or {}), "track_margin": {
+        "ok": False, "required_m": g.p.track_margin_m, "worst_excess_m": chk["worst_excess_m"],
+        "low_margin_spans_s_m": [[round(a - LOW_MARGIN_SPAN_M, 1), round(b + LOW_MARGIN_SPAN_M, 1)] for a, b in spans],
+        "speed_cap_mps": LOW_MARGIN_SPEED_MPS, "first_plan": plan.reason,
+        "status": "여유 부족 구간 감속 적용 — 이 속도에서의 추종 오차는 아직 Gazebo 로 검증하지 않음 (차체는 도로 안)"}}
+    return alt
+
+
+def _plan_approach(net: RoadNetwork, fire: FireArea, start: DirPos, target_lat: float, target_lon: float, *,
                   v0: float = 0.0, access: Optional[RoadPos] = None,
                   standoff: float = config.FIRE_STANDOFF_M, search_m: float = config.APPROACH_SEARCH_M,
                   snap_limit: float = config.TARGET_SNAP_M, fixed_dest: Optional[RoadPos] = None,

@@ -353,25 +353,44 @@ class Vehicle:
     RETURN_CHECK_BEND_FACTOR = 1.5
 
     def _check_return_from_dest(self, plan: ApproachPlan, fire) -> ApproachPlan:
-        """도착할 도로에 급커브에 가까운 굽음(도로 최소 반경 < 최소 회전반경 × RETURN_CHECK_BEND_FACTOR)이 있으면, 도착 자세(도착 방향)에서
+        """모든 목표(config.RETURN_CHECK_ALL, 기본) — 예전에는 도착할 도로에 급커브에 가까운 굽음(도로 최소 반경 < 최소 회전반경 ×
+        RETURN_CHECK_BEND_FACTOR)이 있을 때만 — 도착 자세(도착 방향)에서
         소속 거점까지 복귀 계획을 실제로 세워 최종 검사를 통과하는지 본다. 나가는 경로는 도로의 들어온 쪽 절반만 지나므로, 남은 쪽 굽음이
         최종 검사(±3 m 창)에서 최소 회전반경에 걸려 도착한 뒤 갇힐 수 있다 (2026-10-11 Gazebo: 소방차가 682502608 가운데 목표에서
-        모든 경로 반경 5.21 m 로 거절 — 도로 급커브 판정은 ±7.5 m 창이라 놓침). 드문 경우만 계산 (평가 시간 영향 작음)."""
+        모든 경로 반경 5.21 m 로 거절 — 도로 급커브 판정은 ±7.5 m 창이라 놓침). 2026-10-11 소방차 무작위 목표 12개: 급커브 후보만 보면
+        놓치는 '도착하면 못 돌아옴' 2개 → 모든 목표로 (평가 평균 0.63 → 1.25 s). 결과는 도착 자세·그래프·화재 버전별로 재사용."""
         if plan.status != "OK" or plan.route is None or plan.dest is None:
             return plan
         rid = plan.dest.road_id
-        if self.graph.min_radius.get(rid, math.inf) >= self.profile.r_min * self.RETURN_CHECK_BEND_FACTOR:
+        if (not config.RETURN_CHECK_ALL
+                and self.graph.min_radius.get(rid, math.inf) >= self.profile.r_min * self.RETURN_CHECK_BEND_FACTOR):
             return plan
         toward = plan.route.arrive_toward or (plan.route.legs[-1][2] if plan.route.legs else None)
         if toward is None:
             return plan
+        # 결과 재사용: 같은 도착 자세(도로·5 m 칸·방향)·차종 그래프·화재 자료 버전·출입 지점
+        key = (rid, int(plan.dest.s // 5.0), toward, id(self.graph), getattr(fire, "version", None), self.access.road_id)
+        cache = self.__dict__.setdefault("_ret_cache", {})
+        if key in cache:
+            ok, info = cache[key]
+            plan.detail["return_check_from_dest"] = {**info, "cached": True}
+            if ok:
+                return plan
+            import copy
+            bad = copy.copy(plan)
+            bad.status, bad.reason = "TARGET_UNREACHABLE", info["reason_full"]
+            bad.detail = {**plan.detail}
+            return bad
         from .drive_graph import DirPos as _DP
         start = _DP(plan.dest, toward)
         acc = self.access
         back = plan_approach(self.net, fire, start, *acc.ll(), v0=0.0, access=acc, fixed_dest=acc, graph=self.graph,
                              arrive_toward=self.access_toward)
+        if len(cache) > 500:
+            cache.clear()
         if back.status == "OK":
             plan.detail["return_check_from_dest"] = {"ok": True, "road": rid, "length_m": round(back.route.length, 1)}
+            cache[key] = (True, dict(plan.detail["return_check_from_dest"]))
             return plan
         import copy
         bad = copy.copy(plan)
@@ -379,6 +398,7 @@ class Vehicle:
         bad.reason = (f"NO_RETURN_FROM_DEST_AFTER_CHECK: 도착 도로 {rid} (최소 반경 {self.graph.min_radius[rid]:.1f} m) 에 서면 "
                       f"거점 복귀 경로가 최종 검사를 통과하지 못함 ({back.status}: {back.reason})")
         bad.detail = {**plan.detail, "return_check_from_dest": {"ok": False, "road": rid, "reason": back.reason}}
+        cache[key] = (False, {"ok": False, "road": rid, "reason": back.reason, "reason_full": bad.reason})
         return bad
 
     def _check_start_road_blocker(self, plan: ApproachPlan, start: DirPos, home: bool) -> ApproachPlan:

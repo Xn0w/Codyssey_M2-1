@@ -36,14 +36,15 @@ MODEL_NAME="${MODEL}_${INSTANCE}"
 case "$MODEL" in
   adair_ugv)       AUTOSTART=51100; AIRFRAME="51100_gz_adair_ugv" ;;
   adair_firetruck) AUTOSTART=51101; AIRFRAME="51101_gz_adair_firetruck" ;;
-  *) echo "모델 $MODEL 없음 (adair_ugv / adair_firetruck)"; exit 1 ;;
+  x500)            AUTOSTART=4001;  AIRFRAME="" ;;     # UAV (PX4 기본 x500 쿼드, 카메라 없음) — 같은 월드에 UGV 와 함께 (통합 시연, 인스턴스 0)
+  *) echo "모델 $MODEL 없음 (adair_ugv / adair_firetruck / x500)"; exit 1 ;;
 esac
 
 [ -x "$BUILD/bin/px4" ] || { echo "PX4 빌드 없음: $BUILD/bin/px4 (make px4_sitl 먼저)"; exit 1; }
 mkdir -p "$STATE_DIR/px4-$INSTANCE"
 
 # 1) airframe 설치 (Windows 에서 편집해 CRLF 가 섞여도 sh 가 읽게 LF 로)
-sed 's/\r$//' "$REPO/ugv/px4/airframes/$AIRFRAME" > "$BUILD/etc/init.d-posix/airframes/$AIRFRAME"
+if [ -n "$AIRFRAME" ]; then sed 's/\r$//' "$REPO/ugv/px4/airframes/$AIRFRAME" > "$BUILD/etc/init.d-posix/airframes/$AIRFRAME"; fi
 
 # 2) Gazebo 환경: PX4 기본 설정 + 우리 모델·월드 경로. 파티션을 나눠 UAV Gazebo 와 섞이지 않게 한다
 export GZ_SIM_RESOURCE_PATH="${GZ_SIM_RESOURCE_PATH:-}" GZ_SIM_SYSTEM_PLUGIN_PATH="${GZ_SIM_SYSTEM_PLUGIN_PATH:-}"

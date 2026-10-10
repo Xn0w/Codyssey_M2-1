@@ -50,6 +50,8 @@ RADIUS_WINDOW_M = 3.0            # 곡률반경 = 앞뒤 이 거리 세 점의 �
 # 그 초과량을 넘지 않는 차체 표본만 승인 판정에서 뺀다. 초과가 허용치 아래로 내려오거나 차체 길이를 지나면 끝난다.
 # 회전반경은 예외가 없다. 출발 도로 전체를 빼던 예전 규칙(직선거리로 추정한 start_leg)은 없앴다 (2026-10-10 검토)
 TURN_FIT_STEP_DEG = 2.5          # 교차로 회전 검사의 진행 방향 표본 간격 (5° 는 차체 끝 약 0.3 m 씩 건너뛰어 놓쳤다)
+import threading
+_MARGIN_TLS = threading.local()      # 계획 스레드별 추종 여유 덮어쓰기 (approach.plan_approach 의 감속 대안 계획 — 같은 그래프를 여러 차가 동시에 쓴다)
 LOW_MARGIN_TURN_PENALTY_S = 90.0   # 추종 여유(track_margin_m)가 모자란 회전의 탐색 비용 (다른 길이 있으면 그쪽)
 R_STEPS = (1.0, 1.15, 1.3, 1.5, 1.8, 2.2, 3.0, 4.0, 6.0, 9.0, 14.0, 20.0, 30.0)
 STRAIGHT_DEG = 5.0
@@ -175,6 +177,18 @@ class DriveGraph:
                     comps.append(comp)
         return sorted(comps, key=len, reverse=True)
 
+    def comp_of(self, state) -> Optional[frozenset]:
+        """방향 상태가 속한 강연결 성분 (서로 오갈 수 있는 묶음). 거점별 출동·복귀 가능 구역 = 출입 지점 상태의 성분."""
+        idx = getattr(self, "_comp_idx", None)
+        if idx is None:
+            idx = {}
+            for c in self.components():
+                fc = frozenset(c)
+                for st in c:
+                    idx[st] = fc
+            self._comp_idx = idx
+        return idx.get(state)
+
     @property
     def core(self) -> set:
         """가장 큰 강연결 성분 — 그 안 어디서든 그 안 어디로든 갈 수 있다."""
@@ -189,7 +203,8 @@ class DriveGraph:
         key = (rid, keep)
         if key in cache:
             return cache[key]
-        core = self.core
+        # 기준 묶음 = keep 도로(같은 거점 첫 대기 도로)가 속한 강연결 성분 (거점별 운행 구역 — 전체 최대 성분이 아닐 수 있다)
+        core = self.comp_of((keep, self.net.roads[keep].a)) or self.core
         succ = {s: [t.to for t in self.turns.get(s, ()) if t.to[0] != rid] for s in core if s[0] != rid}
         start = next(((keep, n) for n in (self.net.roads[keep].a, self.net.roads[keep].b) if (keep, n) in succ), None)
         if start is None:
@@ -949,7 +964,8 @@ class DriveGraph:
         - 추종 오차 여유(margin, 기본 차종 track_margin_m): 차체 표본이 도로 띠 안쪽으로 그만큼 들어와 있어야 통과 (초과량 + 여유 > 허용 → 위반)
         route: Route 또는 점 목록. {"ok", "min_radius_m", "steering_violations", "body_violations", "worst_excess_m",
         "initial_pose", "issues"}"""
-        mg = self.p.track_margin_m if margin is None else margin
+        ov = getattr(_MARGIN_TLS, "margin", None)
+        mg = (self.p.track_margin_m if ov is None else ov) if margin is None else margin
         pts = route.pts if hasattr(route, "pts") else list(route)
         cum = [0.0]
         for a, b in zip(pts, pts[1:]):
@@ -1201,13 +1217,19 @@ def access_point(net: RoadNetwork, base_id: str, search_m: float = STATION_SEARC
         r = net.roads[p.road_id]
         if r.attrs.get("oneway", "BOTH") != "BOTH" or p.road_id in g.sharp_roads or r.length < 2 * SLOT_END_M:
             continue
-        if not ((p.road_id, r.a) in g.core and (p.road_id, r.b) in g.core):
+        ca, cb = g.comp_of((p.road_id, r.a)), g.comp_of((p.road_id, r.b))
+        if ca is None or ca is not cb:                 # 두 방향이 서로 오갈 수 있는 같은 묶음에 있어야 (출동하고 돌아올 수 있다)
             continue
         if p.road_id not in best or d < best[p.road_id][0]:
-            best[p.road_id] = (d, p)
+            best[p.road_id] = (d, p, ca)
     if not best:
         return None
+    # 거점별 운행 구역: 후보 도로들이 속한 묶음 중 가장 큰 것 (예전에는 전체에서 가장 큰 묶음 하나만 — 그 밖 거점(교량 자료 부족으로
+    # 끊긴 기린 B)은 운행 가능한 도로가 있어도 배치 불가였다, 2026-10-11 검토). 묶음 밖으로는 출동·복귀 경로가 없다
+    region = max({id(v[2]): v[2] for v in best.values()}.values(), key=len)
+    best = {k: (v[0], v[1]) for k, v in best.items() if v[2] is region}
     ranked = sorted(best.values(), key=lambda v: v[0])
+    region_note = (f", 운행 구역 {len(region)} 방향 상태" + ("" if region is g.comp_of(next(iter(g.core))) else " (전체 최대 묶음 아님 — 거점별 구역)"))
     if slot > 0:
         # 두 번째부터는 그 도로를 막아도(차가 서 있으면 다른 차는 그 도로로 계획하지 않는다) 도로망이 끊기지 않는 도로만
         first = ranked[0][1]
@@ -1242,4 +1264,4 @@ def access_point(net: RoadNetwork, base_id: str, search_m: float = STATION_SEARC
     r = net.roads[p.road_id]
     q0 = net.at(p.road_id, max(0.0, p.s - 2.0))[2:4]
     q1 = net.at(p.road_id, min(r.length, p.s + 2.0))[2:4]
-    return p, bearing_deg(q1[0] - q0[0], q1[1] - q0[1]),         f"소방서 {st['base_id']} 좌표에서 {d:.0f} m, 서로 오갈 수 있는 도로 {p.road_id} (a→b 방향){note}"
+    return p, bearing_deg(q1[0] - q0[0], q1[1] - q0[1]),         f"소방서 {st['base_id']} 좌표에서 {d:.0f} m, 서로 오갈 수 있는 도로 {p.road_id} (a→b 방향){note}{region_note}"
