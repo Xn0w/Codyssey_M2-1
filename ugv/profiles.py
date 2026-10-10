@@ -36,6 +36,9 @@ class VehicleProfile:
     gz_model: str                      # Gazebo 모델 (ugv/gazebo/models/<gz_model>)
     px4_airframe: int
     emergency_decel_mps2: float = 3.5  # 비상 정지 계산용 감속 (PX4 RO_DECEL_LIM 보다 낮게: UGV 4, 소방차 2.5)
+    # 경로 추종 오차 여유: 최종 경로·미션 선 검사에서 차체가 도로 띠 안쪽으로 이만큼 들어와 있어야 한다 (도로 폭을 늘리지 않고 판정만
+    # 보수적으로). 값 = 2026-10-11 평탄 월드 곡선 보정 뒤 남은 추종 오차 p95 최대 0.27 m (두 차종). 교차로 전이 여유 0.03~0.13 m 이탈
+    track_margin_m: float = 0.27
     body_samples: Tuple[Tuple[float, float], ...] = field(init=False, repr=False)
     _reach: float = field(init=False, repr=False, compare=False)
 

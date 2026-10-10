@@ -168,3 +168,20 @@ def test_stop_retries_do_not_reset_supervision(tmp_path):
         await _steps(f, clock, 40)
         assert _ev(A, "STOP_CUT_DRIVE") and _ev(A, "STOP_CONFIRMED")
     asyncio.run(go())
+
+
+def test_stop_path_never_plans_faster_than_current_speed(tmp_path):
+    """정지 경로 미션 속도는 지금 속도 이하 (2026-10-11 Gazebo: 정지 거리 여유 때문에 시작 구간에서 가속 → 감속 안 함으로 차단·고장)."""
+    async def go():
+        f, clock = make_fleet(tmp_path, [FLEET_CFG[0]])
+        A = f.vehicles["A-ugv1"]
+        await A.execute(body("P1", *FRAME.to_ll(A.access.x - 900, A.access.y - 700)))
+        await _steps(f, clock, 25)
+        v0 = A.driver.telemetry().speed_mps
+        assert v0 > 5
+        await A.abort("P1")
+        assert max(it[2] for it in A.driver.path) <= v0 + 1e-6
+        await _steps(f, clock, 30)
+        res = _ev(A, "STOP_CONFIRMED")[-1]
+        assert not res["cut_drive"] and not res["exceeded_allow"] and A.fault is None
+    asyncio.run(go())

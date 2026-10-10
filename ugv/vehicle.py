@@ -98,6 +98,7 @@ STOP_CMD_TIMEOUT_S = float(os.getenv("UGV_STOP_CMD_TIMEOUT_S", "8.0"))
 STOP_SUP_MARGIN_M = 5.0   # 정지 감독 허용 거리 = max(정지 경로, 제동거리) + 속도 × 명령 지연 + 이 여유
 STOP_SUP_SLACK_S = 4.0    # 정지 감독 허용 시간 = 허용 거리를 평균 속도(처음 속도의 절반)로 가는 시간 + 명령 지연 + 이 여유
 STOP_SUP_ACCEL_MPS = 0.8  # 정지 명령 뒤 지연이 지나서도 처음 속도보다 이만큼 빨라지면 감속이 진행되지 않는 것
+STOP_SUP_ACCEL_HOLD_S = 2.0  # 그 가속이 이만큼 이어져야 '감속 안 함' (명령 교체 순간의 짧은 흔들림과 구분 — 거리·시간 상한은 따로)
 STOP_CONFIRM_S = 1.0      # 정지 감독: 0.2 m/s 미만(최신 텔레메트리)이 이만큼 이어지면 정차 확인
 # 정지·양보 명령이 이 시간 안에 끝나지 않으면 '전달 여부 불명' 실패로 본다 (실측 명령 교체 지연 최대 CMD_LATENCY_MAX_S 6 s + 여유)
 
@@ -664,7 +665,9 @@ class Vehicle:
                 if prefer is not None or dp is not None:
                     pts, got = g.stop_path(dp, need, prefer)
                     if len(pts) >= 2 and got > 1.0:
-                        route = Route(pts, [self.profile.max_speed_mps] * len(pts), [], pos, pos, 0.0)
+                        # 속도 상한 = 지금 속도 (정지 경로는 감속만). 예전에는 최고 속도라 정지 거리 여유(STOP_MARGIN_M) 때문에 시작 구간에서
+                        # 지금보다 빠른 속도를 허용해, 2026-10-11 Gazebo 재검증에서 취소·고장 정지 직후 1.3~2 m/s 가속했다
+                        route = Route(pts, [max(v, 0.5)] * len(pts), [], pos, pos, 0.0)
                         items = plan_speeds(route, v, profile=self.profile).items
                         chk = g.check_route(pts, label="STOP_PATH")
                         info = {"basis": "PLANNED_ROUTE" if prefer else "ROAD_AHEAD", "length_m": round(got, 1),
@@ -980,18 +983,23 @@ class Vehicle:
             if now - s["still_since"] >= STOP_CONFIRM_S:
                 self.last_stop_result = {"basis": s["basis"], "v0_mps": s["v0"], "travel_m": round(s["travel_m"], 1),
                                          "allow_m": s["allow_m"], "time_s": round(now - s["t0"], 1),
-                                         "cut_drive": s["escalations"] > 0, "cut_attempts": s["escalations"]}
+                                         "cut_drive": s["escalations"] > 0, "cut_attempts": s["escalations"],
+                                         # 허용 거리를 넘어 섰다 (예: 링크 단절 중 PX4 자체 정지 — 그동안 감독은 거리를 볼 수 없다)
+                                         "exceeded_allow": s["travel_m"] > s["allow_m"]}
                 self._stop_sup = None
                 self._event("STOP_CONFIRMED", **self.last_stop_result)
             return
         s["still_since"] = None
+        if tel.speed_mps <= s["v0"] + STOP_SUP_ACCEL_MPS:
+            s.pop("fast_since", None)
         why = None
         if s["travel_m"] > s["allow_m"]:
             why = f"DISTANCE {s['travel_m']:.1f} m > {s['allow_m']} m"
         elif now > s["deadline"]:
             why = f"TIME {now - s['t0']:.1f} s"
         elif (s["basis"] != "BLOCKED_HOLD" and now - s["t0"] > self.latency_s() + 1.0
-              and tel.speed_mps > s["v0"] + STOP_SUP_ACCEL_MPS):
+              and tel.speed_mps > s["v0"] + STOP_SUP_ACCEL_MPS
+              and now - s.setdefault("fast_since", now) >= STOP_SUP_ACCEL_HOLD_S):
             # 대기 지점 정지(BLOCKED_HOLD)는 대기 지점까지 앞으로 가는 미션이라 저속에서 다시 가속할 수 있다 — 거리·시간 상한만
             why = f"NOT_DECELERATING {tel.speed_mps:.1f} m/s > {s['v0']} m/s"
         if why is None or now < s["next_cut"]:

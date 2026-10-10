@@ -229,7 +229,12 @@ def test_waiting_slots_of_same_station_use_different_roads_across_profiles(tmp_p
     roads = [f.vehicles[r].access.road_id for r in ("A-ugv1", "A-fire1", "A-ugv2")]
     assert len(set(roads)) == 3, roads
     f4, _ = make_fleet(tmp_path / "four", [{**c, "driver": "sim"} for c in FLEET_CFG])
-    assert f4.vehicles["A-fire1"].access.road_id == "682500724" and f4.vehicles["B-fire1"].access.road_id == "683400570"
+    # 4대 배치: 같은 거점 두 차는 다른 도로, 거점 가까이 (2026-10-11 추종 여유 반영 뒤 A-fire1 대기 도로 682500724 → 682500816, 151 m)
+    for b in "AB":
+        u, fi = f4.vehicles[f"{b}-ugv1"], f4.vehicles[f"{b}-fire1"]
+        assert u.access.road_id != fi.access.road_id
+        assert fi.station["access_point"]["from_station_m"] < 700
+    assert f4.vehicles["B-fire1"].access.road_id == "683400570"
 
 
 def test_rejection_is_recorded(tmp_path):
@@ -264,8 +269,9 @@ def test_b_station_reaches_a_area_after_junction_join_relax(tmp_path):
         assert ev["verdict"] == "ACCEPT", ev["detail"]
         ap = ev["approach"]
         assert ap["route_check"]["ok"] is True
-        relaxed = {tuple(map(tuple, x)) for x in ap.get("junction_joins_relaxed", [])}
-        assert (("682502376", "494861"), ("682502932", "495140")) in relaxed
+        # 2026-10-11 추종 여유(track_margin_m) 반영 뒤에는 여유가 모자란 회전을 탐색이 피해 이음매 완화 없이도 통과할 수 있다 —
+        # 완화 여부는 고정하지 않고 최종 검사 통과(여유 포함)만 본다
+        assert ap["route_check"].get("track_margin_m", 0) >= 0.27
     asyncio.run(go())
 
 

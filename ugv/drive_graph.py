@@ -50,6 +50,7 @@ RADIUS_WINDOW_M = 3.0            # 곡률반경 = 앞뒤 이 거리 세 점의 �
 # 그 초과량을 넘지 않는 차체 표본만 승인 판정에서 뺀다. 초과가 허용치 아래로 내려오거나 차체 길이를 지나면 끝난다.
 # 회전반경은 예외가 없다. 출발 도로 전체를 빼던 예전 규칙(직선거리로 추정한 start_leg)은 없앴다 (2026-10-10 검토)
 TURN_FIT_STEP_DEG = 2.5          # 교차로 회전 검사의 진행 방향 표본 간격 (5° 는 차체 끝 약 0.3 m 씩 건너뛰어 놓쳤다)
+LOW_MARGIN_TURN_PENALTY_S = 90.0   # 추종 여유(track_margin_m)가 모자란 회전의 탐색 비용 (다른 길이 있으면 그쪽)
 R_STEPS = (1.0, 1.15, 1.3, 1.5, 1.8, 2.2, 3.0, 4.0, 6.0, 9.0, 14.0, 20.0, 30.0)
 STRAIGHT_DEG = 5.0
 STRIP_LEN_M = 60.0
@@ -82,6 +83,7 @@ class Turn:
     deflect_deg: float
     radius_m: Optional[float]   # 경로에 실제로 그리는 원호 반경 (차체 검사를 통과한 값). 직진이면 None
     tangent_m: float = 0.0      # 그 원호가 노드 앞뒤로 차지하는 길이
+    margin_m: Optional[float] = None   # 원호 + 앞뒤 방향선 구간에서 차체가 도로 띠 안쪽으로 들어온 최소 거리 (추종 여유 비교용)
 
 
 @dataclass
@@ -319,13 +321,36 @@ class DriveGraph:
                     return True
         return False
 
-    def turn_fit(self, u, w, strips, Lin, Lout):
-        """(가능 여부, 맞는 가장 큰 반경, 꺾임각°)."""
+    @staticmethod
+    def _clear(q, strips):
+        """점이 노드 근처 도로 띠 합집합 안쪽으로 들어온 거리 (밖이면 음수)."""
+        best = -math.inf
+        for poly, h in strips:
+            for a, b in zip(poly, poly[1:]):
+                best = max(best, h - _seg_dist(q, a, b))
+        return best
+
+    def _pose_clear(self, rx, ry, hd, strips, floor):
+        ch, sh = math.cos(hd), math.sin(hd)
+        m = math.inf
+        for fx, fy in self.p.body_samples:
+            m = min(m, self._clear((rx + fx * ch - fy * sh, ry + fx * sh + fy * ch), strips))
+            if m < floor:
+                return m
+        return m
+
+    def turn_fit(self, u, w, strips, Lin, Lout, margin_out: Optional[list] = None):
+        """(가능 여부, 고른 반경, 꺾임각°). 차체 검사 범위 = 원호 + 원호 앞뒤 방향선 직선 구간 (노드에서 DIR_LEN_M 까지, _smooth 가
+        그리는 것과 같은 선형 — 예전에는 원호만 봐서 방향선·이음매에서 차체 여유가 0.03~0.13 m 로 남았다, 2026-10-11 검토).
+        추종 여유(track_margin_m) 이상인 가장 큰 반경을 고른다. 없으면 여유가 가장 큰 반경 (그 여유를 margin_out 에 — 탐색이 피한다)."""
         D = math.atan2(u[0] * w[1] - u[1] * w[0], u[0] * w[0] + u[1] * w[1])
         ad = abs(D)
         if math.degrees(ad) < STRAIGHT_DEG:
             return True, math.inf, math.degrees(ad)
         sg = 1 if D > 0 else -1
+        need = self.p.track_margin_m
+        best = None
+        hu, hw = math.atan2(u[1], u[0]), math.atan2(w[1], w[0])
         for f in reversed(R_STEPS):
             R = self.p.r_min * f
             T = R * math.tan(ad / 2)
@@ -333,20 +358,38 @@ class DriveGraph:
                 continue
             P1 = (-T * u[0], -T * u[1])
             C = (P1[0] - u[1] * sg * R, P1[1] + u[0] * sg * R)
-            ok = True
+            floor = -CHECK_TOL_M
+            m = math.inf
             n = max(12, math.ceil(math.degrees(ad) / TURN_FIT_STEP_DEG))
             for k in range(n + 1):
-                hd = math.atan2(u[1], u[0]) + sg * ad * k / n
+                hd = hu + sg * ad * k / n
                 ch, sh = math.cos(hd), math.sin(hd)
-                rx, ry = C[0] + R * sh * sg, C[1] - R * ch * sg
-                for fx, fy in self.p.body_samples:
-                    if not self._inside((rx + fx * ch - fy * sh, ry + fx * sh + fy * ch), strips):
-                        ok = False
-                        break
-                if not ok:
+                m = min(m, self._pose_clear(C[0] + R * sh * sg, C[1] - R * ch * sg, hd, strips, floor))
+                if m < floor:
                     break
-            if ok:
+            if m < floor:
+                continue                                  # 가능 여부는 원호로만 (예전과 같다)
+            # 여유 평가에는 방향선 구간도 (원호 앞: 노드에서 dl_in ~ T, 뒤: T ~ dl_out, 1 m 간격, 차체 방향 = 방향선).
+            # 굽은 도로에서는 _smooth 가 방향선 대신 도로 선형 접합 곡선을 쓰므로 여기서 막지 않는다 — 최종 검사가 실제 선형을 본다
+            dl_in, dl_out = min(DIR_LEN_M, Lin), min(DIR_LEN_M, Lout)
+            dd = T + 1.0
+            while dd <= dl_in and m > -1.0:
+                m = min(m, self._pose_clear(-dd * u[0], -dd * u[1], hu, strips, -1.0))
+                dd += 1.0
+            dd = T + 1.0
+            while dd <= dl_out and m > -1.0:
+                m = min(m, self._pose_clear(dd * w[0], dd * w[1], hw, strips, -1.0))
+                dd += 1.0
+            if m >= need:
+                if margin_out is not None:
+                    margin_out.append(m)
                 return True, R, math.degrees(ad)
+            if best is None or m > best[0]:
+                best = (m, R)
+        if best is not None:
+            if margin_out is not None:
+                margin_out.append(best[0])
+            return True, best[1], math.degrees(ad)
         return False, None, math.degrees(ad)
 
     def _build_turns(self):
@@ -362,7 +405,8 @@ class DriveGraph:
                     if rout == rin or not self.allowed(rout, n):       # 같은 도로 되짚기(U턴) 금지
                         continue
                     w = self._dir(rout, n, out=True)
-                    ok, R, deg = self.turn_fit(u, w, strips, net.roads[rin].length, net.roads[rout].length)
+                    mo = []
+                    ok, R, deg = self.turn_fit(u, w, strips, net.roads[rin].length, net.roads[rout].length, mo)
                     if not ok:
                         self.blocked_turns.append({"node": n, "from_road": rin, "to_road": rout,
                                                    "deflect_deg": round(deg, 1), "entry_legal": self.allowed(rin, frm)})
@@ -370,7 +414,8 @@ class DriveGraph:
                     vmax = min(self.road_speed(net.roads[rin]), self.road_speed(net.roads[rout]))
                     v = vmax if math.isinf(R) else min(vmax, math.sqrt(self.p.lat_accel_mps2 * R))
                     T = 0.0 if math.isinf(R) else R * math.tan(math.radians(deg) / 2)
-                    lst.append(Turn((rout, to), v, round(deg, 1), None if math.isinf(R) else round(R, 2), round(T, 2)))
+                    lst.append(Turn((rout, to), v, round(deg, 1), None if math.isinf(R) else round(R, 2), round(T, 2),
+                                    round(mo[0], 3) if mo else None))
 
     # ------------------------------------------------------------------ 위치·방향
     def dirpos(self, pos: RoadPos, heading_deg: float) -> Optional[DirPos]:
@@ -493,9 +538,13 @@ class DriveGraph:
                 if not road_ok(t.to[0]) or not turn_ok(s, t.to) or not self._lab_ok(tin, t.tangent_m, r.length):
                     continue
                 nl = (t.to, s)
-                if Tn < dist.get(nl, math.inf):
-                    dist[nl], prev[nl] = Tn, lab
-                    heapq.heappush(pq, (Tn, nl))
+                if t.margin_m is not None and t.margin_m < self.p.track_margin_m:
+                    Tn_t = Tn + LOW_MARGIN_TURN_PENALTY_S          # 추종 여유가 모자란 회전 — 다른 길이 있으면 그쪽
+                else:
+                    Tn_t = Tn
+                if Tn_t < dist.get(nl, math.inf):
+                    dist[nl], prev[nl] = Tn_t, lab
+                    heapq.heappush(pq, (Tn_t, nl))
         labels: Dict[State, List[tuple]] = {}
         for lab, T in dist.items():
             labels.setdefault(lab[0], []).append((T, lab))
@@ -822,7 +871,7 @@ class DriveGraph:
             cache[key] = v
         return v
 
-    def body_excess(self, x: float, y: float, yaw: float) -> float:
+    def body_excess(self, x: float, y: float, yaw: float, need: float = 0.0) -> float:
         """뒤축 (x, y)·진행 방향 yaw(ENU rad) 자세에서 차체 둘레 표본이 추정 도로 띠 합집합 밖으로 나간 최대 거리 (안이면 ≤ 0).
         계산은 예전과 같다: 뒤축에서 15 m 안 도로들의 (반폭 − 거리) 최댓값이 차체 도달 거리 이상이면 그 띠 안 (상한값),
         아니면 둘레 표본마다 근처 칸 선분까지 (거리 − 반폭) 최솟값의 최댓값. 선분 배열만 칸 상자별로 캐시해 빨라졌다."""
@@ -838,7 +887,10 @@ class DriveGraph:
         d0 = np.hypot(x - A_[:, 0] - T0 * D[:, 0], y - A_[:, 1] - T0 * D[:, 1])
         w = d0 <= 15.0
         margin = float((HW[w] - d0[w]).max()) if w.any() else -math.inf
-        if margin >= reach:                              # 차체가 어느 방향으로 돌아도 그 띠 안 → 상한값 (≤ 0)
+        # 차체가 어느 방향으로 돌아도 그 띠 안쪽으로 need 이상 → 상한값 (≤ −need). 상한값은 실제보다 덜 안쪽일 수 있어
+        # 여유 비교(need > 0)에서는 보장될 때만 쓴다 (2026-10-11: 차선 가운데 UGV 실제 여유 2.2 m 를 0.05 m 로 돌려 추종 여유 검사가 거의
+        # 모든 경로를 막음 — 예전 판정(need 0, 허용 0.02 m)에는 영향 없음)
+        if margin >= reach + need:
             return reach - margin
         ch, sh = math.cos(yaw), math.sin(yaw)
         S = self.p.__dict__.get("_samples_np")
@@ -852,7 +904,7 @@ class DriveGraph:
         dist = np.hypot(Px[:, None] - A_[None, :, 0] - T * D[None, :, 0], Py[:, None] - A_[None, :, 1] - T * D[None, :, 1])
         return float((dist - HW[None]).min(axis=1).max())
 
-    def _excess_many(self, X, Y, YAW):
+    def _excess_many(self, X, Y, YAW, need: float = 0.0):
         """body_excess 를 여러 자세에 한 번에 (값은 같다 — 도로 띠 밖 8 m 넘게 나간 표본의 초과량 크기만 달라질 수 있다:
         자세 묶음의 근처 선분 합집합을 쓰므로). 최종 경로 검사의 호출 고정 비용을 줄인다."""
         import numpy as np
@@ -865,14 +917,15 @@ class DriveGraph:
                      for cj in range(int((Y.min() - rad) // F), int((Y.max() + rad) // F) + 1)
                      for k in self._fine_index.get((ci, cj), ())})
         if not ks:
-            return np.array([self.body_excess(x, y, t) for x, y, t in zip(X, Y, YAW)])
+            return np.array([self.body_excess(x, y, t, need) for x, y, t in zip(X, Y, YAW)])
         A_, D, L2, HW = (v[np.asarray(ks)] for v in self._fine_all)
         T0 = np.clip(((X[:, None] - A_[None, :, 0]) * D[None, :, 0] + (Y[:, None] - A_[None, :, 1]) * D[None, :, 1]) / L2[None],
                      0.0, 1.0)
         d0 = np.hypot(X[:, None] - A_[None, :, 0] - T0 * D[None, :, 0], Y[:, None] - A_[None, :, 1] - T0 * D[None, :, 1])
         m = np.where(d0 <= 15.0, HW[None] - d0, -np.inf).max(axis=1)
         out = reach - m
-        slow = np.nonzero(m < reach)[0]
+        # 상한값(reach − m)은 '적어도 그만큼 안쪽' 일 뿐 — 요구 여유(need)까지 보장되지 않으면 정확한 표본 계산 (body_excess 참고)
+        slow = np.nonzero(m < reach + need)[0]
         if slow.size:
             S = self.p.__dict__.get("_samples_np")
             if S is None:
@@ -886,15 +939,17 @@ class DriveGraph:
             out[slow] = (dist - HW).min(axis=2).max(axis=1)
         return out
 
-    def check_route(self, route, *, check_radius: bool = True, label: str = "ROUTE") -> dict:
+    def check_route(self, route, *, check_radius: bool = True, label: str = "ROUTE", margin: Optional[float] = None) -> dict:
         """최종 주행 선형(다듬은 경로, 또는 PX4 미션 지점을 이은 선)을 차가 따라갈 때(뒤축이 선 위) 주행 가능한지.
         - 회전반경: 앞뒤 RADIUS_WINDOW_M 세 점 외접원 반경 < 최소 회전반경 → STEERING_LIMIT (속도를 낮춰도 못 도는 곳).
           최소 회전반경 이상이면 곡선 속도(√(횡가속 × R))로 해결되는 곳이라 위반이 아니다 (min_curve_speed_mps 로만 보고).
         - 차체: 둘레 표본(모서리 포함 0.45 m 간격)이 추정 도로 띠 합집합 안인지. 출발 자세·최종 정차 자세 포함.
         출발 도로도 예외 없이 본다. 예외는 self.p.body_length_m 의 초기 자세 예외 하나뿐이다 (아래).
         표본 검사라 근사다 — 표본 사이 연속 충돌을 보장하지 않는다.
+        - 추종 오차 여유(margin, 기본 차종 track_margin_m): 차체 표본이 도로 띠 안쪽으로 그만큼 들어와 있어야 통과 (초과량 + 여유 > 허용 → 위반)
         route: Route 또는 점 목록. {"ok", "min_radius_m", "steering_violations", "body_violations", "worst_excess_m",
         "initial_pose", "issues"}"""
+        mg = self.p.track_margin_m if margin is None else margin
         pts = route.pts if hasattr(route, "pts") else list(route)
         cum = [0.0]
         for a, b in zip(pts, pts[1:]):
@@ -944,7 +999,7 @@ class DriveGraph:
                 want = [j for j in list(range(k, k + 4)) + list(range(k + 4, k + 4 * 64, 4))
                         if j < len(Sg) and j not in ex_memo]
                 idx = np.asarray(want)
-                vals = self._excess_many(Xg[idx], Yg[idx], Wg[idx])
+                vals = self._excess_many(Xg[idx], Yg[idx], Wg[idx], mg)
                 for j, v_ in zip(want, vals):
                     ex_memo[j] = float(v_)
                 v = ex_memo[k]
@@ -977,13 +1032,14 @@ class DriveGraph:
                     n_rad += 1
                     issues.append({"kind": "STEERING_LIMIT", "s_m": round(sv, 1), "x": round(q[0], 1), "y": round(q[1], 1),
                                    "value": round(R, 2)})
-            ex = self.body_excess(q[0], q[1], yaw) if kg is None else ex_at(kg)
+            ex = self.body_excess(q[0], q[1], yaw, mg) if kg is None else ex_at(kg)
             worst = max(worst, ex)
             if e0 is None:
                 e0 = ex
-            if ex > CHECK_TOL_M:
-                rec = {"kind": "BODY", "s_m": round(sv, 1), "x": round(q[0], 1), "y": round(q[1], 1), "value": round(ex, 2)}
-                if exempt_open and e0 > CHECK_TOL_M and sv <= self.p.body_length_m and ex <= e0 + CHECK_TOL_M:
+            if ex + mg > CHECK_TOL_M:
+                rec = {"kind": "BODY", "s_m": round(sv, 1), "x": round(q[0], 1), "y": round(q[1], 1), "value": round(ex, 2),
+                       "margin_m": mg}
+                if exempt_open and e0 + mg > CHECK_TOL_M and sv <= self.p.body_length_m and ex <= e0 + CHECK_TOL_M:
                     exempt.append(rec)
                 else:
                     exempt_open = False
@@ -1002,7 +1058,7 @@ class DriveGraph:
                 "min_radius_m": None if math.isinf(min_r) else round(min_r, 2),
                 "steering_violations": n_rad, "radius_violations": n_rad, "body_violations": n_body,
                 "worst_excess_m": None if math.isinf(worst) else round(worst, 3),
-                "min_curve_speed_mps": None if curve_v is None else round(curve_v, 2),
+                "min_curve_speed_mps": None if curve_v is None else round(curve_v, 2), "track_margin_m": mg,
                 "initial_pose": {"excess_m": None if e0 is None else round(e0, 3), "exempt_samples": len(exempt),
                                  "exempt_until_m": exempt[-1]["s_m"] if exempt else None,
                                  "rule": f"출발 자세 차체가 이미 도로 띠 밖일 때만, 출발 {self.p.body_length_m:g} m 안, "
