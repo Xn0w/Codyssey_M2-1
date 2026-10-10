@@ -16,6 +16,7 @@
 충돌 보장이 아니다. 서버가 다른 차량(다른 서버의 차, 사람 운전 차량)은 모른다.
 """
 
+import asyncio
 import math
 import time
 from typing import Dict, List, Optional
@@ -23,6 +24,7 @@ from typing import Dict, List, Optional
 from . import config
 
 TRAFFIC_PERIOD_S = 0.5           # 판단 주기 (시뮬레이션 초)
+TRAFFIC_CMD_WAIT_S = 0.2         # 판단 주기 안에서 차량 명령을 기다리는 최대 벽시계 시간 (넘으면 다음 주기로 — 다른 차 감독을 막지 않음)
 TRAFFIC_HORIZON_S = 45.0         # 예측 시간
 TRAFFIC_HORIZON_M = 700.0        # 예측 거리 상한
 TRAFFIC_SAMPLE_M = 4.0           # 예측 표본 간격
@@ -123,6 +125,13 @@ class TrafficManager:
         self.unavoidable: List[dict] = []
         self.last_tick_wall_ms = None
         self.ticks = 0
+        # 차량별 명령 실행 (판단과 분리): 한 차의 명령 응답을 기다리느라 다른 차 감독이 멈추지 않게 (2026-10-11 검토).
+        # 차마다 진행 중 명령 하나 — 진행 중이면 새 일반 명령은 건너뛰고 다음 주기에 다시 판단한다 (낡은 판단은 버려진다).
+        # 비상 정지는 따로 보낸다 (차량 잠금이 같은 차의 명령 순서를 지킨다)
+        self._inflight: Dict[str, asyncio.Task] = {}
+        self._urgent: Dict[str, asyncio.Task] = {}
+        self.skipped_busy: Dict[str, int] = {}
+        self.last_tick_sim = None                # 판단을 마친 시각 (차량 감시가 판단 멈춤을 본다 — TRAFFIC_STALE_S)
 
     # ------------------------------------------------------------------ 예측
     def _predict(self, v, own_view: bool = False) -> Optional[_Pred]:
@@ -174,7 +183,8 @@ class TrafficManager:
             # 정지거리 + 명령 지연 거리. 정지 경로를 모르면 직선과 남은 계획 경로를 함께, 정지 명령이 실패했으면(command_uncertain)
             # 남은 계획 경로를 링크 단절과 같은 범위까지 (2026-10-10 검토: 곡선을 따라 서는 차를 직선으로만 예측했다)
             pts = [(rx, ry, 0.0, 0.0, hx, hy)]
-            uncertain = bool(getattr(v, "command_uncertain", False))
+            # 정지 감독이 구동 차단으로 넘어간 차(정지 경로대로 서지 않음)도 명령 불확실과 같이 넓게 본다
+            uncertain = bool(getattr(v, "command_uncertain", False)) or bool(getattr(v, "stop_cut_active", False))
             if vel > 0.3 or uncertain:
                 d = v.profile.stop_distance(vel) + vel * lat_s
                 paths = []
@@ -322,16 +332,20 @@ class TrafficManager:
                     self.vehicles[r]._event("TRAFFIC_DEADLOCK", members=cyc, operator_action_required=True,
                                             priorities={x: list(map(str, self._priority(preds[x], 0.0))) for x in cyc})
         self.deadlocks = cycles
+        sent = []
         for u in unavoidable:
             if u not in self.unavoidable:
                 for r in u["vehicles"]:
                     v = self.vehicles[r]
                     v._event("TRAFFIC_CONFLICT_UNAVOIDABLE", **u, operator_action_required=True)
                     if v.state in ("DRIVING", "EVADING"):
-                        await v.traffic_emergency_stop(u)
+                        sent.append(self._dispatch(r, lambda v=v, u=u: v.traffic_emergency_stop(u), urgent=True))
         self.unavoidable = unavoidable
-        # 적용
+        # 적용 (차량별 명령 작업)
         for rid, v in self.vehicles.items():
+            if self._busy(rid):
+                self.skipped_busy[rid] = self.skipped_busy.get(rid, 0) + 1
+                continue
             h = holds.get(rid)
             if h is not None:
                 self._clear_ticks[rid] = 0
@@ -340,7 +354,8 @@ class TrafficManager:
                 self.waits[rid] = {**h, "since_sim": since}
                 if prev and prev.get("reported") and prev["other"] == h["other"]:
                     self.waits[rid]["reported"] = True
-                await v.set_hold(h["s"], {k: x for k, x in h.items() if k != "s"})
+                hinfo = {k: x for k, x in h.items() if k != "s"}
+                cmds = [lambda v=v, h=h, hinfo=hinfo: v.set_hold(h["s"], hinfo)]
                 if h["kind"] == "STATIC" and not self.waits[rid].get("reported"):
                     other = self.vehicles.get(h["other"])
                     immovable = other is not None and _immovable(other)
@@ -350,15 +365,49 @@ class TrafficManager:
                         self.waits[rid]["reported"] = True
                         v._event("TRAFFIC_BLOCKED_BY_VEHICLE", other=h["other"], waited_s=round(waited, 1),
                                  blocker_immovable=immovable)
-                        await v.blocked_by_vehicle(h["other"], round(waited, 1), immovable)
+                        cmds.append(lambda v=v, o=h["other"], w=round(waited, 1), im=immovable: v.blocked_by_vehicle(o, w, im))
+                sent.append(self._dispatch(rid, cmds))
             elif getattr(v, "hold", None):
                 self._clear_ticks[rid] = self._clear_ticks.get(rid, 0) + 1
                 if self._clear_ticks[rid] >= TRAFFIC_RELEASE_TICKS:
                     self.waits.pop(rid, None)
-                    await v.clear_hold()
+                    sent.append(self._dispatch(rid, [lambda v=v: v.clear_hold()]))
             else:
                 self.waits.pop(rid, None)
+        # 빠른 명령(보통)은 이 주기 안에 끝나게 잠깐만 기다린다. 느린 명령은 그대로 두고 다음 주기 판단을 막지 않는다
+        sent = [t for t in sent if t is not None]
+        if sent:
+            await asyncio.wait(sent, timeout=TRAFFIC_CMD_WAIT_S)
         self.last_tick_wall_ms = round((time.perf_counter() - w0) * 1000, 1)
+        self.last_tick_sim = self.clock.now()
+
+    def _busy(self, rid) -> bool:
+        t = self._inflight.get(rid)
+        return t is not None and not t.done()
+
+    def _dispatch(self, rid, cmds, urgent: bool = False):
+        """차 rid 의 명령(들)을 차례로 실행하는 작업. 일반 명령은 그 차에 진행 중 명령이 있으면 보내지 않는다 (None)."""
+        cmds = cmds if isinstance(cmds, list) else [cmds]
+        table = self._urgent if urgent else self._inflight
+        cur = table.get(rid)
+        if cur is not None and not cur.done():
+            return None
+        v = self.vehicles[rid]
+
+        async def run():
+            for c in cmds:
+                try:
+                    await c()
+                except asyncio.CancelledError:
+                    raise
+                except Exception as e:  # noqa: BLE001 — 명령 하나가 죽어도 감독은 계속, 그 차는 안전 쪽으로
+                    v._event("TRAFFIC_COMMAND_ERROR", detail=f"{type(e).__name__}: {e}")
+                    if not urgent and v.state in ("DRIVING", "EVADING"):
+                        await v.traffic_emergency_stop({"reason": "TRAFFIC_COMMAND_ERROR"})
+                    return
+        t = asyncio.create_task(run())
+        table[rid] = t
+        return t
 
     def _decide(self, kind, A: _Pred, B: _Pred, a, b, prefer: Optional[str] = None):
         """(기다릴 차, 상대, 기다릴 자기 계획 선형 위치 s, 사유). 안전하게 기다릴 차가 없으면 (None, ...).

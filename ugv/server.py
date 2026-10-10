@@ -76,6 +76,8 @@ class Fleet:
             await v.start()
         if len(self.vehicles) > 1:
             self._traffic_task = asyncio.create_task(self._traffic_loop())
+            for v in self.vehicles.values():
+                v.traffic_watch = self.traffic          # 판단 멈춤 감시 (vehicle.tick)
 
     async def _traffic_loop(self):
         while True:

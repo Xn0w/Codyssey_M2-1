@@ -9,7 +9,12 @@
   FAULT       주행 이상 확정 (경로 이탈·정지 고장·텔레메트리 끊김·차량 이상). 운영자 /stop 으로만 해제
   DANGER      자동 이탈 불가 상태 — 안전 확보 완료가 아니다. 화재 안전거리 위반인데 진행 방향을 지키는 이탈 경로가 없다.
               도로를 따라 제동해 멈추고 운영자 개입을 요청한다. 자동 재출발 없음. 원격 운전 기능은 아직 없다
-FAULT·DANGER 해제: 운영자 /stop. 차량이 멈췄고(0.2 m/s 미만) 텔레메트리가 살아 있을 때만 해제한다
+FAULT·DANGER 해제: 운영자 /stop. 차량이 멈췄고(0.2 m/s 미만) 텔레메트리가 살아 있고 정지 감독이 정차를 확인했을 때만 해제한다
+정지 감독 (상태와 별개, _stop_sup): 정지 명령(고장·취소·막힘·비상·감독 없는 움직임)을 보낸 순간부터 실제 속도·이동 거리·경과 시간을
+  텔레메트리로만 본다 (미션 완료 신호에 기대지 않는다). 허용 거리(정지 경로·제동거리 중 긴 것 + 지연 거리 + 여유)나 허용 시간을 넘거나
+  감속하지 않으면 드라이버 구동 차단(cut_drive — PX4 시동 끄기, 거부되면 kill)으로 넘어가 고장(STOP_NOT_CONFIRMED)으로 묶고,
+  정차가 확인될 때까지 STOP_RETRY_S 마다 다시 차단한다. 정차 확인 전에는 READY 가 아니고 점유는 넓게 (ugv/traffic.py) 유지한다.
+  (2026-10-11 Gazebo 지속 운용: 정지 미션 끝 2.9 m/s 로 FAULT 차가 직진 2.6 km)
 총괄에 보이는 자원 상태 (계약 값): READY / RUNNING / UNAVAILABLE
 
 진행 방향 (ugv/drive_graph.py, 2026-10-09 사용자 결정)
@@ -90,6 +95,10 @@ HOLD_FAIL_MAX = 2         # 양보 정지 명령이 연속 이만큼 실패하�
 STOP_RETRY_S = 2.0        # 정지 명령이 실패한 차(명령 불확실)는 이 간격으로 정지를 다시 보낸다
 STANDSTILL_ARMED_S = 5.0  # PX4 가 정차 유지(시동 끔)를 못 했을 때 정지로 보는 0.2 m/s 미만 지속 시간
 STOP_CMD_TIMEOUT_S = float(os.getenv("UGV_STOP_CMD_TIMEOUT_S", "8.0"))
+STOP_SUP_MARGIN_M = 5.0   # 정지 감독 허용 거리 = max(정지 경로, 제동거리) + 속도 × 명령 지연 + 이 여유
+STOP_SUP_SLACK_S = 4.0    # 정지 감독 허용 시간 = 허용 거리를 평균 속도(처음 속도의 절반)로 가는 시간 + 명령 지연 + 이 여유
+STOP_SUP_ACCEL_MPS = 0.8  # 정지 명령 뒤 지연이 지나서도 처음 속도보다 이만큼 빨라지면 감속이 진행되지 않는 것
+STOP_CONFIRM_S = 1.0      # 정지 감독: 0.2 m/s 미만(최신 텔레메트리)이 이만큼 이어지면 정차 확인
 # 정지·양보 명령이 이 시간 안에 끝나지 않으면 '전달 여부 불명' 실패로 본다 (실측 명령 교체 지연 최대 CMD_LATENCY_MAX_S 6 s + 여유)
 
 
@@ -175,6 +184,8 @@ class Vehicle:
         self.stop_path_pts = None
         self.command_uncertain = False
         self._stop_retry_at = -1e9
+        self._stop_sup = None            # 정지 감독 (위 머리말). 정차가 확인되면 None, 마지막 결과는 last_stop_result
+        self.last_stop_result = None
         self._hold_failures = 0
         self._task: Optional[asyncio.Task] = None
         self.last_clearance_m = None
@@ -298,8 +309,8 @@ class Vehicle:
     def resource_state(self) -> str:
         if self.state in ("FAULT", "DANGER"):
             return "UNAVAILABLE"
-        if self.current_task() or self.state in ("DRIVING", "EVADING", "STOPPING"):
-            return "RUNNING"
+        if self.current_task() or self.state in ("DRIVING", "EVADING", "STOPPING") or self._stop_sup is not None:
+            return "RUNNING"                        # 정지 감독이 정차를 확인하기 전에는 READY 가 아니다
         return "READY"
 
     def _approach(self, body: dict, start: DirPos, v0: float, extra_avoid: Optional[dict] = None) -> ApproachPlan:
@@ -461,6 +472,10 @@ class Vehicle:
         if self.state in ("FAULT", "DANGER"):
             return {**base, "verdict": "REJECT", "eta_sec": None, "reason": "FAILSAFE_ACTIVE",
                     "detail": f"{self.state}: {self.fault}", "target_node": None, "path": None}
+        fd = self._fire_data_problem()
+        if fd:
+            return {**base, "verdict": "REJECT", "eta_sec": None, "reason": "FIRE_DATA_UNAVAILABLE", "detail": fd,
+                    "target_node": None, "path": None}
         start, v0, err = self.here_state()
         if start is None:
             return {**base, "verdict": "REJECT", "eta_sec": None, "reason": err.split(":")[0],
@@ -498,6 +513,9 @@ class Vehicle:
                                       "detail": f"같은 task_id {key} 로 다른 내용이 이미 실행됨"})
             if self.state in ("FAULT", "DANGER"):
                 raise HttpError(409, f"FAILSAFE_ACTIVE: {self.state} {self.fault} (/stop 으로 운영자 해제 필요)")
+            fd = self._fire_data_problem()
+            if fd:
+                raise HttpError(409, {"reason": "FIRE_DATA_UNAVAILABLE", "detail": fd})
             w0 = time.monotonic()
             lat_used = self.latency_s()
             start, v0, err = self.here_state()
@@ -603,6 +621,7 @@ class Vehicle:
         self.seq = await self.driver.follow(items)
         self.state = state
         self.stop_path_pts, self.command_uncertain, self._hold_failures = None, False, 0
+        self._stop_sup = None                       # 새 주행 미션 — 주행 감독이 맡는다
         self._off_since, self._near_i = None, 0
         self._move_ref = (self.clock.now(), t.x, t.y) if t else None
         self._drive_started_sim = self.clock.now()
@@ -615,6 +634,13 @@ class Vehicle:
         돌려주고 기록한다 — 정지 명령은 그래도 보낸다 (다른 선택지가 없다). 정지가 안전 확보를 뜻하지 않는다."""
         info = {}
         self.hold = None
+        if self.stop_cut_active:
+            # 구동 차단 중: 정지 미션을 다시 보내면 시동이 다시 걸린다 → 보내지 않고 차단을 유지한다
+            await self._cut_drive("STOP_REQUEST_WHILE_CUT")
+            info = {"basis": "CUT_DRIVE_ACTIVE", "problems": ["정지 감독 구동 차단 중"]}
+            self.state = "STOPPING" if self.state not in ("FAULT", "DANGER") else self.state
+            self.last_stop = info
+            return info
         try:
             tel = self.driver.telemetry()
             items = None
@@ -656,6 +682,7 @@ class Vehicle:
                     info["drivable"] = None
             self.command_uncertain = False
             self.state = "STOPPING"
+            self._sup_begin(tel, info.get("length_m"), info.get("basis"))
             problems = []
             if info.get("short"):
                 problems.append(f"정지 경로 {info['length_m']} m < 필요 {info['needed_m']} m")
@@ -670,6 +697,7 @@ class Vehicle:
             self.command_uncertain, self.stop_path_pts = True, None
             self._stop_retry_at = self.clock.now()
             self._event("STOP_FAILED", detail=str(e))
+            self._sup_begin(self.driver.telemetry(), None, "STOP_COMMAND_FAILED")
         self.last_stop = info
         return info
 
@@ -714,7 +742,8 @@ class Vehicle:
             if self.current_task():
                 self._finish(self.task_key, "CANCELLED", error=reason, physical_state="STOPPING")
             tel = self.driver.telemetry()
-            stopped = tel is not None and tel.speed_mps < 0.2 and tel.age_s() <= config.TELEMETRY_STALE_S
+            stopped = (tel is not None and tel.speed_mps < 0.2 and tel.age_s() <= config.TELEMETRY_STALE_S
+                       and self._stop_sup is None)
             released, pending = None, None
             if self.fault is not None and not stopped:
                 pending = "NOT_STOPPED_OR_NO_TELEMETRY: 정지·텔레메트리 확인 뒤 다시 /stop"
@@ -749,7 +778,7 @@ class Vehicle:
         moving = self.state in ("DRIVING", "EVADING")
         if moving and tel.age_s() > config.TELEMETRY_STALE_S:
             async with self.lock:
-                self._fail("TELEMETRY_LOST", f"위치 수신 {tel.age_s():.1f} s 없음")
+                self._fail("TELEMETRY_LOST", f"위치·속도 수신 {tel.age_s():.1f} s 없음")
                 await self._safe_stop()
                 self.state = "FAULT"
             return
@@ -761,7 +790,9 @@ class Vehicle:
                     t["physical_state"] = "STOPPED" + t["physical_state"][len("STOPPING"):]
             self.store.save()
             self._event("STOPPED", position={"lat": tel.lat, "lon": tel.lon})
-        if (self.command_uncertain and now - self._stop_retry_at >= STOP_RETRY_S
+        if self._stop_sup is not None:
+            await self._sup_check(now, tel)
+        if (self.command_uncertain and not self.stop_cut_active and now - self._stop_retry_at >= STOP_RETRY_S
                 and tel.age_s() <= config.TELEMETRY_STALE_S):
             # 정지 명령이 실패했던 차: 다시 보낸다 (고장·위험 상태는 그대로 둔다)
             self._stop_retry_at = now
@@ -771,20 +802,40 @@ class Vehicle:
                 if keep in ("FAULT", "DANGER"):
                     self.state = keep
                 self._event("STOP_RETRY", ok=not self.command_uncertain)
-        if (self.state == "IDLE" and tel.armed and tel.speed_mps > 0.5 and tel.age_s() <= config.TELEMETRY_STALE_S
-                and self.current_task() is None):
-            # 감독 없는 주행: 임무 없이(IDLE) 시동이 걸린 채 움직인다 — 서버 재시작으로 진행 중 임무 감시가 끊겼는데 PX4 는 남은
-            # 미션을 계속 달리는 경우 (재시작 정리는 임무 기록만 FAILED 로 바꾼다). READY 로 두지 않고 도로를 따라 세운다
+        if (self.state in ("IDLE", "FAULT", "DANGER", "STOPPING") and self._stop_sup is None and tel.speed_mps > 0.5
+                and tel.age_s() <= config.TELEMETRY_STALE_S and self.current_task() is None):
+            # 감독 없는 움직임: 임무도 정지 감독도 없는데 움직인다 — 서버 재시작으로 진행 중 임무 감시가 끊겼는데 PX4 는 남은 미션을
+            # 계속 달리는 경우 (재시작 정리는 임무 기록만 FAILED 로 바꾼다), 정차 확인 뒤 다시 움직이는 경우 (고장·위험 차 포함).
+            # READY 로 두지 않고 도로를 따라 세우고 정지 감독을 건다. 시동이 꺼진 채 구르면 정지 미션(시동을 건다) 대신 감독만
             async with self.lock:
-                if self.state == "IDLE" and self.current_task() is None:
-                    self._event("UNSUPERVISED_MOTION_STOP", speed_mps=round(tel.speed_mps, 2), mode=tel.mode)
-                    await self._safe_stop()
-                    self.state = "STOPPING"
+                if self._stop_sup is None and self.current_task() is None:
+                    keep = self.state
+                    self._event("UNSUPERVISED_MOTION_STOP", speed_mps=round(tel.speed_mps, 2), mode=tel.mode,
+                                armed=tel.armed, state=keep)
+                    if tel.armed:
+                        await self._safe_stop()
+                    else:
+                        self._sup_begin(tel, None, "ROLLING_DISARMED")
+                    self.state = keep if keep in ("FAULT", "DANGER") else "STOPPING"
+        tw = getattr(self, "traffic_watch", None)
+        if (moving and tw is not None and tw.last_tick_sim is not None and now - tw.last_tick_sim > config.TRAFFIC_STALE_S
+                and self.hold is None):
+            # 차량 간 충돌 판단이 멈췄다 (판단 루프 예외·정지) — 감독 없이 달리지 않게 세운다
+            self._event("TRAFFIC_SUPERVISION_STALE", age_s=round(now - tw.last_tick_sim, 1))
+            await self.traffic_emergency_stop({"reason": "TRAFFIC_SUPERVISION_STALE"})
+            return
         if moving:
             await self._supervise_drive(now, tel)
         await self._comm_watch(tel)
         if now - self._last_safety >= config.SAFETY_CHECK_PERIOD_S:
             self._last_safety = now
+            src = self.fire_source
+            st = src.data_status() if hasattr(src, "data_status") else "STATIC"
+            if st != getattr(self, "_fire_data_seen", st):
+                # 주행 중 화재 자료가 끊기면 마지막으로 받은 화재로 계속 판단하고 보고한다 (그 자리 정지가 더 위험할 수 있다)
+                self._event("FIRE_DATA_STATUS", status=st, previous=self._fire_data_seen, moving=moving,
+                            note="마지막 수신 화재로 안전거리 판단 계속" if st not in ("FRESH", "STATIC") else None)
+            self._fire_data_seen = st
             await self._safety(now, tel)
 
     async def _supervise_drive(self, now, tel):
@@ -862,6 +913,93 @@ class Vehicle:
     # ------------------------------------------------------------------ 차량 간 충돌 방지 (ugv/traffic.py 가 부른다)
     def _s_now(self) -> float:
         return self.speed.cum[max(0, min(self._near_i, len(self.speed.cum) - 1))] if self.speed else 0.0
+
+    def _fire_data_problem(self) -> Optional[str]:
+        """새 화재 접근 임무에 쓸 화재 자료가 없으면 그 사유. 받지 못함·오래됨·미설정을 '화재 없음' 으로 보지 않는다
+        (2026-10-11 검토: 첫 수신 실패면 빈 화재 영역으로 계획, 단절 중에도 나이 0 s). 복귀·통신 단절 복귀는 막지 않는다."""
+        from .fire import USABLE
+        src = self.fire_source
+        st = src.data_status() if hasattr(src, "data_status") else "STATIC"
+        if st in USABLE:
+            return None
+        info = src.status() if hasattr(src, "status") else {}
+        return (f"{st}: 화재 자료 나이 {info.get('age_s')} s (허용 {config.FIRE_DATA_MAX_AGE_S:g} s), "
+                f"오류 {info.get('error')}" if st != "NOT_CONFIGURED" else
+                "NOT_CONFIGURED: 환경 서버(UGV_ENV_URL) 미설정 — 무화재 시험은 UGV_ALLOW_NO_FIRE_DATA=1 로 명시")
+
+    # ------------------------------------------------------------------ 정지 감독
+    @property
+    def stop_cut_active(self) -> bool:
+        """정지 감독이 구동 차단으로 넘어갔고 아직 정차가 확인되지 않음 (ugv/traffic.py 는 이때 점유를 넓게 본다)."""
+        return self._stop_sup is not None and self._stop_sup["escalations"] > 0
+
+    def _sup_begin(self, tel, path_len, basis):
+        """정지 감독 시작 (정지 명령을 보낸 직후). 이미 감독 중이면(정지 재시도·운영자 /stop 반복) 처음 시각·허용 거리를 그대로 둔다 —
+        다시 시작하면 재시도마다 기준이 늦춰져 끝없이 미뤄진다. 새 주행 미션(_start)에서만 지운다."""
+        if self._stop_sup is not None:
+            return
+        now = self.clock.now()
+        v0 = max(tel.speed_mps, 0.0) if tel is not None else 0.0
+        lat = self.latency_s()
+        reach = max(path_len or 0.0, self.profile.stop_distance(v0) if v0 >= 0.3 else 0.0)
+        allow = reach + v0 * lat + STOP_SUP_MARGIN_M
+        t_allow = (2.0 * reach / v0 if v0 >= 0.3 else 0.0) + lat + STOP_SUP_SLACK_S
+        self._stop_sup = {"basis": basis, "t0": now, "x": tel.x if tel else None, "y": tel.y if tel else None,
+                          "v0": round(v0, 2), "vmax": v0, "travel_m": 0.0, "allow_m": round(allow, 1),
+                          "deadline": now + t_allow, "escalations": 0, "next_cut": now, "still_since": None,
+                          "cut_ok": None}
+
+    async def _cut_drive(self, why) -> bool:
+        s = self._stop_sup
+        try:
+            await asyncio.wait_for(self.driver.cut_drive(), STOP_CMD_TIMEOUT_S)
+            ok, detail = True, None
+        except (DriverError, asyncio.TimeoutError, NotImplementedError) as e:
+            ok, detail = False, f"{type(e).__name__}: {e}"
+        if s is not None:
+            s["cut_ok"] = ok
+        self._event("STOP_CUT_DRIVE", why=why, ok=ok, detail=detail)
+        return ok
+
+    async def _sup_check(self, now, tel):
+        s = self._stop_sup
+        if tel.age_s() > config.TELEMETRY_STALE_S:
+            return                                   # 확인할 수 없다 — 감독·점유 유지 (텔레메트리 끊김 감시는 따로)
+        if s["x"] is not None:
+            s["travel_m"] += math.dist((tel.x, tel.y), (s["x"], s["y"]))
+        s["x"], s["y"] = tel.x, tel.y
+        s["vmax"] = max(s["vmax"], tel.speed_mps)
+        if tel.speed_mps < 0.2:
+            s["still_since"] = s["still_since"] if s["still_since"] is not None else now
+            if now - s["still_since"] >= STOP_CONFIRM_S:
+                self.last_stop_result = {"basis": s["basis"], "v0_mps": s["v0"], "travel_m": round(s["travel_m"], 1),
+                                         "allow_m": s["allow_m"], "time_s": round(now - s["t0"], 1),
+                                         "cut_drive": s["escalations"] > 0, "cut_attempts": s["escalations"]}
+                self._stop_sup = None
+                self._event("STOP_CONFIRMED", **self.last_stop_result)
+            return
+        s["still_since"] = None
+        why = None
+        if s["travel_m"] > s["allow_m"]:
+            why = f"DISTANCE {s['travel_m']:.1f} m > {s['allow_m']} m"
+        elif now > s["deadline"]:
+            why = f"TIME {now - s['t0']:.1f} s"
+        elif (s["basis"] != "BLOCKED_HOLD" and now - s["t0"] > self.latency_s() + 1.0
+              and tel.speed_mps > s["v0"] + STOP_SUP_ACCEL_MPS):
+            # 대기 지점 정지(BLOCKED_HOLD)는 대기 지점까지 앞으로 가는 미션이라 저속에서 다시 가속할 수 있다 — 거리·시간 상한만
+            why = f"NOT_DECELERATING {tel.speed_mps:.1f} m/s > {s['v0']} m/s"
+        if why is None or now < s["next_cut"]:
+            return
+        async with self.lock:
+            first = s["escalations"] == 0
+            s["escalations"] += 1
+            s["next_cut"] = now + STOP_RETRY_S
+            self.stop_path_pts = None                # 정지 경로를 벗어났다 — 점유는 넓게 (traffic)
+            self._event("STOP_NOT_CONFIRMED", why=why, speed_mps=round(tel.speed_mps, 2),
+                        travel_m=round(s["travel_m"], 1), allow_m=s["allow_m"], attempt=s["escalations"])
+            await self._cut_drive(why)
+            if first and self.state not in ("FAULT", "DANGER"):
+                self._fail("STOP_NOT_CONFIRMED", f"정지 명령 뒤 {why} (속도 {tel.speed_mps:.1f} m/s) → 구동 차단")
 
     def _standstill(self, tel) -> bool:
         """정지 확인: 최신 텔레메트리·0.2 m/s 미만. PX4 는 드라이버의 정차 유지(미션 끝 뒤 시동 끔)까지 — 이 rover 는 미션 끝
@@ -967,9 +1105,14 @@ class Vehicle:
             items = self._items_between(None)
             self.hold = None
             try:
-                self.seq = await self.driver.follow(items)
+                # 재출발도 시간 제한 (_send_stop 과 같은 STOP_CMD_TIMEOUT_S). 실패·시간 초과면 미션이 일부 적용됐을 수 있다 →
+                # 명령 불확실(보수적 점유·재시도) + 고장 + 정지 (2026-10-11 검토: 재출발 follow 에 시간 제한이 없었다)
+                self.seq = await self._send_stop(self.driver.follow(items))
             except DriverError as e:
                 self._fail("RESUME_FAILED", str(e))
+                self.command_uncertain = True
+                await self._safe_stop()
+                self.state = "FAULT"
                 return
             # 대기 지점에 서면 PX4 는 미션 끝 정차로 시동을 끈다 → 다시 출발할 때 시동 상태가 텔레메트리에 늦게 온다.
             # 출발 시각을 지금으로 해 '주행 중 시동 꺼짐' 판정이 재출발 직후를 오판하지 않게 한다 (2026-10-10 Gazebo 마주 접근 시험)
@@ -1036,6 +1179,7 @@ class Vehicle:
             # 신선한 텔레메트리로 정차를 확인할 때까지 STOPPING (READY 아님 → 총괄이 반납·재배정하지 않음), 확인되면 STOPPED_BLOCKED
             # (예전에는 바로 IDLE·STOPPED_BLOCKED → READY. Gazebo pair_block: 보고 때 2.4 m/s, 그 뒤 40.7 m 더 감)
             self.stop_path_pts = self._path_between(self.hold["s"])
+            self._sup_begin(self.driver.telemetry(), max(self.hold["s"] - self._s_now(), 0.0), "BLOCKED_HOLD")
             self.hold = None
             self.state = "STOPPING"
             self._finish(self.task_key, "FAILED",
@@ -1066,12 +1210,14 @@ class Vehicle:
                     self.stop_path_pts, self.command_uncertain = path, False
                     self.hold = None
                     self.state = "STOPPING"
+                    self._sup_begin(tel, s_stop - self._s_now(), "TRAFFIC_EMERGENCY")
                 except DriverError as e:
                     # 정지 명령이 안 갔다 → 원래 미션이 계속될 수 있다. 정지 중으로 보지 않고 고장으로 — 감시·재시도·보수적 점유 유지
                     # (예전에는 이벤트만 남기고 STOPPING 으로 바꿔 주행 감독에서 빠졌다 — 2026-10-10 검토, 실패 주입 10 m/s)
                     self.command_uncertain, self.stop_path_pts = True, None
                     self._stop_retry_at = self.clock.now()
                     self._event("STOP_FAILED", detail=str(e), basis="TRAFFIC_EMERGENCY")
+                    self._sup_begin(tel, None, "STOP_COMMAND_FAILED")
                     self.hold = None
                     self._fail("STOP_COMMAND_FAILED", f"비상 정지 명령 실패: {e} (차량 간 충돌 회피 불가 {info})")
             elif self.state in ("DRIVING", "EVADING"):
@@ -1258,7 +1404,7 @@ class Vehicle:
             "current_node": node_id_of(here) if (stopped and here) else None,
             "current_task_id": t["task_id"] if t else None, "driver": self.driver.kind,
             "driver_status": tel.mode if tel else "NO_TELEMETRY",
-            "updated_at": (time.time() - tel.age_s()) if tel else 0.0, "fault": self.fault,
+            "updated_at": (time.time() - tel.age_s()) if tel and math.isfinite(tel.age_s()) else 0.0, "fault": self.fault,
             "sim_time_s": round(self.clock.now(), 2), "mission_state": self.state,
             "speed_mps": round(tel.speed_mps, 2) if tel else None, "heading_deg": round(tel.heading_deg, 1) if tel else None,
             "station": self.station, "profile": self.profile.summary(),
@@ -1271,6 +1417,7 @@ class Vehicle:
                 "meaning": DANGER_MEANING if self.state == "DANGER" else None,
                 "danger": self.danger if self.state == "DANGER" else None,
                 "release": "POST /ugv/{id}/stop — 차량 정지(0.2 m/s 미만)·텔레메트리 확인 뒤에만 해제. 원격 운전 기능 없음"},
+            "fire_data": (self.fire_source.status() if hasattr(self.fire_source, "status") else None),
             "safety": {"fire_clearance_m": None if self.last_clearance_m is None or math.isinf(self.last_clearance_m)
                        else round(self.last_clearance_m, 1), "standoff_m": config.FIRE_STANDOFF_M,
                        **(self.fire_source.area().summary())},

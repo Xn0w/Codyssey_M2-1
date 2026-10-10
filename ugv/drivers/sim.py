@@ -35,6 +35,11 @@ class SimDriver(Driver):
         self._task: Optional[asyncio.Task] = None
         self.fail_next_follow: Optional[str] = None   # 시험용: 다음 follow 를 거부
         self.frozen = False                            # 시험용: 차가 움직이지 않음 (정지 고장)
+        # 시험용 (2026-10-11 Gazebo 지속 운용 재현): 미션 끝에서 서지 않고 이 속도로 직진 (PX4 rover 대기 HOLD 주행)
+        self.runaway_mps: Optional[float] = None
+        self.hide_finish = False                       # 시험용: 미션 완료 신호가 오지 않음
+        self.fail_cut: Optional[str] = None            # 시험용: 구동 차단 명령 실패
+        self.cut = False
 
     async def start(self):
         if self._task is None:
@@ -55,10 +60,12 @@ class SimDriver(Driver):
 
     def telemetry(self) -> Telemetry:
         lat, lon = FRAME.to_ll(self.x, self.y)
-        return Telemetry(self.x, self.y, lat, lon, self.v, self.heading, armed=bool(self.path),
+        return Telemetry(self.x, self.y, lat, lon, self.v, self.heading, armed=bool(self.path) and not self.cut,
                          mode="MISSION" if self.path and not self._prog.finished else "HOLD")
 
     def progress(self) -> Progress:
+        if self.hide_finish and self._prog.finished:
+            return Progress(self._prog.current, self._prog.total, False, self._prog.mission_seq)
         return self._prog
 
     async def follow(self, items: List[Item]) -> int:
@@ -68,7 +75,14 @@ class SimDriver(Driver):
         if not items:
             raise DriverError("EMPTY_MISSION")
         self.path, self.k = list(items), 0
+        self.cut = False
         self._prog = Progress(0, len(items), False, self._prog.mission_seq + 1)
+        return self._prog.mission_seq
+
+    async def cut_drive(self) -> int:
+        if self.fail_cut:
+            raise DriverError(self.fail_cut)
+        self.cut = True
         return self._prog.mission_seq
 
     async def halt_in_place(self) -> int:
@@ -87,7 +101,13 @@ class SimDriver(Driver):
     def step(self, dt: float) -> None:
         if dt <= 0:
             return
-        if not self.path or self._prog.finished or self.frozen:
+        if self.runaway_mps and self.path and self._prog.finished and not self.cut and not self.frozen:
+            self.v = self.runaway_mps                   # 미션 끝인데 서지 않고 직진 (시험용 재현)
+            hd = math.radians(self.heading)
+            self.x += self.v * dt * math.sin(hd)
+            self.y += self.v * dt * math.cos(hd)
+            return
+        if not self.path or self._prog.finished or self.frozen or self.cut:
             self.v = max(0.0, self.v - self.decel * dt) if not self.frozen else 0.0
             return
         tx, ty, seg_v = self.path[self.k]
@@ -109,7 +129,7 @@ class SimDriver(Driver):
                 if self.k + 1 < len(self.path):
                     self.k += 1
                 else:
-                    self.v = 0.0
+                    self.v = 0.0 if not self.runaway_mps else self.runaway_mps
                     self._prog = Progress(len(self.path), len(self.path), True, self._prog.mission_seq)
                     break
         if not self._prog.finished:

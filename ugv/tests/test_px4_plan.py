@@ -38,15 +38,50 @@ def test_first_mission_item_is_not_glued_to_start():
 
 
 def test_park_due_also_parks_a_vehicle_that_keeps_driving_after_mission_end():
-    """미션 끝 뒤 0.3 m/s 이상으로 계속 달리면 RUNAWAY_PARK_S 뒤 시동을 끈다 (2026-10-11 Gazebo: 정지 경로 끝 2.9 m/s 로 FAULT 직진)."""
+    """미션 끝 뒤 계속 달리면 RUNAWAY_PARK_S 뒤 시동을 끈다 (2026-10-11 Gazebo: 정지 경로 끝 2.9 m/s 로 FAULT 직진)."""
     from ugv.drivers.px4 import PARK_AFTER_S, RUNAWAY_PARK_S, park_due
-    due, still, fast = park_due(2.9, 100.0, None, None)
-    assert not due and still is None and fast == 100.0
-    due, still, fast = park_due(2.9, 100.0 + RUNAWAY_PARK_S - 0.5, still, fast)
+    due, still, fin = park_due(2.9, 100.0, None, None)
+    assert not due and still is None and fin == 100.0
+    due, still, fin = park_due(2.9, 100.0 + RUNAWAY_PARK_S - 0.5, still, fin)
     assert not due
-    due, _, _ = park_due(2.9, 100.0 + RUNAWAY_PARK_S, still, fast)
-    assert due
-    # 정상 정차: 느려지면 달림 시각을 지우고 PARK_AFTER_S 정지로 끈다
-    due, still, fast = park_due(0.1, 200.0, None, 199.0)
-    assert not due and fast is None and still == 200.0
-    assert park_due(0.1, 200.0 + PARK_AFTER_S, still, fast)[0]
+    assert park_due(2.9, 100.0 + RUNAWAY_PARK_S, still, fin)[0]
+    # 정상 정차: PARK_AFTER_S 정지로 끈다
+    due, still, fin = park_due(0.1, 200.0, None, None)
+    assert not due and still == 200.0
+    assert park_due(0.1, 200.0 + PARK_AFTER_S, still, fin)[0]
+
+
+def test_park_due_is_not_postponed_by_speed_alternating_around_threshold():
+    """0.29↔0.31 m/s 교대에도 미션 끝 상한으로 끈다 (2026-10-11 검토: 두 타이머가 서로 지워 60 s 동안 안 끔)."""
+    from ugv.drivers.px4 import RUNAWAY_PARK_S, park_due
+    still = fin = None
+    t, due_at = 0.0, None
+    while t < 60.0:
+        due, still, fin = park_due(0.31 if int(t * 2) % 2 else 0.29, t, still, fin)
+        if due:
+            due_at = t
+            break
+        t += 0.5
+    assert due_at is not None and due_at <= RUNAWAY_PARK_S + 1e-9
+
+
+def test_px4_telemetry_without_velocity_is_not_fresh_standstill():
+    """위치만 받고 속도를 못 받았으면 0 m/s 최신 정지가 아니라 나이 무한대 (2026-10-11 검토 재현)."""
+    import math as _m
+    import time as _t
+    from types import SimpleNamespace
+    from ugv.drivers.px4 import Px4Driver
+    d = Px4Driver.__new__(Px4Driver)
+    from ugv.geo import FRAME
+    d.frame = FRAME
+    d._pos = SimpleNamespace(latitude_deg=38.07, longitude_deg=128.17, absolute_altitude_m=300.0)
+    d._pos_mono = _t.monotonic()
+    d._vel, d._mono, d._heading, d._armed, d._mode = None, {"position": _t.monotonic()}, 0.0, False, "HOLD"
+    tel = d.telemetry()
+    assert _m.isinf(tel.age_s()) and tel.armed                 # 속도 없음 → 끊김과 같게, armed 미수신 → 시동 걸림으로
+    d._vel = SimpleNamespace(north_m_s=0.0, east_m_s=0.0)
+    d._mono.update(velocity=_t.monotonic() - 30.0, armed=_t.monotonic())
+    assert d.telemetry().age_s() >= 29.0                       # 오래된 0 m/s 는 최신이 아니다
+    d._mono["velocity"] = _t.monotonic()
+    tel = d.telemetry()
+    assert tel.age_s() < 1.0 and tel.speed_mps == 0.0 and not tel.armed

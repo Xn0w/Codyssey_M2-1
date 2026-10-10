@@ -126,4 +126,9 @@ TIME_SCALE = float(os.getenv("UGV_TIME_SCALE", "1"))
 
 # ---------------------------------------------------------------------------- 환경
 ENV_URL = os.getenv("UGV_ENV_URL", "")      # 환경 계약 서버 (예: http://127.0.0.1:8300). 비우면 화재 정보 없음
+TRAFFIC_STALE_S = float(os.getenv("UGV_TRAFFIC_STALE_S", "3.0"))   # 차량 간 충돌 판단이 이 시간(시뮬레이션 초) 넘게 멈추면 주행 차를 세운다
 ENV_POLL_S = 2.0                            # 환경 스냅샷을 다시 읽는 간격 (벽시계)
+# 화재 자료 허용 나이: 마지막 '성공' 수신이 이보다 오래되면 STALE — 새 화재 접근 임무를 받지 않는다 (진행 중 차는 마지막 값으로 판단·보고)
+FIRE_DATA_MAX_AGE_S = float(os.getenv("UGV_FIRE_DATA_MAX_AGE_S", "15.0"))
+# 환경 서버 없이(UGV_ENV_URL 미설정) 화재 없음으로 달리는 시험을 명시적으로 허용 (기본: 허용 안 함 → NOT_CONFIGURED 로 출동 거절)
+ALLOW_NO_FIRE_DATA = os.getenv("UGV_ALLOW_NO_FIRE_DATA", "0") == "1"

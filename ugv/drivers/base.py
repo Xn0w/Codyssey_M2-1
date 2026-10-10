@@ -31,7 +31,7 @@ class Telemetry:
     heading_deg: float
     armed: bool
     mode: str
-    updated_mono: float = field(default_factory=time.monotonic)   # 마지막 위치 수신 (벽시계 단조)
+    updated_mono: float = field(default_factory=time.monotonic)   # 마지막 수신 (위치·속도 중 오래된 쪽, 벽시계 단조. 속도 미수신이면 -inf)
     alt_amsl_m: Optional[float] = None
 
     def age_s(self) -> float:
@@ -70,6 +70,10 @@ class Driver:
         return await self.follow([(t.x + d * math.sin(hd), t.y + d * math.cos(hd), max(v, 1.0))])
 
     async def halt_in_place(self) -> int:
+        raise NotImplementedError
+
+    async def cut_drive(self) -> int:
+        """구동 차단 (정지 감독의 마지막 수단 — 정지 미션으로 서지 않는 차). 실패하면 DriverError."""
         raise NotImplementedError
 
     @staticmethod

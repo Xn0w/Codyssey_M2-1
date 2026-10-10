@@ -426,7 +426,9 @@ def test_unsupervised_motion_after_restart_is_stopped(tmp_path):
             if A.state in ("STOPPING",):
                 seen = True
                 assert A.resource_state() != "READY"
-            if seen and A.state == "IDLE":
+            if A.driver.telemetry().speed_mps >= 0.2:
+                assert A.resource_state() != "READY" or not seen
+            if seen and A.resource_state() == "READY":       # 정지 감독 정차 확인(STOP_CONFIRM_S) 뒤에야 READY
                 break
         ev = [e["event"] for e in A.events]
         assert "UNSUPERVISED_MOTION_STOP" in ev and seen

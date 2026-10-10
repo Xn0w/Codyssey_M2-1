@@ -28,6 +28,7 @@ from .base import Driver, DriverError, Item, Progress, Telemetry
 
 START_RETRIES = 20
 PARK_AFTER_S = 1.0          # 미션 끝 + 0.3 m/s 미만이 이만큼 이어지면 시동을 꺼 정차 유지
+ARMED_STALE_S = 3.0         # armed 보고가 이만큼 없으면 시동 걸림으로 본다 (heartbeat 1 Hz)
 RUNAWAY_PARK_S = 4.0        # 미션 끝 + 0.3 m/s 이상이 이만큼 이어지면 (미션 끝에서 서지 않고 달림) 그래도 시동을 끈다
 LEAD_BASE_M = 5.0           # 선행 지점 = 지금 위치에서 경로를 따라 LEAD_BASE_M + 속도 × LEAD_TIME_S 앞
 LEAD_TIME_S = 2.0           #   (업로드·시작에 걸리는 동안 지나쳐 뒤에 남지 않게. 뒤에 남으면 rover 가 되돌아간다)
@@ -57,14 +58,18 @@ def mavsdk_plan(items: List[Item], here, v_now: float):
     return out
 
 
-def park_due(speed_mps: float, now: float, still_since, fast_since):
-    """미션이 끝난 차의 정차 유지(시동 끔) 판단 → (끌지, still_since, fast_since).
-    0.3 m/s 미만이 PARK_AFTER_S 이어지면 끈다 (정상 정차). 0.3 m/s 이상이 RUNAWAY_PARK_S 이어져도 끈다 (미션 끝에서 서지 않고 달림)."""
+def park_due(speed_mps: float, now: float, still_since, finished_since):
+    """미션이 끝난 차의 정차 유지(시동 끔) 판단 → (끌지, still_since, finished_since).
+    0.3 m/s 미만이 PARK_AFTER_S 이어지면 끈다 (정상 정차). 속도와 관계없이 미션 끝 뒤 RUNAWAY_PARK_S 가 지나도 끈다 (서지 않고 달림).
+    finished_since 는 그 미션이 끝난 것을 처음 본 시각 — 속도로 초기화하지 않는다 (호출 쪽이 새 미션에서만 지운다).
+    (2026-10-11 검토: 고속·저속 타이머가 서로 지워 0.29↔0.31 m/s 교대면 끝없이 미뤄졌다)"""
+    finished_since = finished_since if finished_since is not None else now
+    if now - finished_since >= RUNAWAY_PARK_S:
+        return True, still_since, finished_since
     if speed_mps >= 0.3:
-        fast_since = fast_since if fast_since is not None else now
-        return now - fast_since >= RUNAWAY_PARK_S, None, fast_since
+        return False, None, finished_since
     still_since = still_since if still_since is not None else now
-    return now - still_since >= PARK_AFTER_S, still_since, None
+    return now - still_since >= PARK_AFTER_S, still_since, finished_since
 
 
 def _mission_item(lat, lon, speed, through):
@@ -87,6 +92,7 @@ class Px4Driver(Driver):
         self.decel_mps2 = decel_mps2
         self._sdk = self._tel = self._act = self._mis = None
         self._pos = self._vel = None
+        self._mono = {}                         # 필드별 마지막 수신 시각 (위치·속도·방향·armed·모드·진행)
         self._heading = 0.0
         self._armed = False
         self._mode = "UNKNOWN"
@@ -142,24 +148,27 @@ class Px4Driver(Driver):
 
     async def _park_watch(self):
         """미션이 끝나고 멈춘 차의 시동을 끈다 (정차 유지). 다음 follow 가 다시 시동을 건다."""
-        still_since = fast_since = None
+        still_since = fin_since = fin_seq = None
         while True:
             await asyncio.sleep(0.5)
             try:
                 tel = self.telemetry()
                 prog = self._prog
-                if tel is None or not self._armed or not prog.finished or self.parked_seq == prog.mission_seq:
-                    still_since = fast_since = None
+                if fin_seq != prog.mission_seq:          # 새 미션에서만 미션 끝 타이머를 지운다
+                    fin_seq, fin_since, still_since = prog.mission_seq, None, None
+                if not self._armed or not prog.finished or self.parked_seq == prog.mission_seq:
                     continue
-                import time
-                due, still_since, fast_since = park_due(tel.speed_mps, time.monotonic(), still_since, fast_since)
+                # 속도를 믿을 수 없으면(없음·오래됨) 정차로 보지 않는다 — 미션 끝 상한(RUNAWAY_PARK_S)만 센다
+                fresh = tel is not None and tel.age_s() <= 5.0
+                due, still_since, fin_since = park_due(tel.speed_mps if fresh else 1.0, time.monotonic(), still_since, fin_since)
                 if not due:
                     continue
                 async with self._cmd:
                     if self._prog.mission_seq != prog.mission_seq or not self._prog.finished:
                         continue
-                    if tel.speed_mps >= 0.3:
-                        self.last_error = f"park: 미션 끝 뒤 {tel.speed_mps:.1f} m/s 로 계속 주행 → 시동 끔"
+                    if not fresh or tel.speed_mps >= 0.3:
+                        self.last_error = (f"park: 미션 끝 뒤 {RUNAWAY_PARK_S:g} s 상한 → 시동 끔 "
+                                           f"(속도 {tel.speed_mps:.1f} m/s)" if fresh else "park: 미션 끝 상한 → 시동 끔 (속도 미확인)")
                     await self._act.disarm()
                     self.parked_seq = prog.mission_seq
             except asyncio.CancelledError:
@@ -172,6 +181,7 @@ class Px4Driver(Driver):
         while True:
             try:
                 async for v in stream():
+                    self._mono[name] = time.monotonic()
                     if name == "position":
                         self._pos, self._pos_mono = v, time.monotonic()
                     elif name == "velocity":
@@ -214,9 +224,14 @@ class Px4Driver(Driver):
             return None
         import time
         x, y = self.frame.to_xy(self._pos.latitude_deg, self._pos.longitude_deg)
+        # 신선도 = 위치·속도 중 오래된 쪽. 속도를 아직 못 받았으면 0 m/s(정지)로 보지 않고 나이 무한대(텔레메트리 없음과 같게)
+        # (2026-10-11 검토: 위치만 새로 오면 오래된·없는 속도도 최신 정지로 보였다 — _standstill·정지 감독·출발 판정 공통)
         v = math.hypot(self._vel.north_m_s, self._vel.east_m_s) if self._vel is not None else 0.0
-        return Telemetry(x, y, self._pos.latitude_deg, self._pos.longitude_deg, v, self._heading, self._armed,
-                         self._mode, self._pos_mono, self._pos.absolute_altitude_m)
+        upd = min(self._pos_mono, self._mono.get("velocity", -math.inf))
+        # armed 가 오래되면 '시동 걸림' 으로 본다 (시동 꺼짐 = 정차 유지로 오판하지 않게)
+        armed = self._armed or time.monotonic() - self._mono.get("armed", -math.inf) > ARMED_STALE_S
+        return Telemetry(x, y, self._pos.latitude_deg, self._pos.longitude_deg, v, self._heading, armed,
+                         self._mode, upd, self._pos.absolute_altitude_m)
 
     def progress(self) -> Progress:
         return self._prog
@@ -268,6 +283,22 @@ class Px4Driver(Driver):
                 self.last_error = f"follow: {type(e).__name__}: {e}"
                 raise DriverError(f"MISSION_START_FAILED: {e}") from e
             return seq
+
+    async def cut_drive(self) -> int:
+        """구동 차단 (vehicle.py 정지 감독의 마지막 수단): 시동을 끈다. 시동 끄기가 거부되면 kill (강제 차단).
+        시동이 꺼지면 바퀴 속도 명령이 0 이다. 다음 follow 가 다시 시동을 건다 — 정지 감독은 차단 중에 정지 미션을 다시 보내지 않는다."""
+        if self._act is None:
+            raise DriverError("NO_LINK")
+        async with self._cmd:
+            try:
+                await self._act.disarm()
+            except Exception as e:  # noqa: BLE001
+                try:
+                    await self._act.kill()
+                except Exception as e2:  # noqa: BLE001
+                    raise DriverError(f"CUT_FAILED: disarm {e}; kill {e2}") from e2
+            self.parked_seq = self._prog.mission_seq
+            return self._prog.mission_seq
 
     async def halt_in_place(self) -> int:
         """이미 거의 멈춘 차의 '제자리 정지'. MAVLink HOLD(action.hold) 는 보내지 않는다:

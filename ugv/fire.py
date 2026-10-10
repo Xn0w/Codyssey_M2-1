@@ -90,9 +90,25 @@ class FireArea:
 EMPTY = FireArea([], source="NONE")
 
 
+# 화재 자료 상태 (data_status): FRESH·STATIC 만 새 화재 접근 임무에 쓸 수 있다 (usable)
+#   NEVER_RECEIVED  환경 서버에서 한 번도 받지 못함 — '화재 없음' 이 아니다
+#   STALE           마지막 성공 수신이 FIRE_DATA_MAX_AGE_S 보다 오래됨 (마지막 값은 보관·사용하되 신선하지 않음)
+#   NOT_CONFIGURED  환경 서버 미설정이고 무화재 시험 허용(UGV_ALLOW_NO_FIRE_DATA)도 없음
+#   STATIC          코드·시험이 직접 준 고정 화재 칸 (명시적 설정)
+USABLE = ("FRESH", "STATIC")
+
+
 class StaticFireSource:
-    def __init__(self, cells: Iterable[dict] = (), source: str = "STATIC"):
+    def __init__(self, cells: Iterable[dict] = (), source: str = "STATIC", explicit: bool = True):
+        self.explicit = explicit
         self.set(cells, source)
+
+    def data_status(self) -> str:
+        return "STATIC" if self.explicit else "NOT_CONFIGURED"
+
+    def status(self) -> dict:
+        return {"data_status": self.data_status(), "usable": self.data_status() in USABLE, "data_age_s": None,
+                **self._area.summary()}
 
     def set(self, cells: Iterable[dict], source: str = "STATIC", sim_time_s: Optional[float] = None):
         self._area = FireArea(list(cells), source=source, version=time.time(), sim_time_s=sim_time_s)
@@ -112,6 +128,7 @@ class EnvHttpFireSource:
         self.client = client or httpx.Client(timeout=10.0)
         self.poll_s = poll_s
         self._area, self._fetched, self._error = EMPTY, 0.0, None
+        self._ok_mono = None                     # 마지막 성공 수신 (데이터 나이 기준). _fetched 는 마지막 시도
         self.run_id = None
         self.last_fetch_s = None
         self._thread = None
@@ -131,6 +148,7 @@ class EnvHttpFireSource:
                                       version=snap.get("state_version"), sim_time_s=snap.get("simulation_time_s"))
                 self.run_id = snap.get("run_id")
             self._error = None
+            self._ok_mono = time.monotonic()
         except Exception as e:  # noqa: BLE001 — 환경이 잠깐 안 돼도 마지막 값으로 안전 판단을 계속한다
             self._error = f"{type(e).__name__}: {e}"
         self._fetched = time.monotonic()
@@ -146,12 +164,26 @@ class EnvHttpFireSource:
             self._fetch()
         return self._area
 
+    def data_age_s(self):
+        return None if self._ok_mono is None else time.monotonic() - self._ok_mono
+
+    def data_status(self) -> str:
+        age = self.data_age_s()
+        if age is None:
+            return "NEVER_RECEIVED"
+        return "STALE" if age > config.FIRE_DATA_MAX_AGE_S else "FRESH"
+
     def status(self) -> dict:
+        # age_s = 마지막 성공 수신 이후 (예전에는 실패한 시도도 갱신해 단절 중에도 0 s 로 보였다 — 2026-10-11 검토 재현)
+        age = self.data_age_s()
         return {"url": self.url, "run_id": self.run_id, "error": self._error, "last_fetch_s": self.last_fetch_s,
-                "age_s": round(time.monotonic() - self._fetched, 1) if self._fetched else None, **self._area.summary()}
+                "data_status": self.data_status(), "usable": self.data_status() in USABLE,
+                "age_s": None if age is None else round(age, 1),
+                "attempt_age_s": round(time.monotonic() - self._fetched, 1) if self._fetched else None,
+                "max_age_s": config.FIRE_DATA_MAX_AGE_S, **self._area.summary()}
 
 
 def build_source():
     if config.ENV_URL:
         return EnvHttpFireSource(config.ENV_URL)
-    return StaticFireSource(source="NONE (UGV_ENV_URL 미설정)")
+    return StaticFireSource(source="NONE (UGV_ENV_URL 미설정)", explicit=config.ALLOW_NO_FIRE_DATA)

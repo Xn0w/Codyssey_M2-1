@@ -96,7 +96,7 @@ def test_closed_loop_fault_redecision_other_resource_return_ready(tmp_path, monk
         assert _until(orch, lambda: orch.ledger.get_attempt(att2)["substatus"] in ("ARRIVED", "OBSERVED", "APPLIED", "RELEASED"),
                       240), orch.ledger.get_attempt(att2)
         bt = [t for t in fleet.store.tasks.values() if t["resource_id"] == "A-ugv2"][-1]
-        assert bt["status"] == "COMPLETED" and bt["mission_result"] == "ARRIVED"
+        assert bt["status"] == "COMPLETED" and bt["mission_result"] == "ARRIVED", (bt.get("error"), [(e["event"], e.get("why"), e.get("detail")) for e in B.events][-10:])
         rec["arrived_2"] = {"ugv_task": bt["task_id"], "mission_result": bt["mission_result"]}
         assert _until(orch, lambda: orch.ledger.get_attempt(att2)["substatus"] == "RELEASED", 30)
         assert orch.ledger.get_task(task.task_id).purpose_status == "COMPLETED"
