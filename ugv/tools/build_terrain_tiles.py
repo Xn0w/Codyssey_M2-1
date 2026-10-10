@@ -462,6 +462,8 @@ def static_checks():
     # 3) 도로별 종단·횡단 경사 (중심선 2 m 간격, 횡단 = ±반폭 지점 높이 차)
     inc = [rid for rid in net.roads if rid not in meta["roads_excluded"]]
     per_road, worst_long, worst_cross = {}, [], []
+    jn = junction_nodes(net, inc)
+    jxy = np.array([net.nodes[n] for n in jn]) if jn else np.zeros((0, 2))
     for rid in inc:
         r = net.roads[rid]
         hw = est_half_width(r)
@@ -488,11 +490,21 @@ def static_checks():
         # 종단: 10 m 창 (2 m 표본의 양자화 잡음 줄임)
         k = 5
         g_long = np.abs(zc[k:] - zc[:-k]) / (ss[k:] - ss[:-k]) if len(ss) > k else np.abs(np.diff(zc) / np.diff(ss))
-        g_cross = np.abs(zl - zr) / (2 * hw)
+        g_cross_all = np.abs(zl - zr) / (2 * hw)
+        # 횡단: 교차로 구역(노드 JUNC_OUT_M 안 — 여러 방향 도로가 만나 다듬은 지형 면을 그대로 씀) 밖만. 교차로 구역은 따로
+        cxy = np.array([net.at(rid, v)[2:4] for v in ss])
+        if len(jxy):
+            dj = np.sqrt(((cxy[:, None, :] - jxy[None]) ** 2).sum(2)).min(1)
+        else:
+            dj = np.full(len(ss), np.inf)
+        g_cross = g_cross_all[dj > JUNC_OUT_M] if (dj > JUNC_OUT_M).any() else np.zeros(1)
+        g_cross_j = g_cross_all[dj <= JUNC_OUT_M] if (dj <= JUNC_OUT_M).any() else np.zeros(1)
         # 표면 급변: 2 m 간격 높이 2차 차분 (턱)
         jump = np.abs(np.diff(zc, 2)) if len(zc) > 2 else np.zeros(1)
         per_road[rid] = {"len_m": round(L, 1), "max_long_grade": round(float(g_long.max()), 4) if g_long.size else 0.0,
-                         "max_cross_slope": round(float(g_cross.max()), 4), "max_second_diff_m": round(float(jump.max()), 3),
+                         "max_cross_slope": round(float(g_cross.max()), 4),
+                         "max_cross_slope_junction_zone": round(float(g_cross_j.max()), 4),
+                         "max_second_diff_m": round(float(jump.max()), 3),
                          "z_range_m": round(float(zc.max() - zc.min()), 1)}
     vals = [v for v in per_road.values() if "error" not in v]
     out["roads_checked"] = len(vals)
