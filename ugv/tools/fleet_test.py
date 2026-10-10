@@ -112,7 +112,12 @@ class Run:
 
     def finish(self):
         self.log["end_local"] = time.strftime("%F %T")
-        self.log["events"] = {rid: self.c.get(f"/ugv/{rid}/events?limit=200").json() for rid in self.trackers}
+        ev = {}
+        for rid in self.trackers:                          # 서버에 없는 차량(일부만 띄운 시험)은 빼고
+            r = self.c.get(f"/ugv/{rid}/events?limit=200")
+            if r.status_code == 200 and isinstance(r.json(), list):
+                ev[rid] = r.json()
+        self.log["events"] = ev
         self.log["tasks"] = {c["key"]: self.task(c["rid"], c["key"]) for c in self.log["commands"]}
         self.log["traffic_final"] = self.c.get("/traffic").json()
         for p in self.trackers.values():
