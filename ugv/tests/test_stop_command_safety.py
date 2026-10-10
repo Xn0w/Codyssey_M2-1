@@ -307,3 +307,38 @@ def test_telemetry_loss_with_failed_stop_keeps_link_loss_occupancy(tmp_path):
         reach = link_loss_reach(sp, i0, real().speed_mps)
         assert max(p[3] for p in pred.samples) >= min(reach, sp.cum[-1] - sp.cum[i0]) - 10.0
     asyncio.run(go())
+
+
+def test_arrival_ready_only_after_standstill(tmp_path):
+    """미션이 끝나도 0.2 m/s 이상으로 움직이면 도착·READY 가 아니다 (Gazebo: 0.3~0.5 m/s 로 굴러가는데 READY 였다)."""
+    import dataclasses
+
+    async def go():
+        f, clock = make_fleet(tmp_path, [FLEET_CFG[0]])
+        A = f.vehicles["A-ugv1"]
+        drv = A.driver
+        real = drv.telemetry
+        creep = {"on": False}
+
+        def tel():
+            t = real()
+            return dataclasses.replace(t, speed_mps=0.35) if creep["on"] else t
+        drv.telemetry = tel
+        tgt = FRAME.to_ll(A.access.x - 300, A.access.y - 250)
+        await A.execute(body("AR1", *tgt))
+        seen = False
+        for _ in range(1200):
+            clock.advance(0.5)
+            drv.step(0.5)
+            if drv.progress().finished and not seen:
+                creep["on"], seen = True, True           # 미션 끝난 순간부터 잠깐 굴러감
+            await A.tick()
+            if seen and creep["on"]:
+                assert A.state != "IDLE" and A.resource_state() != "READY", "굴러가는데 도착·READY"
+                creep["n"] = creep.get("n", 0) + 1
+                if creep["n"] >= 6:
+                    creep["on"] = False                   # 3 s 뒤 멈춤
+            if seen and not creep["on"] and A.state == "IDLE":
+                break
+        assert seen and A.state == "IDLE" and f.store.tasks["AR1"]["status"] == "COMPLETED"
+    asyncio.run(go())

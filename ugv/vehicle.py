@@ -477,7 +477,7 @@ class Vehicle:
                 self._finish(prev, "CANCELLED", error=f"SUPERSEDED_BY:{key}", physical_state="REPLANNED")
             tel = self.driver.telemetry()
             here_d = math.hypot(tel.x - plan.dest.x, tel.y - plan.dest.y) if tel is not None else math.inf
-            already = tel is not None and tel.speed_mps < 0.5 and here_d <= config.ARRIVE_M
+            already = tel is not None and tel.speed_mps < 0.2 and here_d <= config.ARRIVE_M
             self.gen += 1
             if already:
                 # 이미 목적지 도착 반경 안에 서 있다 → 주행하지 않고 바로 도착 처리
@@ -756,7 +756,9 @@ class Vehicle:
                 t["progress"]["yield"] = {k: v for k, v in self.hold.items() if k != "s"}
             self._move_ref = (now, tel.x, tel.y)
             return
-        if prog.mission_seq == self.seq and prog.finished and tel.speed_mps < 0.5:
+        # 도착 = 미션 끝 + 정지 확인 (STOPPING→IDLE 과 같은 기준: 0.2 m/s 미만·최신 텔레메트리). 예전 0.5 m/s 미만이면
+        # 0.3~0.5 m/s 로 아직 움직이는데 IDLE·READY 가 됐다 (2026-10-10 Gazebo 전수 2832 표본 중 15)
+        if prog.mission_seq == self.seq and prog.finished and tel.speed_mps < 0.2 and tel.age_s() <= config.TELEMETRY_STALE_S:
             async with self.lock:
                 if prog.mission_seq != self.seq:
                     return
