@@ -73,7 +73,113 @@ def layout(sc):
                  ("A-fire1", rb, r.b, 70, rd, 60.0 if qd.a == r.a else qd.length - 60.0)]
 
 
+def _a_route(net):
+    """A-ugv1 이 거점 출입 지점에서 표준 목표(출입 지점 −900, −700)로 가는 계획 (sim 계획기, 시험 배치 계산용)."""
+    import pathlib, tempfile, asyncio
+    from ugv.tests.test_multi_vehicle import make_fleet
+    cfg = {**CFG["A-ugv1"], "driver": "sim"}
+    f, _ = make_fleet(pathlib.Path(tempfile.mkdtemp()), [cfg])
+    A = f.vehicles["A-ugv1"]
+    tgt = FRAME.to_ll(A.access.x - 900, A.access.y - 700)
+    asyncio.run(A.execute({"task_id": "P", "decision_id": "D", "target": {"lat": tgt[0], "lon": tgt[1]}}))
+    return A, tgt
+
+
+def _pose_on(net, rid, s, toward):
+    r = net.roads[rid]
+    p = net.at(rid, s)
+    q = net.at(rid, s + (1.0 if toward == r.b else -1.0))
+    return p, q
+
+
+SPECIAL = ("static_ahead", "linkloss_approach")
+
+
+TEST_ROAD = "682501747"     # A 지역 직선 국도 1,277 m (양방향, UGV·소방차 주행 묶음, 급커브 아님) — 시험용 배치
+
+
+def make_special(sc):
+    """시험용 배치 (운영 거점·기본 배치와 별개, 시작 자세만): TEST_ROAD 위 a→b 방향.
+    static_ahead: A-ugv1 s=100 출발 → 목적지 s=900, 그 사이 s=400 에 고장 차(B-fire1). 정지거리 밖에서 빠르게 다가가 서야 한다.
+    linkloss_approach: A-ugv1 s=250(앞), A-fire1 s=130(뒤), 둘 다 목적지 s=1150. 둘 다 움직이면 앞차 링크를 끊는다."""
+    net = RoadNetwork()
+    rid = TEST_ROAD
+    r = net.roads[rid]
+    toward = r.b
+    ll = lambda s_: FRAME.to_ll(net.at(rid, s_).x, net.at(rid, s_).y)
+    if sc == "static_ahead":
+        poses = {"A-ugv1": _pose_on(net, rid, 100.0, toward), "B-fire1": _pose_on(net, rid, 400.0, toward)}
+        plan = {"moving": {"A-ugv1": ll(900.0)}, "faulted": ["B-fire1"], "road": rid}
+    else:
+        poses = {"A-ugv1": _pose_on(net, rid, 250.0, toward), "A-fire1": _pose_on(net, rid, 130.0, toward)}
+        plan = {"moving": {"A-ugv1": ll(1150.0), "A-fire1": ll(1150.0)}, "cut": "A-ugv1", "road": rid}
+    fleet, spawn = [], []
+    for rid_, (p, q) in poses.items():
+        lat, lon = FRAME.to_ll(p.x, p.y)
+        fleet.append({**CFG[rid_], "initial": {"lat": lat, "lon": lon, "heading_deg": round(bearing_deg(q.x - p.x, q.y - p.y), 2)}})
+        yaw = math.atan2(q.y - p.y, q.x - p.x)
+        spawn.append(f'{CFG[rid_]["px4"]["instance"]} {CFG[rid_]["profile"]} {p.x:.2f},{p.y:.2f},{Z[CFG[rid_]["profile"]]},{yaw:.4f} {rid_}')
+    fp, sp, pp = LOG_DIR / f"pair_{sc}_fleet.json", LOG_DIR / f"pair_{sc}_spawn.txt", LOG_DIR / f"pair_{sc}_plan.json"
+    fp.write_text(json.dumps(fleet, ensure_ascii=False, indent=1), encoding="utf-8")
+    sp.write_text("\n".join(spawn) + "\n", encoding="utf-8")
+    pp.write_text(json.dumps(plan, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(fp, sp, *spawn, sep="\n")
+
+
+def wait_stopped(r, rids, track_s, extra=None):
+    """임무가 끝나도(막힘 실패 등) 차가 대기 지점까지 가서 설 때까지 본다 — 서기 전에 기록을 끝내면 정지 간격을 못 잰다."""
+    t_end = r.t0 + track_s
+    while time.time() < t_end:
+        p = r.poll()
+        if extra:
+            extra(p)
+        mv = [rid for rid in rids if p["vehicles"][rid]["mission"] in ("DRIVING", "STOPPING", "EVADING")
+              or (p["vehicles"][rid]["speed"] or 0) > 0.1]
+        if not mv:
+            return True
+        print(f"[{r.t():6.1f}] 정지 기다림 {mv}", flush=True)
+        time.sleep(1.0)
+    return False
+
+
+def run_special(sc, track_s, after_s, cut_after_s=15.0):
+    plan = json.loads((LOG_DIR / f"pair_{sc}_plan.json").read_text(encoding="utf-8"))
+    rids = list(plan["moving"]) + plan.get("faulted", [])
+    r = fleet_test.Run(f"pair_{sc}", track_s, rids=rids)
+    r.log["special_plan"] = plan
+    for rid in plan.get("faulted", []):                 # 출발 전 고장 (스스로 움직이지 않는 차)
+        r.log.setdefault("faults", {})[rid] = r.c.post(f"/ugv/{rid}/_test/fault",
+                                                       json={"code": "VEHICLE_FAULT", "detail": "시험: 도로 위 고장 정지"}).json()
+    keys = []
+    for i, (rid, (lat, lon)) in enumerate(plan["moving"].items()):
+        key = f"P-{sc[:2].upper()}{i}-{rid}"
+        rec = r.go(rid, key, lat, lon)
+        if rec["status_code"] == 200:
+            keys.append((rid, key))
+    st = {"cut": None}
+
+    def maybe_cut(p):
+        if plan.get("cut") and st["cut"] is None and r.t() > cut_after_s:
+            v = p["vehicles"][plan["cut"]]
+            if (v["speed"] or 0) > 5:
+                r.log["link_cut_method"] = fleet_test.link(plan["cut"], "stop")
+                st["cut"] = r.t()
+                r.log["link_cut_t"], r.log["link_cut_wall"] = st["cut"], time.time()
+                print(f"[{r.t():6.1f}] {plan['cut']} 링크 끊음", flush=True)
+    r.wait(keys, track_s * 0.8, every=1.0, extra=maybe_cut)
+    wait_stopped(r, [rid for rid in plan["moving"] if rid != plan.get("cut")], track_s, extra=maybe_cut)
+    end = time.time() + after_s
+    while time.time() < end:
+        r.poll()
+        time.sleep(1.0)
+    if plan.get("cut"):
+        fleet_test.link(plan["cut"], "start")
+    return r.finish()
+
+
 def make(sc):
+    if sc in SPECIAL:
+        return make_special(sc)
     net, lay = layout(sc)
     fleet, spawn = [], []
     for rid, road, node, dist, *_ in lay:
@@ -89,6 +195,8 @@ def make(sc):
 
 
 def run(sc, track_s, after_s=0.0):
+    if sc in SPECIAL:
+        return run_special(sc, track_s, after_s)
     net, lay = layout(sc)
     on = {v["resource_id"] for v in fleet_test.httpx.get(fleet_test.SERVER + "/ugv", timeout=30).json()}
     lay = [x for x in lay if x[0] in on]                # 서버에 있는 차량만 (한 대만 띄운 시험)
@@ -103,6 +211,7 @@ def run(sc, track_s, after_s=0.0):
         if rec["status_code"] == 200:
             keys.append((rid, key))
     r.wait(keys, track_s * 0.8, every=1.0)
+    wait_stopped(r, [x[0] for x in lay], track_s)
     end = time.time() + after_s              # 임무가 끝난 뒤에도 기록 (실패 뒤 실제로 서는지·간격)
     while time.time() < end:
         r.poll()
@@ -113,7 +222,7 @@ def run(sc, track_s, after_s=0.0):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("action", choices=("make", "run"))
-    ap.add_argument("scenario", choices=("junction", "head_on", "block", *TURN_SC))
+    ap.add_argument("scenario", choices=("junction", "head_on", "block", *TURN_SC, *SPECIAL))
     ap.add_argument("--track-s", type=float, default=600)
     ap.add_argument("--after-s", type=float, default=0.0, help="임무가 끝난 뒤 더 기록할 시간 s")
     a = ap.parse_args()

@@ -152,6 +152,30 @@ def create_app(fleet: Optional[Fleet] = None, *, autostart: bool = True) -> Fast
             return await d.test_link(bool((body or {}).get("cut", True)))
 
     if os.getenv("UGV_TEST_HOOKS") == "1":
+        @app.post("/ugv/{rid}/_test/fail_next")
+        async def test_fail_next(rid: str, body: dict = Body(default={})):
+            """시험용: 이 차량 드라이버의 다음 n 번 미션 전송(follow·stop)을 실패시킨다 (정지 명령 실패 주입과 복구 시험)."""
+            from .drivers import DriverError
+            d = F().get(rid).driver
+            n = int((body or {}).get("n", 1))
+            if not hasattr(d, "_orig_follow"):
+                d._orig_follow, d._orig_stop = d.follow, d.stop
+            d._fail_left = n
+
+            async def follow(items):
+                if d._fail_left > 0:
+                    d._fail_left -= 1
+                    raise DriverError("TEST_INJECTED_FOLLOW_FAILURE")
+                return await d._orig_follow(items)
+
+            async def stop():
+                if d._fail_left > 0:
+                    d._fail_left -= 1
+                    raise DriverError("TEST_INJECTED_STOP_FAILURE")
+                return await d._orig_stop()
+            d.follow, d.stop = follow, stop
+            return {"resource_id": rid, "fail_next": n}
+
         @app.post("/ugv/{rid}/_test/fault")
         async def test_fault(rid: str, body: dict = Body(default={})):
             """시험용: 주행 중 차량 고장 주입 (고장 기록 → 도로를 따라 정지 → FAULT). 폐루프 시험 (총괄 재판단·다른 자원 배정)."""

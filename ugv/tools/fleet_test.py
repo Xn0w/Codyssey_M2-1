@@ -14,6 +14,7 @@ import argparse
 import csv
 import json
 import math
+import os
 import subprocess
 import sys
 import time
@@ -29,7 +30,7 @@ from ugv.tools.drive_test import LOG_DIR, load_track, start_tracker, to_wsl_path
 
 ROOT = Path(__file__).resolve().parents[2]
 SERVER = "http://127.0.0.1:8100"
-WORLD = "kangwon_flat"
+WORLD = os.getenv("UGV_GZ_WORLD", "kangwon_flat")   # 트윈 지형 타일 월드 시험은 UGV_GZ_WORLD
 FLEET = json.loads((ROOT / "ugv" / "fleet_ab.json").read_text(encoding="utf-8"))
 MODEL = {c["resource_id"]: c["px4"]["gz_model"] for c in FLEET}
 PROFILE = {c["resource_id"]: c["profile"] for c in FLEET}

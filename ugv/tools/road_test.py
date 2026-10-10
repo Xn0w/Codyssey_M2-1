@@ -363,6 +363,9 @@ def main():
     ap.add_argument("--second-near-junction", type=float,
                     help="--second-after 가 지난 뒤, 앞 교차로까지 이 거리(m) 안이고 8 m/s 넘게 달릴 때 새 목표 (교차로 직전 재계획)")
     ap.add_argument("--abort-after", type=float, help="첫 출발 뒤 몇 초(벽시계)에 임무 중단")
+    ap.add_argument("--abort-on-curve", type=float, default=None,
+                    help="--abort-after 뒤, 정지 거리 안 계획 선형이 이 각도(°) 넘게 꺾이고 5 m/s 넘을 때 중단 (곡선 위 정지 시험)")
+    ap.add_argument("--fail-stop-n", type=int, default=0, help="중단 직전 미션 전송 n 번 실패 주입 (UGV_TEST_HOOKS=1 서버)")
     ap.add_argument("--track-s", type=float, default=900.0)
     ap.add_argument("--world", default=config.DEFAULT_VEHICLES[0]["px4"]["gz_world"])
     ap.add_argument("--analyze", type=Path, help="저장된 road_*.json 을 다시 분석")
@@ -451,6 +454,36 @@ def main():
             return True
         return False
 
+    def curve_ahead():
+        """정지 거리 안 계획 선형 방위 변화(°). 곡선 위 정지 시험 — 정지 경로가 곡선을 지나게 한다."""
+        if a.abort_on_curve is None:
+            return True
+        st = c.get(f"/ugv/{a.rid}/state").json()
+        v = st.get("speed_mps") or 0
+        if v < 5.0 or st["position"]["lat"] is None:
+            return False
+        win = max(30.0, v * v / 3.0 + 15.0)      # 정지 거리(감속 1.5 m/s² + 여유) — 이 안에 곡선이 있으면 곡선 위에서 선다
+        pts = c.get(f"/ugv/{a.rid}/route").json().get("plan_xy") or []
+        if len(pts) < 3:
+            return False
+        x, y = FRAME.to_xy(st["position"]["lat"], st["position"]["lon"])
+        i0 = min(range(len(pts)), key=lambda i: (pts[i][0] - x) ** 2 + (pts[i][1] - y) ** 2)
+        d, hs = 0.0, []
+        for i in range(i0, len(pts) - 1):
+            dx, dy = pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]
+            seg = math.hypot(dx, dy)
+            if seg > 1e-6:
+                hs.append(math.atan2(dy, dx))
+            d += seg
+            if d >= win:
+                break
+        turn = max((abs((h - hs[0] + math.pi) % (2 * math.pi) - math.pi) for h in hs), default=0.0)
+        if math.degrees(turn) >= a.abort_on_curve:
+            log["curve_trigger"] = {"turn_ahead_deg": round(math.degrees(turn), 1), "speed_mps": st["speed_mps"], "window_m": round(win, 1)}
+            print(f"  앞 {win:.0f} m 꺾임 {math.degrees(turn):.0f}°, {v:.1f} m/s → 중단", flush=True)
+            return True
+        return False
+
     if a.target or a.target_node:
         k1 = run(f"RT1-{stamp}", *(a.target or (None, None)), node=a.target_node)
     else:
@@ -478,8 +511,10 @@ def main():
         if a.second and not second_sent and time.time() - t0 >= a.second_after and junction_ready():
             active, second_sent = run(f"RT2-{stamp}", *a.second), True
             continue
-        if a.abort_after is not None and not aborted and time.time() - t0 >= a.abort_after:
+        if a.abort_after is not None and not aborted and time.time() - t0 >= a.abort_after and curve_ahead():
             sim_t = last_sim_t(out_csv)
+            if a.fail_stop_n:                    # 정지 명령 실패 주입 (서버 UGV_TEST_HOOKS=1) — 실패 뒤 재시도로 실제 서는지
+                log["fail_injected"] = c.post(f"/ugv/{a.rid}/_test/fail_next", json={"n": a.fail_stop_n}).json()
             r = c.post(f"/ugv/{a.rid}/task/{active}/abort", json={"reason": "ROAD_TEST_ABORT"})
             print(f"[{active}] abort {r.status_code} {r.json().get('status')} {r.json().get('error')}")
             log["abort"] = {"key": active, "sim_t_cmd": sim_t, "response": r.json(),
