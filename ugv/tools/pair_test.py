@@ -32,6 +32,11 @@ from ugv.tools.spawn_pose import Z
 JUNCTION = ("494928", "682501307", "682501539", "682501929")        # 노드, X 진입, Y 진입, 합류 도로
 HEAD_ON = ("683400826", "683400838", "683400828", "683401696", "683400719")   # 공유 도로, X 진입, Y 진입, X 진출, Y 진출
 CFG = {c["resource_id"]: c for c in fleet_test.FLEET}
+TURN_SC = {"turn_naerin_ugv": ("682502376", "494861", "682502932", "A-ugv1"),      # 국도 31 내린천로 굽음 (38.0084, 128.2415)
+           "turn_naerin_fire": ("682502376", "494861", "682502932", "A-fire1"),
+           "turn_deoksan_ugv": ("682501903", "495178", "682600487", "A-ugv1"),     # 덕산로 교차로 직진 (38.0886, 128.1834)
+           "turn_deoksan_fire": ("682501903", "495178", "682600487", "A-fire1"),
+           "turn_deoksan101_ugv": ("682501903", "495178", "682501906", "A-ugv1")}  # 같은 교차로 101° 회전
 
 
 def _pose(net, rid, node, dist):
@@ -50,6 +55,11 @@ def layout(sc):
         q3 = net.roads[r3]
         s = lambda d: d if q3.a == n else q3.length - d
         return net, [("A-ugv1", r1, n, 110, r3, s(170.0)), ("B-fire1", r2, n, 110, r3, s(60.0))]
+    if sc in TURN_SC:
+        # 한 대가 교차로 회전 하나만 지난다 (B 거점 → A 지역 경로에서 이음매 때문에 막혔던 회전, 2026-10-10 지도 대조: 일반 2차로)
+        r1, node, r2, rid = TURN_SC[sc]
+        q2 = net.roads[r2]
+        return net, [(rid, r1, node, 150, r2, 80.0 if q2.a == node else q2.length - 80.0)]
     if sc == "block":
         # 교차로 배치에서 목적지를 바꾼다: 먼저 합류하는 A-ugv1 이 합류 도로 60 m 에 서고(임무 끝 → 스스로 움직이지 않음),
         # 뒤따르는 B-fire1 은 그 너머 170 m 로 가야 한다 → 막힘 처리 (우회 재계획 또는 BLOCKED_BY_VEHICLE 실패 보고)
@@ -103,7 +113,7 @@ def run(sc, track_s, after_s=0.0):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("action", choices=("make", "run"))
-    ap.add_argument("scenario", choices=("junction", "head_on", "block"))
+    ap.add_argument("scenario", choices=("junction", "head_on", "block", *TURN_SC))
     ap.add_argument("--track-s", type=float, default=600)
     ap.add_argument("--after-s", type=float, default=0.0, help="임무가 끝난 뒤 더 기록할 시간 s")
     a = ap.parse_args()

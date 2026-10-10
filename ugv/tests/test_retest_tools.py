@@ -232,9 +232,8 @@ def test_waiting_slots_of_same_station_use_different_roads_across_profiles(tmp_p
     assert f4.vehicles["A-fire1"].access.road_id == "682500724" and f4.vehicles["B-fire1"].access.road_id == "683400570"
 
 
-def test_rejection_reason_is_specific_and_recorded(tmp_path):
-    """거절 사유를 응답에만 싣고 버리지 않는다: 사건 기록·ugv_rejections.jsonl 에 남긴다. 진행 방향 경로는 있었는데 최종 경로 검사가
-    회전을 빼서 끊긴 경우는 NO_DIRECTED_ROUTE 가 아니라 NO_DRIVABLE_ROUTE_AFTER_CHECK (2026-10-10: B 거점 → A 지역 목표)."""
+def test_rejection_is_recorded(tmp_path):
+    """거절 사유를 응답에만 싣고 버리지 않는다: 사건 기록(EVALUATE_REJECTED)·ugv_rejections.jsonl 에 남긴다 (2026-10-10)."""
     import asyncio
     import json
     from ugv.tests.test_multi_vehicle import make_fleet
@@ -242,11 +241,29 @@ def test_rejection_reason_is_specific_and_recorded(tmp_path):
     async def go():
         f, _ = make_fleet(tmp_path, [{**FLEET_CFG[2], "driver": "sim"}])
         B = f.vehicles["B-ugv1"]
-        ev = await B.evaluate({"task_id": "R1", "decision_id": "D-R1", "target": {"lat": 38.0281751, "lon": 128.1280267}})
-        assert ev["verdict"] == "REJECT" and "NO_DRIVABLE_ROUTE_AFTER_CHECK" in ev["detail"]
-        assert ev["approach"]["route_check_rejected"]
-        assert B.events[-1]["event"] == "EVALUATE_REJECTED" and B.events[-1]["route_check_rejected"]
+        ev = await B.evaluate({"task_id": "R1", "decision_id": "D-R1", "target": {"lat": 38.6, "lon": 128.9}})   # 도로망 밖
+        assert ev["verdict"] == "REJECT"
+        assert B.events[-1]["event"] == "EVALUATE_REJECTED" and B.events[-1]["detail"] == ev["detail"]
         rec = json.loads((tmp_path / "ugv_rejections.jsonl").read_text(encoding="utf-8").splitlines()[-1])
-        assert rec["task_id"] == "R1" and rec["decision_id"] == "D-R1" and rec["route_check_rejected"]
-        assert rec["counts"]["candidates_checked"] > 0
+        assert rec["task_id"] == "R1" and rec["decision_id"] == "D-R1" and rec["detail"] == ev["detail"]
+        assert rec["target"] == {"lat": 38.6, "lon": 128.9}
+    asyncio.run(go())
+
+
+def test_b_station_reaches_a_area_after_junction_join_relax(tmp_path):
+    """B 거점 UGV → A 지역 목표: 진행 방향 경로는 있었지만 다듬은 선형의 교차로 이음매 꺾임(국도 31 내린천로 굽음·덕산로 교차로) 때문에
+    최종 검사가 회전 3곳을 빼 거절했다 (지도 대조: 일반 2차로). 실패한 회전만 이음매를 다르게 다듬어 다시 검사 → 수락.
+    판정 기준·도로 폭은 그대로 (최종 경로 검사 통과)."""
+    import asyncio
+    from ugv.tests.test_multi_vehicle import make_fleet
+
+    async def go():
+        f, _ = make_fleet(tmp_path, [{**FLEET_CFG[2], "driver": "sim"}])
+        B = f.vehicles["B-ugv1"]
+        ev = await B.evaluate({"task_id": "BA", "decision_id": "D", "target": {"lat": 38.0281751, "lon": 128.1280267}})
+        assert ev["verdict"] == "ACCEPT", ev["detail"]
+        ap = ev["approach"]
+        assert ap["route_check"]["ok"] is True
+        relaxed = {tuple(map(tuple, x)) for x in ap.get("junction_joins_relaxed", [])}
+        assert (("682502376", "494861"), ("682502932", "495140")) in relaxed
     asyncio.run(go())

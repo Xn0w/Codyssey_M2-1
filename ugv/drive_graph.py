@@ -59,6 +59,8 @@ BEND_R_M = 50.0                 # 도로 선형의 꺾인 점(교차로 아님)�
 BEND_TANGENT_SHARE = 0.45       #   이웃 선분 길이의 이 비율까지만 쓴다
 ARC_STEP_M = 2.0                # 원호 표본 간격 상한
 ARC_SAGITTA_M = 0.02            # 원호 표본을 이은 현이 원호에서 벗어나는 최대 거리
+JOIN_BLEND_M = 12.0              # 교차로 원호 방향선과 도로 선형을 잇는 연결 곡선 길이 (이음매 어긋남을 풀어 준다)
+JUNCTION_ARC_MIN_DEG = 20.0     # 교차로 진입·진출 방향 차이가 이보다 작으면(거의 직진 통과) 교차로 원호 대신 도로 선형을 다듬는다
 
 
 @dataclass(frozen=True)
@@ -522,7 +524,9 @@ class DriveGraph:
                     break
         return out
 
-    def build_route(self, tree, p: RoadPos, arr: Arrival) -> Route:
+    def build_route(self, tree, p: RoadPos, arr: Arrival, relax=frozenset()) -> Route:
+        """relax: 이음매를 다르게 다듬을 교차로 회전 {((도로, 노드), (도로, 노드))} — 최종 검사가 그 회전 이음매에서 실패했을 때만
+        (approach.plan_approach). 거의 직진 통과면 교차로 원호 대신 도로 선형을 다듬고, 회전이면 연결 곡선으로 잇는다 (_smooth)."""
         net = self.net
         st: DirPos = tree["start"]
         pts, vlim, rids, legs = [], [], [], []
@@ -561,13 +565,13 @@ class DriveGraph:
             pts.append(pts[0])
             vlim.append(vlim[0])
         else:
-            pts, vlim = self._smooth(pts, vlim, legs)
+            pts, vlim = self._smooth(pts, vlim, legs, relax)
         route = Route(pts, vlim, rids, st.pos, p, arr.time_s)
         route.legs, route.arrive_toward = legs, arr.toward
         return route
 
     # ------------------------------------------------------------------ 주행 선형 다듬기
-    def _smooth(self, pts, vlim, legs):
+    def _smooth(self, pts, vlim, legs, relax=frozenset()):
         """도로 중심선 꺾인 점을 차가 따라갈 수 있는 원호로 바꾼다 (2026-10-10).
         PX4 는 꺾인 점에서 스스로 모서리를 질러가는데(RA_ACC_RAD_*) 좁은 도로에서 차체가 도로 밖으로 나갔다 →
         계획에서 원호를 그리고 PX4 질러가기는 끈다 (airframe RA_ACC_RAD_MAX -1).
@@ -606,6 +610,28 @@ class DriveGraph:
 
         cum = cum_of(pts)
         L = cum[-1]
+
+        def at_s(sv):
+            """원래 선형 위 경로 거리 sv 의 점과 진행 방향 (앞뒤 2 m 로 잰다 — 짧은 선분 잡음 무시)."""
+            def pt(x):
+                x = min(max(x, 0.0), L)
+                k = max(1, next((i for i in range(1, len(cum)) if cum[i] >= x), len(cum) - 1))
+                seg = cum[k] - cum[k - 1]
+                f = 0.0 if seg <= 0 else (x - cum[k - 1]) / seg
+                return (pts[k - 1][0] + f * (pts[k][0] - pts[k - 1][0]), pts[k - 1][1] + f * (pts[k][1] - pts[k - 1][1]))
+            return pt(sv), unit(pt(sv - 2.0), pt(sv + 2.0))
+
+        def hermite(P0, d0, P1, d1):
+            """P0(방향 d0) → P1(방향 d1) 3차 에르미트 곡선 표본 (P0 포함, P1 제외, 약 1 m 간격)."""
+            Lc = math.dist(P0, P1)
+            n = max(2, math.ceil(Lc / 1.0))
+            outp = []
+            for k in range(n):
+                t = k / n
+                h00, h10, h01, h11 = 2 * t ** 3 - 3 * t ** 2 + 1, t ** 3 - 2 * t ** 2 + t, -2 * t ** 3 + 3 * t ** 2, t ** 3 - t ** 2
+                outp.append((h00 * P0[0] + h10 * Lc * d0[0] + h01 * P1[0] + h11 * Lc * d1[0],
+                             h00 * P0[1] + h10 * Lc * d0[1] + h01 * P1[1] + h11 * Lc * d1[1]))
+            return outp
         # 1) 교차로 원호: 노드에서 진입·진출 방향선(노드 ~ 도로를 따라 DIR_LEN_M 떨어진 점을 이은 직선) 위 접점 사이 원호.
         #    원호 앞뒤도 그 방향선을 따라 DIR_LEN_M 점까지 곧게 잇는다 (원호 끝에서 꺾이지 않게). 그 점에서 도로 선형으로 돌아간다
         J = []
@@ -613,12 +639,19 @@ class DriveGraph:
             turn = next((t for t in self.turns.get((r1, t1), ()) if t.to == (r2, t2)), None)
             if turn is None or turn.radius_m is None:
                 continue
+            relaxed = ((r1, t1), (r2, t2)) in relax
+            u_, w_ = self._dir(r1, t1, out=False), self._dir(r2, t1, out=True)
+            if relaxed and abs(math.degrees(math.atan2(u_[0] * w_[1] - u_[1] * w_[0], u_[0] * w_[0] + u_[1] * w_[1]))) < JUNCTION_ARC_MIN_DEG:
+                # 거의 직진 통과: 교차로 원호를 만들지 않고 노드를 일반 꺾인 점처럼 실제 도로 선형을 따라 다듬는다 (아래 2)).
+                # 원호는 노드 앞 방향선(15 m)을 직선으로 보므로, 그 안에서 도로가 실제로 굽으면(국도 31 내린천로: 노드 앞 15~30 m 에서
+                # 40°, 덕산로: 노드 앞 15~22 m 에서 50°) 이음매에 급한 꺾임이 생겨 최종 검사가 막았다 (2026-10-10)
+                continue
             nx, ny = self.net.nodes[t1]
             j = min(range(1, len(pts) - 1), key=lambda i: (pts[i][0] - nx) ** 2 + (pts[i][1] - ny) ** 2, default=None)
             if j is None or math.hypot(pts[j][0] - nx, pts[j][1] - ny) >= 0.5:
                 continue
             J.append([cum[j], turn.tangent_m, self._dir(r1, t1, out=False), self._dir(r2, t1, out=True), (nx, ny),
-                      min(DIR_LEN_M, self.net.roads[r1].length), min(DIR_LEN_M, self.net.roads[r2].length)])
+                      min(DIR_LEN_M, self.net.roads[r1].length), min(DIR_LEN_M, self.net.roads[r2].length), relaxed])
         for a, b in zip(J, J[1:]):                       # 같은 도로 양 끝 원호가 겹치면 (탐색이 피하지만) 둘 다 줄인다
             over = a[1] + b[1] - (b[0] - a[0])
             if over > 0:
@@ -626,7 +659,7 @@ class DriveGraph:
                 a[1] *= k
                 b[1] *= k
         out, ov, protected, s_done = [pts[0]], [vlim[0]], [], 0.0
-        for idx, (s0, T, u, w, V, dl_in, dl_out) in enumerate(J):
+        for idx, (s0, T, u, w, V, dl_in, dl_out, relaxed) in enumerate(J):
             T = min(T, s0 - s_done - 0.05, L - s0 - 0.5)   # 경로 양 끝·앞 원호를 넘지 않게 (줄면 최종 검사가 본다)
             if T <= 0.3:
                 continue
@@ -635,16 +668,29 @@ class DriveGraph:
             if span_in > s0 - s_done - 0.5:                     # 경로 시작·앞 원호에 붙으면 방향선 점 없이 원호로 바로
                 span_in = T
             span_out = max(T, min(dl_out, L - s0 - 0.5, (nxt[0] - nxt[1] - s0) if nxt else math.inf))
+            # 이음매: 방향선 끝점(노드에서 직선 span)과 도로 선형의 같은 거리 점(도로를 따라 span)은 도로가 조금만 굽어도 어긋난다
+            # → 도로 선형을 JOIN_BLEND_M 앞에서 끊고 양 끝 방향에 접하는 3차 곡선으로 잇는다 (어긋남·방향 차이가 그 길이에 걸쳐
+            # 풀린다 — 곧은 연결선은 꺾임을 한 점으로 옮길 뿐이었다). 예전에는 바로 붙여
+            # 되짚는 지그재그(덕산로 교차로, 0.13 m 선분)·원호 시작점 꺾임(내린천로, 원호가 방향선보다 김)이 생겨 최종 검사가 막았다
+            blend_in = max(0.0, min(JOIN_BLEND_M, s0 - span_in - s_done - 0.5)) if relaxed else 0.0
+            gap_out = min(L - s0 - span_out - 0.5, ((nxt[0] - min(nxt[1], nxt[0]) - s0 - span_out) / 2) if nxt else math.inf)
+            blend_out = max(0.0, min(JOIN_BLEND_M, gap_out)) if relaxed else 0.0
             for k in range(len(pts)):
-                if s_done < cum[k] < s0 - span_in - 0.05:
+                if s_done < cum[k] < s0 - span_in - blend_in - 0.05:
                     out.append(pts[k])
                     ov.append(vlim[k])
-            ks = [k for k in range(len(pts)) if s0 - span_in - 1e-6 <= cum[k] <= s0 + span_out + 1e-6]
+            ks = [k for k in range(len(pts)) if s0 - span_in - blend_in - 1e-6 <= cum[k] <= s0 + span_out + blend_out + 1e-6]
             v = min(vlim[k] for k in ks) if ks else min(vlim)
             seq = []
             if span_in > T + 0.05:
                 seq.append((V[0] - span_in * u[0], V[1] - span_in * u[1]))
             arc = fillet(V, u, w, T)
+            # 들어오는 연결 곡선: 도로 선형 끊는 점(도로 방향에 접함) → 방향선·원호 시작(u 에 접함)
+            first_prot = len(out)
+            if blend_in > 0.5:
+                P0, d0 = at_s(s0 - span_in - blend_in)
+                out += hermite(P0, d0, seq[0] if seq else arc[0], u)
+                ov += [v] * (len(out) - len(ov))
             start = len(out) + len(seq)
             seq += arc
             end = len(out) + len(seq) - 1
@@ -652,8 +698,15 @@ class DriveGraph:
                 seq.append((V[0] + span_out * w[0], V[1] + span_out * w[1]))
             out += seq
             ov += [v] * len(seq)
-            protected.append((start - (1 if span_in > T + 0.05 else 0), end + (1 if span_out > T + 0.05 else 0)))
-            s_done = s0 + span_out
+            last_prot = len(out) - 1
+            # 나가는 연결 곡선: 방향선 끝(w 에 접함) → 도로 선형 다시 잇는 점(도로 방향에 접함)
+            if blend_out > 0.5:
+                P1, d1 = at_s(s0 + span_out + blend_out)
+                out += hermite(out[-1], w, P1, d1)[1:] + [P1]
+                ov += [v] * (len(out) - len(ov))
+                last_prot = len(out) - 1
+            protected.append((min(first_prot, start - (1 if span_in > T + 0.05 else 0)), max(last_prot, end)))
+            s_done = s0 + span_out + blend_out
         for k in range(len(pts)):
             if cum[k] > s_done + 0.05:
                 out.append(pts[k])

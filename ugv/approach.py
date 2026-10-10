@@ -188,12 +188,13 @@ def plan_approach(net: RoadNetwork, fire: FireArea, start: DirPos, target_lat: f
     arrive_toward: 도착 방향(향하는 노드)을 이것으로 — 거점 복귀 때 대기 방향을 맞춘다. 그 방향 경로가 없으면 다른 방향으로
     (결과 detail.arrive_direction 에 남긴다)."""
     g = graph or net.graph
-    banned_turns, banned_roads, tried = set(), set(), []
-    for _ in range(ROUTE_CHECK_TRIES):
+    banned_turns, banned_roads, tried, relaxed = set(), set(), [], set()
+    bans = 0
+    while bans < ROUTE_CHECK_TRIES:
         plan = _plan_once(net, fire, start, target_lat, target_lon, v0=v0, access=access, standoff=standoff,
                           search_m=search_m, snap_limit=snap_limit, fixed_dest=fixed_dest,
                           banned_turns=banned_turns, banned_roads=banned_roads, g=g, avoid=avoid_roads or {},
-                          arrive_toward=arrive_toward)
+                          arrive_toward=arrive_toward, relax=frozenset(relaxed))
         if plan.status != "OK":
             if tried:
                 plan.detail["route_check_rejected"] = tried
@@ -209,7 +210,17 @@ def plan_approach(net: RoadNetwork, fire: FireArea, start: DirPos, target_lat: f
         if v["ok"]:
             if tried:
                 plan.detail["route_check_rejected"] = tried
+            if relaxed:
+                plan.detail["junction_joins_relaxed"] = sorted([list(a), list(b)] for a, b in relaxed)
             return plan
+        # 실패 원인이 교차로 회전이면 먼저 그 회전의 이음매만 다르게 다듬어 다시 검사한다 (drive_graph.build_route relax).
+        # 다듬은 선형의 이음매 꺾임 때문에 실제로 지날 수 있는 회전을 빼던 문제 (2026-10-10: 국도 31 내린천로·덕산로 교차로 —
+        # B 거점 → A 지역 경로가 끊겼다). 지금 통과하는 경로는 바뀌지 않는다 (실패할 때만)
+        unit = g.blame(plan.route, v["issue"])
+        if unit[0] == "TURN" and (tuple(unit[1]), tuple(unit[2])) not in relaxed and len(relaxed) < JOIN_RELAX_MAX:
+            relaxed.add((tuple(unit[1]), tuple(unit[2])))
+            continue
+        bans += 1
         if not _ban(g, plan.route, v["issue"], start, banned_turns, banned_roads, tried):
             break
     tx, ty = FRAME.to_xy(target_lat, target_lon)
@@ -220,7 +231,7 @@ def plan_approach(net: RoadNetwork, fire: FireArea, start: DirPos, target_lat: f
 
 def _plan_once(net: RoadNetwork, fire: FireArea, start: DirPos, target_lat: float, target_lon: float, *,
                v0, access, standoff, search_m, snap_limit, fixed_dest, banned_turns, banned_roads, g, avoid,
-               arrive_toward=None) -> ApproachPlan:
+               arrive_toward=None, relax=frozenset()) -> ApproachPlan:
     tx, ty = FRAME.to_xy(target_lat, target_lon)
     near = net.snap(tx, ty, max_m=snap_limit)
     if near is None:
@@ -294,7 +305,7 @@ def _plan_once(net: RoadNetwork, fire: FireArea, start: DirPos, target_lat: floa
     dest, d, c, t, arr = min((o for o in ok if o[3] <= limit), key=lambda o: (round(o[1] / 25.0), o[3]))
     c = safety.clearance(dest.x, dest.y)                     # 고른 지점만 정확한 이격 (보고용)
     sel = {"_ref_eta_s": t_ref, "_limit_eta_s": limit, "_chosen_eta_s": t}
-    route = g.build_route(tree, dest, arr)
+    route = g.build_route(tree, dest, arr, relax)
     # 출발 도로에서 벗어나기 전 구간은 검사에서 뺀다 (이미 있는 곳). 그 뒤 구간의 최소 이격을 기록한다
     route_clear = fire.clearance_along(route.pts[1:]) if len(fire) else math.inf
     if near_clear >= standoff and math.hypot(dest.x - near.x, dest.y - near.y) <= 25.0:
@@ -312,6 +323,7 @@ def _plan_once(net: RoadNetwork, fire: FireArea, start: DirPos, target_lat: floa
                                 "direction": _direction_report(start, v0, route, True if rs is not None else None, access)})
 
 
+JOIN_RELAX_MAX = 6              # 한 계획에서 이음매를 다르게 다듬어 볼 교차로 회전 수 상한
 EVADE_CHECK_MAX = 40            # 이탈 후보를 최종 검사할 최대 수 (빠른 순서로)
 EVADE_BUILD_MAX = 400           # 이탈 후보 경로를 만들어 볼 최대 수 (전체 탐색 합계) — 계획 시간 상한 (그동안 차는 움직인다)
 
