@@ -37,9 +37,11 @@ class VehicleProfile:
     px4_airframe: int
     emergency_decel_mps2: float = 3.5  # 비상 정지 계산용 감속 (PX4 RO_DECEL_LIM 보다 낮게: UGV 4, 소방차 2.5)
     body_samples: Tuple[Tuple[float, float], ...] = field(init=False, repr=False)
+    _reach: float = field(init=False, repr=False, compare=False)
 
     def __post_init__(self):
         object.__setattr__(self, "body_samples", _outline(self.front, self.rear, self.hw))
+        object.__setattr__(self, "_reach", max(math.hypot(x, y) for x, y in self.body_samples))
 
     @property
     def r_min(self) -> float:
@@ -59,8 +61,8 @@ class VehicleProfile:
         return self.body_width_m / 2
 
     @property
-    def body_reach(self) -> float:     # 뒤축에서 차체 끝까지 가장 먼 거리
-        return max(math.hypot(x, y) for x, y in self.body_samples)
+    def body_reach(self) -> float:     # 뒤축에서 차체 끝까지 가장 먼 거리 (만들 때 한 번 계산 — 최종 경로 검사에서 수십만 번 쓴다)
+        return self._reach
 
     def stop_distance(self, v: float) -> float:
         """v 에서 계획 감속으로 멈추는 거리 + 여유 (명령 지연 거리 제외)."""

@@ -170,10 +170,10 @@ class RoadNetwork:
     def near(self, x: float, y: float, max_m: float) -> Dict[str, float]:
         """(x, y) 에서 max_m 안에 있는 도로들과 그 중심선까지 거리."""
         out: Dict[str, float] = {}
-        k = int(max_m // self._CELL) + 1
-        ci, cj = int(x // self._CELL), int(y // self._CELL)
-        for i in range(ci - k, ci + k + 1):
-            for j in range(cj - k, cj + k + 1):
+        # 질의 상자 [x ± max_m] 와 겹치는 칸만 (선분은 자기 경계 상자가 걸친 칸마다 색인돼 있어 정확하다). 예전에는 주변
+        # 3×3 칸(600 m 사방)을 다 훑어 최종 경로 검사가 장거리(B→A 35 km)에서 12~32 s 걸렸다 (2026-10-10, 총괄 평가 제한 10 s)
+        for i in range(int((x - max_m) // self._CELL), int((x + max_m) // self._CELL) + 1):
+            for j in range(int((y - max_m) // self._CELL), int((y + max_m) // self._CELL) + 1):
                 for rid, si in self._seg_index.get((i, j), ()):
                     road = self.roads[rid]
                     (ax, ay), (bx, by) = road.xy[si], road.xy[si + 1]
@@ -187,11 +187,9 @@ class RoadNetwork:
 
     def segments_near(self, x: float, y: float, max_m: float):
         """(x, y) 에서 max_m 안 격자 칸의 도로 선분들 — (road_id 목록, 시작점 배열, 끝점 배열). 차체 둘레 일괄 검사용."""
-        k = int(max_m // self._CELL) + 1
-        ci, cj = int(x // self._CELL), int(y // self._CELL)
         seen, rids, A, B = set(), [], [], []
-        for i in range(ci - k, ci + k + 1):
-            for j in range(cj - k, cj + k + 1):
+        for i in range(int((x - max_m) // self._CELL), int((x + max_m) // self._CELL) + 1):
+            for j in range(int((y - max_m) // self._CELL), int((y + max_m) // self._CELL) + 1):
                 for rid, si in self._seg_index.get((i, j), ()):
                     if (rid, si) in seen:
                         continue
