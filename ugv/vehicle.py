@@ -315,10 +315,49 @@ class Vehicle:
                 raise HttpError(422, "target(lat, lon) 또는 target_node 필요")
             tgt = dict(zip(("lat", "lon"), fixed.ll()))
         home = fixed is not None and fixed.road_id == self.access.road_id and abs(fixed.s - self.access.s) < 1.0
-        return plan_approach(self.net, fire, start, float(tgt["lat"]), float(tgt["lon"]), v0=v0, access=self.access,
+        plan = plan_approach(self.net, fire, start, float(tgt["lat"]), float(tgt["lon"]), v0=v0, access=self.access,
                              fixed_dest=fixed, graph=self.graph,
                              avoid_roads={**self.occupied_roads(home=home), **(extra_avoid or {})},
                              arrive_toward=self.access_toward if home else None)
+        return self._check_start_road_blocker(plan, start, home)
+
+    def _check_start_road_blocker(self, plan: ApproachPlan, start: DirPos, home: bool) -> ApproachPlan:
+        """출발 도로 앞쪽에 스스로 움직이지 않을 차(occupied_roads 와 같은 기준)가 서 있으면, 그 차 앞에서 끝나는 경로 말고는
+        갈 수 없다 (즉시 유턴·후진 없음, 중심선 모형이라 추월 없음). plan_approach 는 출발 도로를 계속 달리는 것을 막지 않으므로
+        여기서 거른다 → ROAD_BLOCKED. (2026-10-10 총괄 폐루프: 막힘으로 실패해 선 UGV 를 총괄이 같은 임무에 다시 배정했고
+        평가가 ACCEPT 해 막힘·실패·재배정이 되풀이됨)"""
+        if plan.status != "OK" or plan.route is None:
+            return plan
+        from .traffic import TRAFFIC_GAP_M
+        road = self.net.roads[start.road_id]
+        fwd = start.toward == road.b
+        legs = plan.route.legs or []
+        leaves = len(legs) > 1 or (legs and legs[0][0] != start.road_id)
+        for p in self.peers():
+            t = p.driver.telemetry()
+            if t is None or t.speed_mps >= 0.3 or p.state in ("DRIVING", "EVADING"):
+                continue
+            if p.current_task() is not None and p.state not in ("FAULT", "DANGER"):
+                continue
+            q = self.net.snap(t.x, t.y)
+            if q is None or q.road_id != start.road_id or (home and q.road_id == self.access.road_id):
+                continue
+            ahead = (q.s - start.pos.s) if fwd else (start.pos.s - q.s)
+            if ahead <= 0:
+                continue
+            need = (self.profile.body_length_m + p.profile.body_length_m) / 2 + TRAFFIC_GAP_M
+            dest_ahead = None
+            if not leaves and plan.dest is not None and plan.dest.road_id == start.road_id:
+                dest_ahead = (plan.dest.s - start.pos.s) if fwd else (start.pos.s - plan.dest.s)
+            if dest_ahead is not None and dest_ahead <= ahead - need:
+                continue                         # 막은 차 앞(간격 확보)에서 끝나는 경로
+            plan.status = "ROAD_BLOCKED"
+            plan.reason = (f"BLOCKED_BY_VEHICLE: {p.resource_id} 가 출발 도로 {start.road_id} 앞 {ahead:.0f} m 에 서 있음 "
+                           f"({p.state}), 유턴·추월 없이 지날 수 없음")
+            plan.detail["start_road_blocker"] = {"resource_id": p.resource_id, "road_id": start.road_id,
+                                                 "ahead_m": round(ahead, 1), "state": p.state}
+            return plan
+        return plan
 
     def occupied_roads(self, home: bool = False) -> dict:
         """스스로 움직이지 않을 다른 차량이 차지한 도로 {도로: 차량}: 고장·위험(운영자 해제 전 정지) 또는 임무 없이 자기 거점 대기
@@ -378,7 +417,8 @@ class Vehicle:
                     "detail": err, "target_node": None, "path": None}
         plan = await asyncio.to_thread(self._approach, body, start, v0)       # 계획 계산은 이벤트 루프 밖에서
         if plan.status != "OK":
-            out = {**base, "verdict": "REJECT", "eta_sec": None, "reason": "TARGET_UNREACHABLE",
+            out = {**base, "verdict": "REJECT", "eta_sec": None,
+                   "reason": "ROAD_BLOCKED" if plan.status == "ROAD_BLOCKED" else "TARGET_UNREACHABLE",
                    "detail": f"{plan.status}: {plan.reason}", "target_node": None, "path": None,
                    "approach": plan.report()}
             self._record_rejection("EVALUATE_REJECTED", body, out["reason"], out["detail"], plan.report())
@@ -423,11 +463,12 @@ class Vehicle:
                                  physical_state="STOPPING")
                     await self._safe_stop()
                     action = "STOPPING_ALONG_ROAD"
-                self._record_rejection("EXECUTE_REJECTED", body, "TARGET_UNREACHABLE", err or f"{plan.status}: {plan.reason}",
+                why = "ROAD_BLOCKED" if plan is not None and plan.status == "ROAD_BLOCKED" else "TARGET_UNREACHABLE"
+                self._record_rejection("EXECUTE_REJECTED", body, why, err or f"{plan.status}: {plan.reason}",
                                        plan.report() if plan else None, keep_event=False)
                 self._event("NEW_TARGET_REJECTED", rejected_task_id=key, detail=err or plan.reason,
                             cancelled_task_id=cancelled, vehicle_action=action)
-                raise HttpError(409, {"reason": "TARGET_UNREACHABLE",
+                raise HttpError(409, {"reason": why,
                                       "detail": err or f"{plan.status}: {plan.reason}",
                                       "approach": plan.report() if plan else None,
                                       "cancelled_task_id": cancelled, "vehicle_action": action})

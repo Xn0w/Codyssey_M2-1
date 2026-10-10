@@ -19,6 +19,7 @@ from ugv.fire import StaticFireSource
 from ugv.geo import FRAME, bearing_deg
 from ugv.roads import RoadNetwork
 from ugv.server import Fleet
+from ugv.vehicle import HttpError
 from ugv.tests.test_stage3_drive import NET
 
 FLEET_CFG = json.loads((Path(config.UGV_DIR) / "fleet_ab.json").read_text(encoding="utf-8"))
@@ -332,6 +333,15 @@ def test_stopped_vehicle_is_occupied_and_reported(tmp_path):
         f2, clock2 = make_fleet(tmp_path / "b", cfg2)
         X2, Y2 = f2.vehicles["X-ugv"], f2.vehicles["Y-ugv"]
         Y2._fail("VEHICLE_FAULT", "시험 주입 — 도로 위 고장 정지")
+        # 출발 전에 이미 서 있으면 실행 요청을 거절한다 (지나갈 수 없음 — 출발 도로 막힘, 2026-10-10 총괄 폐루프 재배정 반복)
+        try:
+            await X2.execute(body("X2-pre", *tgt))
+            raise AssertionError("출발 도로 앞 고장 차가 있는데 실행을 받음")
+        except HttpError as e:
+            assert e.args[0]["reason"] == "ROAD_BLOCKED" and "Y-ugv" in e.args[0]["detail"], e.args
+        assert X2.state == "IDLE" and X2.current_task() is None
+        # 계획한 뒤에 그 차가 섰다고 보고(출발 전 검사를 건너뛰어) 주행 중 막힘 처리를 본다
+        X2._check_start_road_blocker = lambda plan, start, home: plan
         await X2.execute(body("X2", *tgt))
         # 고장 차는 스스로 움직이지 않는다 → 충돌을 예측하자마자 막힘 처리: 출발 도로라 우회 경로가 없다 → 기다리지 않고 임무 실패로
         # 보고, 차는 그 앞 대기 지점에 선다 (2026-10-10 개선 전: 60 s 뒤 보고만 하고 임무는 끝없이 IN_PROGRESS 로 기다렸다)
@@ -513,3 +523,30 @@ def test_mutual_static_wait_is_broken_without_replan_loop(tmp_path):
         for k in ("A1", "B1"):
             assert len(f.store.tasks[k].get("blocked", [])) <= 2
     asyncio.run(go())
+
+
+def test_evaluate_rejects_target_past_immovable_vehicle_on_start_road(tmp_path):
+    """출발 도로 앞쪽에 고장 차가 서 있으면 그 차를 지나야 하는 목표는 ROAD_BLOCKED 로 거절한다 (유턴·추월 없음).
+    그 차 앞(간격 확보)에서 끝나는 목표는 받는다. (2026-10-10 총괄 폐루프: 막힘 실패 뒤 같은 차 재배정·ACCEPT 반복)"""
+    rid = "682501747"
+    r = NET.roads[rid]
+
+    def pose(s):
+        p, q = NET.at(rid, s), NET.at(rid, s + 1)
+        return {"lat": FRAME.to_ll(p.x, p.y)[0], "lon": FRAME.to_ll(p.x, p.y)[1], "heading_deg": bearing_deg(q.x - p.x, q.y - p.y)}
+    assert r.length > 400
+    cfg = [{**FLEET_CFG[0], "initial": pose(100.0)}, {**FLEET_CFG[3], "initial": pose(300.0)}]
+    f, clock = make_fleet(tmp_path, cfg)
+
+    async def go():
+        A, B = f.vehicles["A-ugv1"], f.vehicles["B-fire1"]
+        B._fail("VEHICLE_FAULT", "시험: 도로 위 고장 정지")
+        await B._safe_stop()
+        B.state = "FAULT"
+        far = await A.evaluate({"task_id": "T1", "decision_id": "D1", "target": {"lat": 38.07212, "lon": 128.18129}})
+        near = await A.evaluate({"task_id": "T2", "decision_id": "D2", "target_node": f"RP:{rid}:200.0"})
+        return far, near
+    far, near = asyncio.run(go())
+    assert far["verdict"] == "REJECT" and far["reason"] == "ROAD_BLOCKED", far
+    assert "B-fire1" in far["detail"]
+    assert near["verdict"] == "ACCEPT", near

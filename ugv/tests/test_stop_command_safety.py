@@ -112,6 +112,8 @@ def test_blocked_failure_stays_stopping_until_stopped(tmp_path):
         f, clock = make_fleet(tmp_path / "a", cfg)
         X, Y = f.vehicles["X-ugv"], f.vehicles["Y-ugv"]
         Y._fail("VEHICLE_FAULT", "시험 주입")
+        # 출발 전 막힘 거절(ROAD_BLOCKED)을 건너뛰어 '계획 뒤 앞차가 선' 주행 중 막힘을 본다
+        X._check_start_road_blocker = lambda plan, start, home: plan
         await X.execute(body("B1", *FRAME.to_ll(acc.x - 900, acc.y - 700)))
         seen_moving_after_fail = False
         for _ in range(240):
@@ -214,6 +216,7 @@ def _stopped_gap(tmp_path, ahead_m):
         for v in (X, Y):
             _as_px4_center(v)
         Y._fail("VEHICLE_FAULT", "시험 주입")
+        X._check_start_road_blocker = lambda plan, start, home: plan      # 주행 중 막힘 (출발 전 거절 건너뜀)
         await X.execute(body("G1", *FRAME.to_ll(acc.x - 900, acc.y - 700)))
         vmax = 0.0
         for _ in range(400):
