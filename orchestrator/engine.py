@@ -453,6 +453,19 @@ class Orchestrator:
                 self._synced.add(o["key"])
         return created
 
+    def ugv_contact(self) -> bool:
+        """지상 자원 서버와 연락 유지: 진행 중 시도가 없어도 추적 주기마다 UGV 목록을 한 번 읽는다 (GET /ugv = 전 차량 총괄 연락).
+        UGV 서버는 총괄 연락이 10 분 넘게 없으면 주행 임무를 멈추고 30 분 뒤 거점 복귀를 시도한다 (통신 단절 규칙). 총괄은 살아
+        있는데 추적할 시도가 없어 요청을 안 보내면 그 규칙이 잘못 걸린다 (2026-10-10 Gazebo 총괄 폐루프: 해제 뒤 운용자 복귀 중이던
+        소방차가 600 s 뒤 COMM_LOSS 로 정지). 실패는 무시한다 (연락이 실제로 끊긴 것이면 UGV 쪽 규칙이 맞게 동작)."""
+        if not self.ugv:
+            return False
+        try:
+            self.ugv.states()
+            return True
+        except Exception:  # noqa: BLE001
+            return False
+
     def sync(self) -> dict:
         """환경을 읽어 아는 세계를 최신으로 맞춘다 (추적 루프가 부른다). 새로 생긴 임무가 있으면 created 에."""
         truth = self.env.read()

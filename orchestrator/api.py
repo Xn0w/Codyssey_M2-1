@@ -209,6 +209,7 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
                     with lock:
                         changed = bool(orch.poll())
                         synced = orch.sync()
+                        orch.ugv_contact()            # 추적할 시도가 없어도 UGV 서버 총괄 통신 단절이 잘못 걸리지 않게
                         created = bool(synced["created"] or synced.get("observation_plan_wanted"))
                     if (changed or created) and config.AUTO_DISPATCH_ON_CHANGE:
                         dispatch_wanted.set()         # 진행 상황이 바뀌면(반납·재대기·새 신고 등) 배정 작업자에게 부탁
