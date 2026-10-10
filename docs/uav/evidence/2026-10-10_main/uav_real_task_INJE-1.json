@@ -1,0 +1,39 @@
+{
+    "task_id": "INJE-1",
+    "uav_id": "A-uav1",
+    "status": "COMPLETED",
+    "progress": {
+        "phase": "DONE"
+    },
+    "observation": {
+        "observation_id": "A-uav1:INJE-1:OBS",
+        "observed_at": "2026-10-10T12:13:07Z",
+        "position": {
+            "lat": 38.0704,
+            "lon": 128.1685,
+            "alt_m_amsl": 352.7030029296875
+        },
+        "sensor_type": "THERMAL",
+        "values": {},
+        "value_status": "NO_DATA",
+        "measurements": [
+            {
+                "measurement_id": "A-uav1:INJE-1:THERMAL",
+                "sensor_type": "THERMAL",
+                "values": {},
+                "value_status": "NO_DATA",
+                "basis": "NO_THERMAL_PIPELINE",
+                "observed_at": "2026-10-10T12:13:07Z"
+            }
+        ]
+    },
+    "reason": null,
+    "error": null,
+    "agent_restart": null,
+    "mission_result": "OBSERVED",
+    "physical_state": "LANDED",
+    "physical_failure_reason": null,
+    "abort": null,
+    "route_id": "RT-24e3239ceec65fa0",
+    "route_hash": "24e3239ceec65fa0e1dd6133aebcf07f893247ef490d4beaeaf8a40044ee476e"
+}

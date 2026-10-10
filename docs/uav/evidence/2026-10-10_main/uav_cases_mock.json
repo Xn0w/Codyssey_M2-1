@@ -1,0 +1,324 @@
+{
+ "run_at": "2026-10-10T21:11:38+0900",
+ "server": "http://127.0.0.1:8010",
+ "mode": "mock",
+ "cases": [
+  {
+   "case": "N1_accept",
+   "http": 200,
+   "verdict": "ACCEPT",
+   "reason": null,
+   "eta_sec": 454,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": null
+  },
+  {
+   "case": "N1_accept:execute",
+   "http": 200,
+   "body": {
+    "task_id": "V-N1_accept",
+    "status": "STARTED",
+    "tracking_url": "/uav/A-uav1/task/V-N1_accept",
+    "uav_id": "A-uav1",
+    "duplicate": false,
+    "route_id": "RT-5c7e71c99a95cc61",
+    "route_hash": "5c7e71c99a95cc614bcc0987a28d4535955f880b3f628dac00e25f78fc3979a4"
+   }
+  },
+  {
+   "case": "N1_accept:execute",
+   "http": 200,
+   "body": {
+    "task_id": "V-N1_accept",
+    "status": "IN_PROGRESS",
+    "tracking_url": "/uav/A-uav1/task/V-N1_accept",
+    "uav_id": "A-uav1",
+    "duplicate": true,
+    "route_id": "RT-5c7e71c99a95cc61",
+    "route_hash": "5c7e71c99a95cc614bcc0987a28d4535955f880b3f628dac00e25f78fc3979a4"
+   }
+  },
+  {
+   "case": "N1_accept:execute",
+   "http": 409,
+   "body": {
+    "detail": {
+     "reason": "EXECUTION_ID_CONFLICT",
+     "task_id": "V-N1_accept",
+     "detail": "같은 실행 키로 다른 내용의 실행이 이미 있다 (기존 실행 유지)"
+    }
+   }
+  },
+  {
+   "case": "R_busy",
+   "http": 200,
+   "verdict": "REJECT",
+   "reason": "BUSY",
+   "eta_sec": null,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": "executing V-N1_accept"
+  },
+  {
+   "case": "N1_accept:final",
+   "wall_s": 5.0,
+   "task": {
+    "task_id": "V-N1_accept",
+    "uav_id": "A-uav1",
+    "status": "COMPLETED",
+    "progress": {
+     "phase": "RETURNING"
+    },
+    "observation": {
+     "observation_id": "A-uav1:V-N1_accept:OBS",
+     "observed_at": "2026-10-10T12:11:33Z",
+     "position": {
+      "lat": 38.0884,
+      "lon": 128.1685,
+      "alt_m_amsl": 660.0
+     },
+     "sensor_type": "THERMAL",
+     "values": {
+      "max_temp_c": 312.5,
+      "hotspot_detected": true
+     },
+     "value_status": "SIMULATED",
+     "measurements": [
+      {
+       "measurement_id": "A-uav1:V-N1_accept:THERMAL",
+       "sensor_type": "THERMAL",
+       "values": {
+        "max_temp_c": 312.5,
+        "hotspot_detected": true
+       },
+       "value_status": "SIMULATED",
+       "basis": "MOCK_FIXED_PLACEHOLDER",
+       "observed_at": "2026-10-10T12:11:33Z"
+      }
+     ]
+    },
+    "reason": null,
+    "error": null,
+    "agent_restart": null,
+    "mission_result": "OBSERVED",
+    "physical_state": "RETURNING",
+    "physical_failure_reason": null,
+    "abort": null,
+    "route_id": "RT-5c7e71c99a95cc61",
+    "route_hash": "5c7e71c99a95cc614bcc0987a28d4535955f880b3f628dac00e25f78fc3979a4"
+   }
+  },
+  {
+   "case": "R_wind_unknown",
+   "http": 200,
+   "verdict": "ACCEPT",
+   "reason": null,
+   "eta_sec": 454,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": null
+  },
+  {
+   "case": "R_alt_unknown",
+   "http": 200,
+   "verdict": "REJECT",
+   "reason": "TARGET_ALTITUDE_UNKNOWN",
+   "eta_sec": null,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": "target 에 alt_m_amsl(지면 해발고도)이 있어야 비행고도를 정할 수 있다."
+  },
+  {
+   "case": "W_moderate_wind",
+   "http": 200,
+   "verdict": "ACCEPT",
+   "reason": null,
+   "eta_sec": 454,
+   "counter_offer": null,
+   "warnings": [
+    "MODERATE_WIND"
+   ],
+   "detail": null
+  },
+  {
+   "case": "R_high_wind",
+   "http": 200,
+   "verdict": "REJECT",
+   "reason": "HIGH_WIND",
+   "eta_sec": null,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": "wind 12.0 m/s exceeds limit 10.0 m/s"
+  },
+  {
+   "case": "R_timeout",
+   "http": 200,
+   "verdict": "REJECT",
+   "reason": "TIMEOUT",
+   "eta_sec": null,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": "deadline already passed"
+  },
+  {
+   "case": "R_deadline_tight",
+   "http": 200,
+   "verdict": "REJECT",
+   "reason": "DEADLINE_TIGHT",
+   "eta_sec": null,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": "eta 454s > remaining 30s"
+  },
+  {
+   "case": "R_capability",
+   "http": 200,
+   "verdict": "REJECT",
+   "reason": "REQUIRED_CAPABILITY_UNAVAILABLE",
+   "eta_sec": null,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": "['LIDAR'] not in ['THERMAL', 'RGB', 'WEATHER']"
+  },
+  {
+   "case": "R_failsafe",
+   "http": 200,
+   "verdict": "REJECT",
+   "reason": "FAILSAFE_ACTIVE",
+   "eta_sec": null,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": null
+  },
+  {
+   "case": "R_gps",
+   "http": 200,
+   "verdict": "REJECT",
+   "reason": "SENSOR_FAILURE",
+   "eta_sec": null,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": "gps_ok=False sensors_ok=True"
+  },
+  {
+   "case": "R_link_lost",
+   "http": 200,
+   "verdict": "REJECT",
+   "reason": "COMMUNICATION_FAILURE",
+   "eta_sec": null,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": null
+  },
+  {
+   "case": "C_counter_short_obs",
+   "http": 200,
+   "verdict": "REJECT",
+   "reason": "LOW_BATTERY",
+   "eta_sec": null,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": "need 49.8% but have 20.0%"
+  },
+  {
+   "case": "R_low_battery",
+   "http": 200,
+   "verdict": "REJECT",
+   "reason": "LOW_BATTERY",
+   "eta_sec": null,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": "need 31.9% but have 8.0%"
+  },
+  {
+   "case": "R_far_target",
+   "http": 200,
+   "verdict": "REJECT",
+   "reason": "LOW_BATTERY",
+   "eta_sec": null,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": "need 571.5% but have 100.0%"
+  },
+  {
+   "case": "A_abort",
+   "http": 200,
+   "verdict": "ACCEPT",
+   "reason": null,
+   "eta_sec": 454,
+   "counter_offer": null,
+   "warnings": null,
+   "detail": null
+  },
+  {
+   "case": "A_abort:execute",
+   "http": 200,
+   "body": {
+    "task_id": "V-A_abort",
+    "status": "STARTED",
+    "tracking_url": "/uav/A-uav1/task/V-A_abort",
+    "uav_id": "A-uav1",
+    "duplicate": false,
+    "route_id": "RT-5c7e71c99a95cc61",
+    "route_hash": "5c7e71c99a95cc614bcc0987a28d4535955f880b3f628dac00e25f78fc3979a4"
+   }
+  },
+  {
+   "case": "A_abort:abort",
+   "http": 200,
+   "body": {
+    "task_id": "V-A_abort",
+    "uav_id": "A-uav1",
+    "status": "FAILED",
+    "progress": {
+     "phase": "RETURNING"
+    },
+    "observation": null,
+    "reason": "ABORTED",
+    "error": "aborted by request before observation",
+    "agent_restart": null,
+    "mission_result": "NOT_OBSERVED",
+    "physical_state": "RETURNING",
+    "physical_failure_reason": null,
+    "abort": {
+     "requested_at": "2026-10-10T12:11:38Z",
+     "reason": "OPERATOR",
+     "result": "ABORTED_BEFORE_OBSERVATION"
+    },
+    "route_id": "RT-5c7e71c99a95cc61",
+    "route_hash": "5c7e71c99a95cc614bcc0987a28d4535955f880b3f628dac00e25f78fc3979a4"
+   }
+  },
+  {
+   "case": "A_abort:abort_again",
+   "http": 200,
+   "body": {
+    "task_id": "V-A_abort",
+    "uav_id": "A-uav1",
+    "status": "FAILED",
+    "progress": {
+     "phase": "RETURNING"
+    },
+    "observation": null,
+    "reason": "ABORTED",
+    "error": "aborted by request before observation",
+    "agent_restart": null,
+    "mission_result": "NOT_OBSERVED",
+    "physical_state": "RETURNING",
+    "physical_failure_reason": null,
+    "abort": {
+     "requested_at": "2026-10-10T12:11:38Z",
+     "reason": "OPERATOR",
+     "result": "ABORTED_BEFORE_OBSERVATION"
+    },
+    "route_id": "RT-5c7e71c99a95cc61",
+    "route_hash": "5c7e71c99a95cc614bcc0987a28d4535955f880b3f628dac00e25f78fc3979a4"
+   }
+  },
+  {
+   "case": "R_wrong_id",
+   "http": 404
+  }
+ ]
+}

@@ -1,0 +1,4 @@
+battery 30, observe 600: REJECT LOW_BATTERY None need 49.8% but have 30.0%
+battery 40, observe 600: REJECT LOW_BATTERY None need 49.8% but have 40.0%
+battery 50, observe 600: COUNTER RETURN_MARGIN_INSUFFICIENT {'observe_duration_s': 152} 관측 체류 152s 이하이면 복귀 후 15% 이상 남는다
+battery 60, observe 600: COUNTER RETURN_MARGIN_INSUFFICIENT {'observe_duration_s': 455} 관측 체류 455s 이하이면 복귀 후 15% 이상 남는다

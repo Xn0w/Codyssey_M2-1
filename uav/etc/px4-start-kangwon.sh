@@ -6,7 +6,7 @@
 # 월드 재생성: python3 gazebo/build_world.py  (GDAL 필요)
 # 산불 월드 재생성: python3 gazebo/add_fire.py
 # 월드 원점 = gz_bridge.py datum (38.0112, 128.122643, 172.1m). PX4_HOME_* 은 월드 원점을
-# 덮어쓰므로 쓰지 않고, 기체 위치는 PX4_GZ_MODEL_POSE(원통119)로 지정한다.
+# 덮어쓰므로 쓰지 않고, 기체 위치는 PX4_GZ_MODEL_POSE(인제119 = A 기지)로 지정한다.
 # 종료: ./px4-stop.sh
 
 W="$(cd "$(dirname "$0")/.." && pwd)/gazebo"   # uav/etc/ → uav/gazebo

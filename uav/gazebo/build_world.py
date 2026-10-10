@@ -27,7 +27,7 @@ DATUM_LAT, DATUM_LON, DATUM_ALT = 38.011200, 128.122643, 172.1
 LOCAL = (f"+proj=tmerc +lat_0={DATUM_LAT} +lon_0={DATUM_LON} +k=1 "
          "+x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs")
 
-SPAWN_NAME, SPAWN_LAT, SPAWN_LON = "원통119", 38.1205, 128.2018
+SPAWN_NAME, SPAWN_LAT, SPAWN_LON = "인제119", 38.0613774, 128.1684755   # A 기지 (environment/config/fire_stations.json)
 RES_PX = 513          # gz heightmap 은 정사각형 2^n+1 이어야 함 (513 -> 약 55 m/px)
 MARGIN_M = 500
 

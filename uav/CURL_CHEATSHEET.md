@@ -62,7 +62,7 @@ curl -s localhost:8000/uav/A-uav1/state | jq
 }
 ```
 
-> real 에서 `wind_ms` 는 항상 `null`, `failsafe`·`link_quality`·`current_task_id` 는 고정값입니다.
+> real 에서 `wind_ms` 는 항상 `null`, `failsafe`·`link_quality` 는 고정값입니다.
 > 가용성 판단 근거로 쓰지 마세요.
 
 ## 3. POST /evaluate — 판단만, 기체는 안 움직임
@@ -121,13 +121,13 @@ curl -s -X POST localhost:8000/uav/A-uav1/evaluate \
 | 보고 싶은 결과 | 바꿀 값 |
 |---|---|
 | `REJECT` / `HIGH_WIND` | `"wind_ms": 12` |
-| `COUNTER` / `MODERATE_WIND` | `"wind_ms": 9` |
-| `REJECT` / `TIMEOUT` | `"deadline": "2020-01-01T00:00:00Z"` 추가 |
-| `COUNTER` / `DEADLINE_TIGHT` | `"deadline"` 을 지금부터 3분 뒤로 |
+| `ACCEPT` + `constraints.warnings=["MODERATE_WIND"]` | `"wind_ms": 9` |
+| `REJECT` / `TIMEOUT` | `"remaining_time_s": 0` 추가 |
+| `REJECT` / `DEADLINE_TIGHT` | `"remaining_time_s": 30` 추가 (ETA 보다 짧게) |
 
 > **배터리가 먼저 걸립니다.** 판정은 위에서부터 검사해 처음 걸린 것을 반환하는데,
-> `LOW_BATTERY`(8번)가 `MODERATE_WIND`(12번)보다 앞입니다. real 에서 execute 를 한 번
-> 돌리면 배터리가 50% 대로 떨어져, 풍속·deadline 을 뭘 넣어도 `LOW_BATTERY` 만 나옵니다.
+> `LOW_BATTERY`(10번)가 `TIMEOUT`·`DEADLINE_TIGHT`(12·13번)보다 앞입니다. real 에서 execute 를 한 번
+> 돌리면 배터리가 50% 대로 떨어져, 마감을 뭘 넣어도 `LOW_BATTERY` 만 나올 수 있습니다.
 > 위 표대로 재현하려면 PX4 를 재기동해 배터리를 100% 로 되돌리세요:
 > `cd uav/etc && ./px4-stop.sh && ./px4-start-kangwon.sh`
 > (`constraints.battery_now_pct` 로 현재 배터리를 확인할 수 있습니다.)
@@ -138,17 +138,17 @@ curl -s -X POST localhost:8000/uav/A-uav1/evaluate -H 'Content-Type: application
   -d '{"task_id":"t-wind","decision_id":"d1",
        "target":{"lat":38.0425,"lon":128.2541,"alt_m_amsl":804,"target_agl_m":80},"wind_ms":12}' | jq
 
-# DEADLINE_TIGHT (지금부터 3분 뒤)
+# DEADLINE_TIGHT (마감까지 남은 시뮬레이션 시간 30초)
 curl -s -X POST localhost:8000/uav/A-uav1/evaluate -H 'Content-Type: application/json' \
-  -d "{\"task_id\":\"t-dl\",\"decision_id\":\"d1\",
-       \"target\":{\"lat\":38.0425,\"lon\":128.2541,\"alt_m_amsl\":804,\"target_agl_m\":80},\"wind_ms\":3.1,
-       \"deadline\":\"$(date -u -d '+3 minutes' +%Y-%m-%dT%H:%M:%SZ)\"}" | jq
+  -d '{"task_id":"t-dl","decision_id":"d1",
+       "target":{"lat":38.0425,"lon":128.2541,"alt_m_amsl":804,"target_agl_m":80},"wind_ms":3.1,
+       "remaining_time_s":30}' | jq
 ```
 
 ## 4. POST /execute — 실제로 움직임
 
 `evaluate` 가 ACCEPT 고 Safety ALLOW 를 받은 뒤에만 호출합니다.
-`wind_ms`·`deadline` 은 받지 않습니다. 즉시 반환하고 비행은 백그라운드로 진행됩니다.
+`wind_ms`·`remaining_time_s` 는 받지 않습니다. 즉시 반환하고 비행은 백그라운드로 진행됩니다.
 
 ```bash
 curl -s -X POST localhost:8000/uav/A-uav1/execute \
@@ -190,8 +190,9 @@ curl -s localhost:8000/uav/A-uav1/task/task-101 | jq
 }
 ```
 
-> ⚠️ `COMPLETED` 는 **도착·관측 완료가 아닙니다.** 이동 명령 접수 2초 뒤 바뀌고
-> `values` 는 고정값입니다. Task 는 메모리에만 있어 Agent 재시작 시 사라집니다.
+> `COMPLETED` 는 **도착 → 관측 체류가 끝난 시점**입니다(그 뒤 복귀·착륙, `physical_state` 로 확인).
+> mock 의 `values` 는 자리표시값(`value_status=SIMULATED`), real 은 `NO_DATA` 입니다.
+> 실행 기록은 `UAV_STATE_DIR` 에 저장되어 Agent 를 재시작해도 같은 `task_id` 로 조회됩니다.
 
 2초 간격 폴링:
 
@@ -267,5 +268,6 @@ curl -s -X POST "$H/uav/$U/evaluate" -H 'Content-Type: application/json' \
 
 | 지점 | lat | lon | 지면 AMSL |
 |---|---|---|---|
-| 이륙 지점 (원통119) | 38.1205 | 128.2018 | 약 231 |
+| A 기지 (인제119) | 38.0614 | 128.1685 | 약 199 |
+| B 기지 (기린119) | 37.9647 | 128.3184 | 약 282 |
 | 관측 목표 예시 | 38.0425 | 128.2541 | 804 |

@@ -40,7 +40,7 @@ source .venv/bin/activate      # repo 루트 기준
 cd uav/uav-agent
 
 UAV_ID=A-uav1 UAV_MODE=real uvicorn main:app --host 0.0.0.0 --port 8000   # PX4 연동
-UAV_ID=A-uav1 UAV_MODE=mock uvicorn main:app --host 0.0.0.0 --port 8000   # PX4 없이 고정값
+UAV_ID=A-uav1 UAV_MODE=mock uvicorn main:app --host 0.0.0.0 --port 8000   # PX4 없이 계산으로 비행·배터리 흉내 (100배속)
 ```
 
 UAV를 여러 대 띄울 때는 `UAV_ID`와 `--port`를 바꿔 프로세스를 따로 띄웁니다. real 모드는 현재 서버(2 vCPU)에서 1기만 안정성을 확인했습니다.
