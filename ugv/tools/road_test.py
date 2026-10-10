@@ -365,6 +365,7 @@ def main():
     ap.add_argument("--abort-after", type=float, help="첫 출발 뒤 몇 초(벽시계)에 임무 중단")
     ap.add_argument("--abort-on-curve", type=float, default=None,
                     help="--abort-after 뒤, 정지 거리 안 계획 선형이 이 각도(°) 넘게 꺾이고 5 m/s 넘을 때 중단 (곡선 위 정지 시험)")
+    ap.add_argument("--dwell-s", type=float, default=0.0, help="--return-home 전에 도착 자리에서 이만큼 머무르며 밀림 기록")
     ap.add_argument("--abort-on-downhill", type=float, default=None,
                     help="--abort-after 뒤, 차 위치부터 정지 거리 구간 지형 타일 표면 경사가 -값 이하(내리막)이고 8 m/s 넘을 때 중단")
     ap.add_argument("--fail-stop-n", type=int, default=0, help="중단 직전 미션 전송 n 번 실패 주입 (UGV_TEST_HOOKS=1 서버)")
@@ -571,6 +572,21 @@ def main():
                     log["final"] = t
                     break
             elif a.return_home and not home_sent and t["status"] == "COMPLETED":
+                if a.dwell_s and not log.get("dwell"):
+                    # 도착 뒤 머무르며 정차 유지 확인 (경사 위 밀림): 위치·속도·시동 기록
+                    p0 = stx["position"]
+                    dw = []
+                    t_d = time.time()
+                    while time.time() - t_d < a.dwell_s:
+                        s_ = c.get(f"/ugv/{a.rid}/state").json()
+                        dw.append({"t": round(time.time() - t_d, 1), "lat": s_["position"]["lat"], "lon": s_["position"]["lon"],
+                                   "speed": s_["speed_mps"], "mission": s_["mission_state"], "driver": s_["driver_status"]})
+                        time.sleep(2.0)
+                    x0, y0 = FRAME.to_xy(p0["lat"], p0["lon"])
+                    x1, y1 = FRAME.to_xy(dw[-1]["lat"], dw[-1]["lon"])
+                    log["dwell"] = {"s": a.dwell_s, "drift_m": round(math.hypot(x1 - x0, y1 - y0), 3),
+                                    "max_speed": max((d["speed"] or 0) for d in dw), "samples": dw}
+                    print(f"  정차 유지 {a.dwell_s:g} s: 밀림 {log['dwell']['drift_m']} m, 최대 속도 {log['dwell']['max_speed']}", flush=True)
                 acc = stx["station"]["access_point"]
                 active, home_sent = run(f"HOME-{stamp}", node=f"RP:{acc['road_id']}:{acc['s_m']:.1f}"), True
                 continue
