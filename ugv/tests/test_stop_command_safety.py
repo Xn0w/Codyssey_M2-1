@@ -169,9 +169,138 @@ def test_stopping_occupancy_follows_sent_stop_path_on_curve(tmp_path):
                 t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((x - ax) * dx + (y - ay) * dy) / L2))
                 m = min(m, math.hypot(x - ax - t * dx, y - ay - t * dy))
             return m
-        assert all(dist_to(stop, x, y) < 0.5 for x, y, *_ in pred.samples)
+        rac = A.profile.rear_axle_from_center_m                 # 표본은 차체 중심 (정지 경로는 뒤축 경로)
+        assert all(dist_to(stop, x - rac * hx, y - rac * hy) < 0.5 for x, y, _t, _s, hx, hy in pred.samples)
         tel = A.driver.telemetry()
         hd = math.radians(tel.heading_deg)
         lateral = max(abs((x - tel.x) * math.cos(hd) - (y - tel.y) * math.sin(hd)) for x, y, *_ in pred.samples)
         assert lateral > 1.0                                  # 직선 예측(옆 0 m)이 아니다
+    asyncio.run(go())
+
+
+def _center(v):
+    t = v.driver.telemetry()
+    if getattr(v.driver, "position_ref", "rear_axle") == "center":
+        return t.x, t.y
+    yaw = math.radians(90.0 - t.heading_deg)
+    rac = v.profile.rear_axle_from_center_m
+    # sim 드라이버 위치 = 뒤축 → 차체 중심은 진행 방향으로 뒤축~중심 거리만큼 앞
+    return t.x + rac * math.cos(yaw), t.y + rac * math.sin(yaw)
+
+
+def _as_px4_center(v):
+    """sim 드라이버 텔레메트리를 PX4 처럼 차체 중심(GPS) 위치로 낸다 (Gazebo 에서 드러난 기준점 혼용 재현)."""
+    import dataclasses
+    drv, rac = v.driver, v.profile.rear_axle_from_center_m
+    real = drv.telemetry
+
+    def tel():
+        t = real()
+        yaw = math.radians(90.0 - t.heading_deg)
+        return dataclasses.replace(t, x=t.x + rac * math.cos(yaw), y=t.y + rac * math.sin(yaw))
+    drv.telemetry, drv.position_ref = tel, "center"
+
+
+def _stopped_gap(tmp_path, ahead_m):
+    async def go():
+        A0 = {**FLEET_CFG[0], "resource_id": "X-ugv"}
+        probe, _ = make_fleet(tmp_path / f"p{ahead_m}", [A0])
+        acc = probe.vehicles["X-ugv"].access
+        p2, q2 = NET.at(acc.road_id, acc.s + ahead_m), NET.at(acc.road_id, acc.s + ahead_m + 1.0)
+        cfg = [A0, {**FLEET_CFG[3], "resource_id": "Y-fire", "initial": {"lat": FRAME.to_ll(p2.x, p2.y)[0],
+               "lon": FRAME.to_ll(p2.x, p2.y)[1], "heading_deg": bearing_deg(q2.x - p2.x, q2.y - p2.y)}}]
+        f, clock = make_fleet(tmp_path / f"a{ahead_m}", cfg)
+        X, Y = f.vehicles["X-ugv"], f.vehicles["Y-fire"]
+        for v in (X, Y):
+            _as_px4_center(v)
+        Y._fail("VEHICLE_FAULT", "시험 주입")
+        await X.execute(body("G1", *FRAME.to_ll(acc.x - 900, acc.y - 700)))
+        vmax = 0.0
+        for _ in range(400):
+            clock.advance(0.5)
+            for v in f.vehicles.values():
+                v.driver.step(0.5)
+                await v.tick()
+            await f.traffic.tick()
+            vmax = max(vmax, X.driver.telemetry().speed_mps)
+            if f.store.tasks["G1"]["status"] == "FAILED" and X.state == "IDLE":
+                break
+        (xa, ya), (xb, yb) = _center(X), _center(Y)
+        return math.hypot(xa - xb, ya - yb) - (X.profile.body_length_m + Y.profile.body_length_m) / 2, vmax, X.state
+    return asyncio.run(go())
+
+
+def test_stopped_vehicle_gap_meets_4m_center_basis(tmp_path):
+    """서 있는 차 앞에서 선 간격 = 차체 중심 거리 − 차체 길이 절반 합 ≥ TRAFFIC_GAP_M (4 m). 같은 사례(출발 도로 60 m 앞)와
+    더 빠르게 접근하는 사례(250 m 앞). 텔레메트리는 PX4 처럼 차체 중심. 예전에는 상대 위치(중심)와 내 길(뒤축 경로)을 섞어 재고 대기 지점을 충돌 표본 − 3 m 로
+    잡아 Gazebo 에서 2.62~2.88 m 였다."""
+    from ugv.traffic import TRAFFIC_GAP_M
+    for ahead in (60.0, 250.0):
+        gap, vmax, st = _stopped_gap(tmp_path, ahead)
+        assert st == "IDLE", st
+        assert gap >= TRAFFIC_GAP_M - 0.05, (ahead, gap, vmax)
+
+
+def test_closer_hold_point_is_resent(tmp_path):
+    """대기 지점이 0.3 m 넘게 가까워지면 다시 보낸다 (FOLLOW → STATIC 로 바뀌어 더 앞에서 서야 할 때). 예전: 1 m 까지 무시."""
+    async def go():
+        f, clock = make_fleet(tmp_path, [FLEET_CFG[0]])
+        A = f.vehicles["A-ugv1"]
+        await A.execute(body("R1", *FRAME.to_ll(A.access.x - 900, A.access.y - 700)))
+        await _drive(f, clock, A, 15)
+        cnt = {"n": 0, "fail": False}
+        _failing_follow(A.driver, cnt)
+        s1 = A._s_now() + 80.0
+        await A.set_hold(s1, {"other": "Y", "kind": "FOLLOW"})
+        await A.set_hold(s1 - 0.9, {"other": "Y", "kind": "STATIC"})
+        assert cnt["n"] == 2 and abs(A.hold["s"] - (s1 - 0.9)) < 1e-6
+        await A.set_hold(s1 - 1.0, {"other": "Y", "kind": "STATIC"})      # 0.1 m 차이는 그대로
+        assert cnt["n"] == 2
+    asyncio.run(go())
+
+
+def test_stop_command_without_response_is_treated_as_failure(tmp_path, monkeypatch):
+    """응답이 오지 않는 정지·양보 명령: 시간 제한 뒤 '전달 여부 불명' 실패로 — 대기를 확정하지 않는다."""
+    import ugv.vehicle as V
+    monkeypatch.setattr(V, "STOP_CMD_TIMEOUT_S", 0.2)
+
+    async def go():
+        f, clock = make_fleet(tmp_path, [FLEET_CFG[0]])
+        A = f.vehicles["A-ugv1"]
+        await A.execute(body("T1", *FRAME.to_ll(A.access.x - 900, A.access.y - 700)))
+        await _drive(f, clock, A, 15)
+
+        async def hang(items):
+            await asyncio.sleep(5)
+        A.driver.follow = hang
+        await A.set_hold(A._s_now() + 60.0, {"other": "Y", "kind": "STATIC"})
+        assert A.hold is None
+        e = [x for x in A.events if x["event"] == "YIELD_FAILED"][-1]
+        assert "STOP_COMMAND_TIMEOUT" in e["detail"]
+    asyncio.run(go())
+
+
+def test_telemetry_loss_with_failed_stop_keeps_link_loss_occupancy(tmp_path):
+    """위치 수신 중단 + 정지 명령 실패: 고장(TELEMETRY_LOST), 명령 불확실, 점유는 마지막 위치부터 계획 경로를 따라 링크 단절 범위."""
+    import dataclasses
+    import time as _t
+    from ugv.traffic import link_loss_reach
+
+    async def go():
+        f, clock = make_fleet(tmp_path, [FLEET_CFG[0], FLEET_CFG[2]])
+        A = f.vehicles["A-ugv1"]
+        await A.execute(body("L1", *FRAME.to_ll(A.access.x - 900, A.access.y - 700)))
+        await _drive(f, clock, A, 20)
+        real = A.driver.telemetry
+        A.driver.telemetry = lambda: dataclasses.replace(real(), updated_mono=_t.monotonic() - 60)   # 60 s 낡음
+        cnt = {"n": 0}
+        _failing_follow(A.driver, cnt)
+        A.driver.stop = lambda: (_ for _ in ()).throw(DriverError("TEST_STOP_FAIL"))
+        await A.tick()
+        assert A.state == "FAULT" and A.fault.startswith("TELEMETRY_LOST") and A.command_uncertain
+        pred = f.traffic._predict(A)
+        sp = A.speed
+        i0 = max(0, min(A._near_i, len(sp.pts) - 1))
+        reach = link_loss_reach(sp, i0, real().speed_mps)
+        assert max(p[3] for p in pred.samples) >= min(reach, sp.cum[-1] - sp.cum[i0]) - 10.0
     asyncio.run(go())

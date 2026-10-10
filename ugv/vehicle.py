@@ -30,6 +30,7 @@ import asyncio
 import json
 import logging
 import math
+import os
 import time
 from collections import deque
 from datetime import datetime, timezone
@@ -87,6 +88,8 @@ _log = logging.getLogger("ugv.vehicle")
 BLOCK_REPLAN_MAX = 3      # 한 임무에서 서 있는 차에 막혀 다시 계획하는 최대 횟수
 HOLD_FAIL_MAX = 2         # 양보 정지 명령이 연속 이만큼 실패하면 고장(STOP_COMMAND_FAILED)으로 처리
 STOP_RETRY_S = 2.0        # 정지 명령이 실패한 차(명령 불확실)는 이 간격으로 정지를 다시 보낸다
+STOP_CMD_TIMEOUT_S = float(os.getenv("UGV_STOP_CMD_TIMEOUT_S", "8.0"))
+# 정지·양보 명령이 이 시간 안에 끝나지 않으면 '전달 여부 불명' 실패로 본다 (실측 명령 교체 지연 최대 CMD_LATENCY_MAX_S 6 s + 여유)
 
 
 def _progress_index(x, y, pts, cum, near_i, back=20, ahead=200, tol_m=3.0, gap_m=30.0):
@@ -545,10 +548,10 @@ class Vehicle:
                                 "drivable": chk["ok"], "steering_violations": chk["steering_violations"],
                                 "body_violations": chk["body_violations"], "worst_excess_m": chk["worst_excess_m"]}
             if items:
-                self.seq = await self.driver.follow(items)
+                self.seq = await self._send_stop(self.driver.follow(items))
                 self.stop_path_pts = [tuple(q) for q in pts]
             else:
-                self.seq = await self.driver.stop()
+                self.seq = await self._send_stop(self.driver.stop())
                 if tel is not None and tel.speed_mps >= 0.3:       # 드라이버 기본 정지 = 진행 방향 직선
                     hd = math.radians(tel.heading_deg)
                     d = self.profile.stop_distance(tel.speed_mps)
@@ -756,6 +759,14 @@ class Vehicle:
     def _s_now(self) -> float:
         return self.speed.cum[max(0, min(self._near_i, len(self.speed.cum) - 1))] if self.speed else 0.0
 
+    async def _send_stop(self, coro):
+        """정지·양보 명령 (드라이버 follow/stop). 시간 안에 끝나지 않으면 DriverError — 응답 유실·성공 여부 불명을 실패로 다룬다
+        (명령 불확실 → 보수적 점유·재시도). 예외가 아니어도 끝나지 않는 명령이 이벤트 루프·차량 잠금을 붙잡지 않게 한다."""
+        try:
+            return await asyncio.wait_for(coro, STOP_CMD_TIMEOUT_S)
+        except asyncio.TimeoutError:
+            raise DriverError(f"STOP_COMMAND_TIMEOUT: {STOP_CMD_TIMEOUT_S:g} s 안에 응답 없음 (전달 여부 불명)")
+
     def _path_between(self, s_to: Optional[float]):
         """지금 위치 → 계획 선형 위 s_to(없으면 목적지)까지 선형 (점유 예측용)."""
         sp = self.speed
@@ -799,8 +810,10 @@ class Vehicle:
         if self.state not in ("DRIVING", "EVADING") or self.speed is None:
             return
         cur = self.hold
-        # 더 앞(가까이)에서 서야 하면 바로 다시 보낸다. 더 멀리 가도 되는 변화는 8 m 넘을 때만 (명령 교체 지연이 있으므로)
-        if cur is not None and -1.0 <= s_hold - cur["s"] < 8.0:
+        # 더 앞(가까이)에서 서야 하면 바로 다시 보낸다 (0.3 m 넘게). 더 멀리 가도 되는 변화는 8 m 넘을 때만 (명령 교체 지연이 있으므로).
+        # 예전에는 1 m 가까워지는 것까지 무시해, 움직이던 앞차 기준(FOLLOW) 대기 지점에서 앞차가 선 뒤(STATIC) 더 앞 지점으로
+        # 바꾸지 않고 그대로 가서 간격이 2.62 m 였다 (2026-10-10 Gazebo pair_block)
+        if cur is not None and -0.3 <= s_hold - cur["s"] < 8.0:
             self.hold = {**cur, **info}
             return
         async with self.lock:
@@ -808,7 +821,7 @@ class Vehicle:
                 return
             items = self._items_between(s_hold)
             try:
-                seq = await self.driver.follow(items)
+                seq = await self._send_stop(self.driver.follow(items))
             except DriverError as e:
                 # 대기를 확정하지 않는다 (예전에는 먼저 hold 를 기록해, 실패한 뒤 같은 대기 요청을 '이미 명령함' 으로 보고 다시 보내지
                 # 않았다 — 차는 원래 미션을 계속 달린다). 다음 판단 주기에 다시 보내고, 연속 HOLD_FAIL_MAX 번이면 고장으로 처리
@@ -927,7 +940,7 @@ class Vehicle:
                     s_stop = min(s_stop, max(self.hold["s"], self._s_now()))
                 path = self._path_between(s_stop)
                 try:
-                    self.seq = await self.driver.follow(self._items_between(s_stop))
+                    self.seq = await self._send_stop(self.driver.follow(self._items_between(s_stop)))
                     self._event("STOP_PATH", basis="TRAFFIC_EMERGENCY", length_m=round(s_stop - self._s_now(), 1),
                                 speed_mps=round(v, 2), decel_mps2=self.profile.emergency_decel_mps2)
                     self.stop_path_pts, self.command_uncertain = path, False

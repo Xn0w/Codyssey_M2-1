@@ -126,6 +126,18 @@ class TrafficManager:
 
     # ------------------------------------------------------------------ 예측
     def _predict(self, v, own_view: bool = False) -> Optional[_Pred]:
+        """차량 예측 표본 [(x, y, t, s, hx, hy)] — 위치는 모두 **차체 중심** (간격 기준 = 두 차체 길이 절반 합 + TRAFFIC_GAP_M 이
+        중심 거리라서). 계획·정지 선형(뒤축 경로) 표본을 진행 방향으로 뒤축 ~ 중심 거리만큼 옮긴다.
+        (2026-10-10 검토: 상대는 텔레메트리 위치(PX4 = 중심), 내 앞길은 뒤축 경로 점으로 재서 간격이 그만큼 짧았다 — Gazebo 막힘
+        정지 간격 2.62~2.88 m < 4 m)"""
+        p = self._predict_raw(v, own_view)
+        if p is None:
+            return None
+        rac = v.profile.rear_axle_from_center_m
+        p.samples = [(x + rac * hx, y + rac * hy, t, s_, hx, hy) for x, y, t, s_, hx, hy in p.samples]
+        return p
+
+    def _predict_raw(self, v, own_view: bool = False) -> Optional[_Pred]:
         """own_view: 자기 충돌 판단용 — 대기 중이어도 대기 지점 너머 원래 경로까지 본다 (대기를 풀어도 되는지).
         아니면 남이 보는 예측 — 대기 지점에서 멈춰 머문다."""
         tel = v.driver.telemetry()
@@ -136,6 +148,12 @@ class TrafficManager:
         committed = v.profile.stop_distance(vel) + vel * lat_s if vel > 0.3 else 0.0
         hd = math.radians(tel.heading_deg)
         hx, hy = math.sin(hd), math.cos(hd)
+        # 뒤축 위치 (계획·정지 선형이 뒤축 경로다). PX4 텔레메트리는 차체 중심(GPS), sim 드라이버는 뒤축
+        rac = v.profile.rear_axle_from_center_m
+        if getattr(v.driver, "position_ref", "rear_axle") == "center":
+            rx, ry = tel.x - rac * hx, tel.y - rac * hy
+        else:
+            rx, ry = tel.x, tel.y
         moving_plan = v.state in ("DRIVING", "EVADING") and v.speed is not None
         if v.fault and v.fault.startswith("TELEMETRY_LOST") and v.speed is not None:
             # 위치를 모른다: 마지막 위치부터 계획 경로를 따라 link_loss_reach 까지 어디에든 있을 수 있다
@@ -143,7 +161,7 @@ class TrafficManager:
             sp = v.speed
             i0 = max(0, min(v._near_i, len(sp.pts) - 1))
             reach = link_loss_reach(sp, i0, vel)
-            pts = [(tel.x, tel.y, 0.0, 0.0, hx, hy)]
+            pts = [(rx, ry, 0.0, 0.0, hx, hy)]
             for k in range(i0 + 1, len(sp.pts)):
                 if sp.cum[k] - sp.cum[i0] > reach:
                     break
@@ -155,7 +173,7 @@ class TrafficManager:
             # 정지·고장·대기·정지 중: 지금 자리와 앞으로 갈 수 있는 곳을 계속 차지한다. 실제로 보낸 정지 경로(도로 곡선)를 따라
             # 정지거리 + 명령 지연 거리. 정지 경로를 모르면 직선과 남은 계획 경로를 함께, 정지 명령이 실패했으면(command_uncertain)
             # 남은 계획 경로를 링크 단절과 같은 범위까지 (2026-10-10 검토: 곡선을 따라 서는 차를 직선으로만 예측했다)
-            pts = [(tel.x, tel.y, 0.0, 0.0, hx, hy)]
+            pts = [(rx, ry, 0.0, 0.0, hx, hy)]
             uncertain = bool(getattr(v, "command_uncertain", False))
             if vel > 0.3 or uncertain:
                 d = v.profile.stop_distance(vel) + vel * lat_s
@@ -164,14 +182,14 @@ class TrafficManager:
                 if sp_pts and len(sp_pts) >= 2 and not uncertain:
                     paths.append(sp_pts)
                 else:
-                    paths.append([(tel.x, tel.y), (tel.x + hx * d, tel.y + hy * d)])
+                    paths.append([(rx, ry), (rx + hx * d, ry + hy * d)])
                     if v.speed is not None:
                         i0 = max(0, min(v._near_i, len(v.speed.pts) - 1))
-                        paths.append([(tel.x, tel.y)] + [tuple(q) for q in v.speed.pts[i0 + 1:]])
+                        paths.append([(rx, ry)] + [tuple(q) for q in v.speed.pts[i0 + 1:]])
                         if uncertain:
                             d = max(d, link_loss_reach(v.speed, i0, vel))
                 for path in paths:
-                    pts += _along(path, tel.x, tel.y, d)
+                    pts += _along(path, rx, ry, d)
             return _Pred(v, pts, True, 0.0, vel, committed)
         sp = v.speed
         key = id(sp)
@@ -183,7 +201,7 @@ class TrafficManager:
         i0 = max(0, min(v._near_i, len(sp.pts) - 1))
         s_now = sp.cum[i0]
         hold_s = v.hold["s"] if getattr(v, "hold", None) and not own_view else None
-        out = [(tel.x, tel.y, 0.0, s_now, hx, hy)]
+        out = [(rx, ry, 0.0, s_now, hx, hy)]
         last_s = s_now
         # 지연: 명령을 바꿔도 lat_s 동안은 지금 계획대로 간다 → 예측 시간에 지연을 넣지 않고 기다림 판단(committed)에 넣는다
         for k in range(i0 + 1, len(sp.pts)):
@@ -373,7 +391,11 @@ class TrafficManager:
 
         b_stopped = B.static or (B.v_now < 0.3 and (b[2] == 0.0 or (B.tail and b is B.samples[-1])))
         if b_stopped:
-            ws = simple_wait(A, a)
+            # 서 있는 차 앞: 충돌 표본 − 여유가 아니라, 상대 차체와 (두 차체 길이 절반 합 + 간격) 넘게 떨어진 자기 길 위 마지막 자리
+            # (교차·마주 접근과 같은 방식). 표본 간격(TRAFFIC_SAMPLE_M)만큼 가까워지던 것을 막는다 (2026-10-10)
+            ws = clear_wait(A, a, B)
+            if ws is None:
+                ws = simple_wait(A, a)
             return (A, B, ws, "STOPPED_VEHICLE_AHEAD") if stoppable(A, ws) else (None, B, None, "CANNOT_STOP_FOR_STOPPED")
         if kind == "FOLLOW":
             P, smp, Q = (A, a, B) if b[2] <= a[2] else (B, b, A)

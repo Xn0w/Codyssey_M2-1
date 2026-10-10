@@ -261,9 +261,18 @@ def test_junction_merge_one_yields(tmp_path):
         assert X.plan.route.road_ids[:2] == [r1, r3] and Y.plan.route.road_ids[:2] == [r2, r3]
         ok, w = await run(f, clock, 600, until=done(f, "X1", "Y1"))
         assert ok and w["overlaps"] == 0 and w["min_gap_m"] > 1.0, w
-        assert f.store.tasks["X1"]["status"] == f.store.tasks["Y1"]["status"] == "COMPLETED"
         yields = [e for v in (X, Y) for e in v.events if e["event"] == "YIELD"]
         assert yields                     # 합류(같은 도로로 나감)는 먼저 오는 차가 먼저 — 늦은 차가 교차로 앞에서 기다린다
+        # 누가 먼저 합류하느냐는 예측 시각에 달렸다 (2026-10-10 기준점을 차체 중심으로 맞춘 뒤 소방차가 먼저). 먼저 간 차가 합류 도로
+        # 목적지에 서면 그 너머가 목적지인 뒤차는 막힌다 → 기다리지 않고 BLOCKED_BY_VEHICLE 로 실패 보고 + 정차 (끝없는 대기 없음)
+        st = {k: f.store.tasks[k] for k in ("X1", "Y1")}
+        assert any(t["status"] == "COMPLETED" for t in st.values())
+        for k, t in st.items():
+            if t["status"] != "COMPLETED":
+                v = X if k == "X1" else Y
+                assert t["status"] == "FAILED" and t["error"].startswith("BLOCKED_BY_VEHICLE"), t.get("error")
+                ok2, _ = await run(f, clock, 60, until=lambda: v.state == "IDLE")
+                assert ok2 and t["physical_state"] == "STOPPED_BLOCKED"
     asyncio.run(go())
 
 

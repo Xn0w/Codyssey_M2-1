@@ -20,6 +20,7 @@ TICK_WALL_S = 0.05
 
 class SimDriver(Driver):
     kind = "sim"
+    position_ref = "rear_axle"   # 텔레메트리 위치 기준 (뒤축 = 계획 선형). ugv/traffic.py 가 차체 중심으로 맞춘다
 
     def __init__(self, start_xy, clock, heading_deg: float = 0.0, accel: float = ACCEL, decel: float = DECEL):
         self.clock = clock

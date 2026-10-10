@@ -65,6 +65,7 @@ def _mission_item(lat, lon, speed, through):
 
 class Px4Driver(Driver):
     kind = "px4"
+    position_ref = "center"   # 텔레메트리 위치 기준 (차체 중심 = GPS). ugv/traffic.py 가 차체 중심으로 맞춘다
 
     def __init__(self, address: str, clock, connect_timeout_s: float = 30.0, decel_mps2=None, gazebo: bool = False):
         self.address, self.clock, self.connect_timeout_s = address, clock, connect_timeout_s
