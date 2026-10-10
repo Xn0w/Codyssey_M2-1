@@ -342,3 +342,65 @@ def test_arrival_ready_only_after_standstill(tmp_path):
                 break
         assert seen and A.state == "IDLE" and f.store.tasks["AR1"]["status"] == "COMPLETED"
     asyncio.run(go())
+
+
+def test_px4_park_disarm_is_not_a_fault_and_marks_standstill(tmp_path):
+    """PX4: 미션 끝 뒤 드라이버 정차 유지(시동 끔)가 0.2~0.3 m/s 에서 일어나도 '주행 중 시동 꺼짐' 고장이 아니고, 바퀴가 멈추면
+    도착·READY. 시동이 켜진 채 0.2 m/s 미만이면 STANDSTILL_ARMED_S 뒤에야 도착 (loiter 에서 다시 굴러가는 경우를 거른다).
+    (2026-10-10 Gazebo 4대 분리 2회차: 도착 기준을 0.2 m/s 로 바꾼 뒤 정차 시동 끔이 먼저 일어나 VEHICLE_FAULT)"""
+    import dataclasses
+    from ugv import vehicle as VM
+
+    async def go():
+        f, clock = make_fleet(tmp_path, [FLEET_CFG[0]])
+        A = f.vehicles["A-ugv1"]
+        drv = A.driver
+        drv.kind = "px4"
+        drv.parked_seq = None
+        real = drv.telemetry
+        ov = {"speed": None, "armed": None}
+
+        def tel():
+            t = real()
+            if ov["speed"] is not None:
+                t = dataclasses.replace(t, speed_mps=ov["speed"])
+            return dataclasses.replace(t, armed=ov["armed"]) if ov["armed"] is not None else dataclasses.replace(t, armed=True)
+        drv.telemetry = tel
+        await A.execute(body("PK1", *FRAME.to_ll(A.access.x - 300, A.access.y - 250)))
+        phase = 0
+        for _ in range(1600):
+            clock.advance(0.5)
+            drv.step(0.5)
+            prog = drv.progress()
+            if phase == 0 and prog.finished:
+                phase, n = 1, 0
+                ov["speed"] = 0.25                          # 미션 끝, 아직 굴러감 (시동 켜짐)
+            elif phase == 1:
+                n += 1
+                if n >= 4:                                  # 드라이버 정차 유지: 0.25 m/s 에서 시동 끔
+                    drv.parked_seq, ov["armed"], phase, n = prog.mission_seq, False, 2, 0
+            elif phase == 2:
+                n += 1
+                if n >= 2:
+                    ov["speed"], phase = 0.0, 3             # 바퀴 멈춤
+            await A.tick()
+            if phase in (1, 2):
+                assert A.state not in ("IDLE", "FAULT") and A.fault is None, (phase, A.state, A.fault)
+            if phase == 3 and A.state == "IDLE":
+                break
+        assert A.state == "IDLE" and A.fault is None and A.resource_state() == "READY"
+        assert f.store.tasks["PK1"]["status"] == "COMPLETED"
+        # 시동 켜진 채 정지(시동 끄기 실패): STANDSTILL_ARMED_S 지나야 도착
+        await A.execute(body("PK2", *FRAME.to_ll(A.access.x - 500, A.access.y - 450)))
+        ov["speed"], ov["armed"], drv.parked_seq = None, None, None
+        t_fin = None
+        for _ in range(1600):
+            clock.advance(0.5)
+            drv.step(0.5)
+            await A.tick()
+            if drv.progress().finished and t_fin is None:
+                t_fin = clock.now()
+            if A.state == "IDLE":
+                break
+        assert A.state == "IDLE" and A.fault is None and t_fin is not None and clock.now() - t_fin >= VM.STANDSTILL_ARMED_S - 0.5
+    asyncio.run(go())

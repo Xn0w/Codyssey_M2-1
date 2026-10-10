@@ -88,6 +88,7 @@ _log = logging.getLogger("ugv.vehicle")
 BLOCK_REPLAN_MAX = 3      # 한 임무에서 서 있는 차에 막혀 다시 계획하는 최대 횟수
 HOLD_FAIL_MAX = 2         # 양보 정지 명령이 연속 이만큼 실패하면 고장(STOP_COMMAND_FAILED)으로 처리
 STOP_RETRY_S = 2.0        # 정지 명령이 실패한 차(명령 불확실)는 이 간격으로 정지를 다시 보낸다
+STANDSTILL_ARMED_S = 5.0  # PX4 가 정차 유지(시동 끔)를 못 했을 때 정지로 보는 0.2 m/s 미만 지속 시간
 STOP_CMD_TIMEOUT_S = float(os.getenv("UGV_STOP_CMD_TIMEOUT_S", "8.0"))
 # 정지·양보 명령이 이 시간 안에 끝나지 않으면 '전달 여부 불명' 실패로 본다 (실측 명령 교체 지연 최대 CMD_LATENCY_MAX_S 6 s + 여유)
 
@@ -703,7 +704,7 @@ class Vehicle:
                 await self._safe_stop()
                 self.state = "FAULT"
             return
-        if self.state == "STOPPING" and tel.speed_mps < 0.2 and tel.age_s() <= config.TELEMETRY_STALE_S:
+        if self.state == "STOPPING" and self._standstill(tel):
             self.state = "IDLE"
             self.stop_path_pts = None
             for t in self.store.tasks.values():           # 정지 중으로 끝낸 임무의 물리 상태를 정차로 (임무 실패와 정차를 따로)
@@ -758,7 +759,7 @@ class Vehicle:
             return
         # 도착 = 미션 끝 + 정지 확인 (STOPPING→IDLE 과 같은 기준: 0.2 m/s 미만·최신 텔레메트리). 예전 0.5 m/s 미만이면
         # 0.3~0.5 m/s 로 아직 움직이는데 IDLE·READY 가 됐다 (2026-10-10 Gazebo 전수 2832 표본 중 15)
-        if prog.mission_seq == self.seq and prog.finished and tel.speed_mps < 0.2 and tel.age_s() <= config.TELEMETRY_STALE_S:
+        if prog.mission_seq == self.seq and prog.finished and self._standstill(tel):
             async with self.lock:
                 if prog.mission_seq != self.seq:
                     return
@@ -790,7 +791,8 @@ class Vehicle:
         # 차량 이상 (PX4): 주행 중 시동 꺼짐
         # (출발 시각 0.0 을 '없음' 으로 보지 않는다 — 전에는 `or now` 라 시각 0 에 출발한 차는 이 판정이 꺼져 있었다)
         started = self._drive_started_sim if self._drive_started_sim is not None else now
-        if self.driver.kind == "px4" and not tel.armed and now - started > 5.0:
+        parked = prog.finished and getattr(self.driver, "parked_seq", None) == prog.mission_seq == self.seq
+        if self.driver.kind == "px4" and not tel.armed and now - started > 5.0 and not parked:
             async with self.lock:
                 self._fail("VEHICLE_FAULT", "주행 중 시동 꺼짐 (disarm)")
                 # 다른 고장처럼 미션을 정지로 바꾼다. 안 바꾸면 시동이 다시 걸릴 때 PX4 가 남은 미션을 감독 없이 달린다
@@ -802,6 +804,20 @@ class Vehicle:
     # ------------------------------------------------------------------ 차량 간 충돌 방지 (ugv/traffic.py 가 부른다)
     def _s_now(self) -> float:
         return self.speed.cum[max(0, min(self._near_i, len(self.speed.cum) - 1))] if self.speed else 0.0
+
+    def _standstill(self, tel) -> bool:
+        """정지 확인: 최신 텔레메트리·0.2 m/s 미만. PX4 는 드라이버의 정차 유지(미션 끝 뒤 시동 끔)까지 — 이 rover 는 미션 끝
+        대기(loiter)에서 0.2~0.3 m/s 로 다시 굴러가곤 했다 (2026-10-10 Gazebo: 도착 READY 뒤 0.27~0.31 m/s). 시동을 끄지 못하면
+        0.2 m/s 미만이 STANDSTILL_ARMED_S 이어질 때."""
+        if tel is None or tel.age_s() > config.TELEMETRY_STALE_S or tel.speed_mps >= 0.2:
+            self._still_since = None
+            return False
+        if self.driver.kind != "px4" or not tel.armed:
+            return True
+        now = self.clock.now()                  # 시뮬레이션 시계 (정지 고장 STALL_TIMEOUT_S 와 같은 시계)
+        if getattr(self, "_still_since", None) is None:
+            self._still_since = now
+        return now - self._still_since >= STANDSTILL_ARMED_S
 
     async def _send_stop(self, coro):
         """정지·양보 명령 (드라이버 follow/stop). 시간 안에 끝나지 않으면 DriverError — 응답 유실·성공 여부 불명을 실패로 다룬다
