@@ -39,6 +39,9 @@ TILE_M = 1000.0
 N = 1025                     # 2^10 + 1 → 0.977 m 간격
 Q = 0.01                     # 높이 양자화 간격 (m) — 모든 타일 공통
 BLEND_M = 12.0               # build_terrain_world 와 같음
+JUNC_IN_M, JUNC_OUT_M = 15.0, 30.0   # 교차로 노드에서 JUNC_IN_M 안은 다듬은 지형 면 Z, JUNC_OUT_M 밖은 중심선 고도(횡단 평평), 사이는 연속 전이.
+                                     # 교차로에서 여러 도로 중심선 고도를 섞으면 둔덕(2 m 간격 2차 차분 p95 0.22 m)이 생겨 회전 중 바퀴가 들려
+                                     # 미끄러졌다 (2026-10-11 Gazebo: 요율/기구학 하위 10 % 0.28, 단일 높이장 b1 월드 0.44~0.61)
 SIGMA_M = 40.0
 Z10_STEP = 10.0
 X0, Y0 = -620.0, -10631.0    # 타일 원점 (DEM 범위의 지역 평면 최소 근처)
@@ -175,6 +178,23 @@ def road_dense(net, F, rid):
     return d
 
 
+_JN = {}
+
+
+def junction_nodes(net, inc):
+    """포함 도로가 셋 이상 만나는 노드 (교차로)."""
+    key = len(inc)
+    v = _JN.get(key)
+    if v is None:
+        deg = {}
+        for rid in inc:
+            r = net.roads[rid]
+            for n in (r.a, r.b):
+                deg[n] = deg.get(n, 0) + 1
+        v = _JN[key] = [n for n, d in deg.items() if d >= 3]
+    return v
+
+
 def build_tile(net, F, inc, half_w, i, j):
     """높이 = 도로 띠 안: 포함 도로들의 '가장 가까운 중심선 점 고도' 가중 평균 (도로마다 가중 = 띠+전이 폭 밖에서 0 으로
     연속 감소 / (거리+1)²). 도로 하나만 있는 곳은 그 도로 중심선 고도 그대로 → 횡단 평평. 교차로(여러 도로)는 연속 혼합.
@@ -243,6 +263,21 @@ def build_tile(net, F, inc, half_w, i, j):
         edge[win] = np.minimum(edge[win], rd - hw)
     road_mask = edge <= 0
     S = np.where(den > 0, num / np.where(den > 0, den, 1.0), Z)
+    # 교차로 근처는 다듬은 지형 면 Z (모든 도로가 같은 연속 면 → 둔덕 없음), 멀어지면 중심선 고도로 연속 전이
+    dn = np.full((N, N), np.inf)
+    for nid in junction_nodes(net, inc):
+        nx, ny = net.nodes[nid]
+        if nx < x0 - JUNC_OUT_M or nx > x1 + JUNC_OUT_M or ny < y0 - JUNC_OUT_M or ny > y1 + JUNC_OUT_M:
+            continue
+        j0, j1 = max(0, int((nx - JUNC_OUT_M - x0) / cell)), min(N - 1, int((nx + JUNC_OUT_M - x0) / cell) + 1)
+        i0, i1 = max(0, int((y1 - (ny + JUNC_OUT_M)) / cell)), min(N - 1, int((y1 - (ny - JUNC_OUT_M)) / cell) + 1)
+        if j1 < j0 or i1 < i0:
+            continue
+        sub = (slice(i0, i1 + 1), slice(j0, j1 + 1))
+        dn[sub] = np.minimum(dn[sub], np.hypot(X[sub] - nx, Y[sub] - ny))
+    tj = np.clip((dn - JUNC_IN_M) / (JUNC_OUT_M - JUNC_IN_M), 0.0, 1.0)
+    tj = tj * tj * (3 - 2 * tj)                         # 매끈한 전이 (기울기 연속)
+    S = Z * (1 - tj) + S * tj
     H = D.copy()
     H[road_mask] = S[road_mask]
     bm = (~road_mask) & (edge <= BLEND_M)
