@@ -739,6 +739,15 @@ class Vehicle:
                 if keep in ("FAULT", "DANGER"):
                     self.state = keep
                 self._event("STOP_RETRY", ok=not self.command_uncertain)
+        if (self.state == "IDLE" and tel.armed and tel.speed_mps > 0.5 and tel.age_s() <= config.TELEMETRY_STALE_S
+                and self.current_task() is None):
+            # 감독 없는 주행: 임무 없이(IDLE) 시동이 걸린 채 움직인다 — 서버 재시작으로 진행 중 임무 감시가 끊겼는데 PX4 는 남은
+            # 미션을 계속 달리는 경우 (재시작 정리는 임무 기록만 FAILED 로 바꾼다). READY 로 두지 않고 도로를 따라 세운다
+            async with self.lock:
+                if self.state == "IDLE" and self.current_task() is None:
+                    self._event("UNSUPERVISED_MOTION_STOP", speed_mps=round(tel.speed_mps, 2), mode=tel.mode)
+                    await self._safe_stop()
+                    self.state = "STOPPING"
         if moving:
             await self._supervise_drive(now, tel)
         await self._comm_watch(tel)

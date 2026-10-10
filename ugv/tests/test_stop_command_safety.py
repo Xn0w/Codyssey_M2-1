@@ -404,3 +404,31 @@ def test_px4_park_disarm_is_not_a_fault_and_marks_standstill(tmp_path):
                 break
         assert A.state == "IDLE" and A.fault is None and t_fin is not None and clock.now() - t_fin >= VM.STANDSTILL_ARMED_S - 0.5
     asyncio.run(go())
+
+
+def test_unsupervised_motion_after_restart_is_stopped(tmp_path):
+    """서버 재시작으로 임무 감시가 끊겼는데 차가 남은 미션을 계속 달리면(IDLE·임무 없음·시동·움직임) READY 로 두지 않고
+    도로를 따라 세운다 (2026-10-11 검토: 재시작 정리는 임무 기록만 FAILED 로 바꿨다)."""
+    async def go():
+        f, clock = make_fleet(tmp_path, [FLEET_CFG[0]])
+        A = f.vehicles["A-ugv1"]
+        await A.execute(body("U1", *FRAME.to_ll(A.access.x - 900, A.access.y - 700)))
+        await _drive(f, clock, A, 20)
+        assert A.driver.telemetry().speed_mps > 3
+        # 재시작 흉내: 임무 기록·상태만 잃고 드라이버(PX4)는 그대로 달린다
+        f.store.tasks["U1"]["status"] = "FAILED"
+        A.task_key, A.state, A.speed, A.plan = None, "IDLE", None, None
+        seen = False
+        for _ in range(200):
+            clock.advance(0.5)
+            A.driver.step(0.5)
+            await A.tick()
+            if A.state in ("STOPPING",):
+                seen = True
+                assert A.resource_state() != "READY"
+            if seen and A.state == "IDLE":
+                break
+        ev = [e["event"] for e in A.events]
+        assert "UNSUPERVISED_MOTION_STOP" in ev and seen
+        assert A.state == "IDLE" and A.driver.telemetry().speed_mps < 0.2 and A.resource_state() == "READY"
+    asyncio.run(go())
