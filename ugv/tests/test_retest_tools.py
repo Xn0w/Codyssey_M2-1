@@ -267,3 +267,18 @@ def test_b_station_reaches_a_area_after_junction_join_relax(tmp_path):
         relaxed = {tuple(map(tuple, x)) for x in ap.get("junction_joins_relaxed", [])}
         assert (("682502376", "494861"), ("682502932", "495140")) in relaxed
     asyncio.run(go())
+
+
+def test_return_home_from_ignition_area_after_second_relax_and_dense_items(tmp_path):
+    """발화점 쪽 목표에 선 A-ugv1 의 인제119 복귀 계획 (2026-10-10 총괄 폐루프 Gazebo: 복귀가 거절돼 돌아오지 못함).
+    거점 진입 회전이 12 m 연결 곡선으로도 0.02 m 초과, 다른 회전은 미션 지점 선만 0.03 m 초과 → 회전을 빼다 경로가 끊겼다.
+    재다듬기 2단계(24 m)·촘촘한 미션 지점(현 오차 0.05 m) 뒤 받아들인다."""
+    import asyncio
+    from ugv.tests.test_multi_vehicle import FLEET_CFG, make_fleet
+    cfg = {c["resource_id"]: c for c in FLEET_CFG}
+    pose = {"lat": 38.0278532, "lon": 128.1302095, "heading_deg": 187.1}      # Gazebo 도착 자세
+    f, _ = make_fleet(tmp_path, [{**cfg["A-ugv1"], "initial": pose}, cfg["A-fire1"]])
+    V = f.vehicles["A-ugv1"]
+    acc = V.access
+    r = asyncio.run(V.evaluate({"task_id": "H", "decision_id": "D", "target_node": f"RP:{acc.road_id}:{acc.s:.1f}"}))
+    assert r["verdict"] == "ACCEPT", (r.get("reason"), r.get("detail"))

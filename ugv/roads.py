@@ -313,6 +313,7 @@ def plan_speeds(route: Route, v0: float = 0.0, *, profile=None, lat_accel=None, 
     lat_accel = lat_accel or profile.lat_accel_mps2
     accel, decel = accel or profile.accel_mps2, decel or profile.decel_mps2
     spacing, turn_deg = spacing or config.ITEM_SPACING_M, turn_deg or config.ITEM_TURN_DEG
+    chord_tol = getattr(route, "item_chord_tol", None) or config.ITEM_CHORD_TOL_M   # 미션 선 검사 실패 경로는 더 촘촘히
     pts, vl = _densify(route.pts, route.vlim)
     cum = [0.0]
     for p, q in zip(pts, pts[1:]):
@@ -340,7 +341,7 @@ def plan_speeds(route: Route, v0: float = 0.0, *, profile=None, lat_accel=None, 
     for i in range(1, len(pts)):
         hd = bearing_deg(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]) if math.dist(pts[i], pts[i - 1]) > 0 else last_hd
         turn = 0.0 if last_hd is None or hd is None else abs((hd - last_hd + 180) % 360 - 180)
-        bulge = i + 1 < len(pts) and chord_dev(last, i + 1) > config.ITEM_CHORD_TOL_M
+        bulge = i + 1 < len(pts) and chord_dev(last, i + 1) > chord_tol
         # 출발 직후 ITEM_FIRST_MIN_M 안에는 지점을 두지 않는다 (아주 가까운 첫 지점이 출발 램프의 1 m/s 를 싣고 PX4 가 그
         # 속도로 다음 지점까지 25 m 를 기어갔다 — 2026-10-10 Gazebo G5b). 그 사이 현 오차는 6 m 안이라 작다
         early = cum[i] < config.ITEM_FIRST_MIN_M and i != len(pts) - 1

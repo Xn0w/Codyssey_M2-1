@@ -122,6 +122,7 @@ def _direction_report(start: DirPos, v0: float, route: Optional[Route], ret_ok, 
 
 
 ROUTE_CHECK_TRIES = 12
+ITEM_CHORD_TOL_FINE_M = 0.05     # 미션 선 검사에 걸린 경로의 미션 지점 현 오차 (기본 config.ITEM_CHORD_TOL_M 0.15)
 ARRIVE_DIR_SLACK_S = 120.0      # 복귀 도착 방향을 대기 방향으로 맞추려고 더 써도 되는 시간 (또는 비율 중 큰 쪽)
 ARRIVE_DIR_SLACK_RATIO = 0.3
 
@@ -139,10 +140,21 @@ def verify_route(net: RoadNetwork, route: Route, graph=None) -> dict:
     if not chk["ok"]:
         return out
     sp = plan_speeds(route, profile=g.p)
+    first = g.check_route([route.pts[0]] + [(x, y) for x, y, _ in (sp.items_on_path or sp.items)], check_radius=False,
+                          label="MISSION_ITEMS")
+    if not first["ok"] and getattr(route, "item_chord_tol", None) is None:
+        # 경로는 통과했는데 미션 지점을 이은 직선만 곡선 모서리를 가로지르면 회전을 빼지 않고 지점을 촘촘히 (현 오차 0.05 m) 다시 본다
+        # (2026-10-10 총괄 폐루프: 발화점 → 인제119 복귀가 미션 선 0.03 m 초과로 회전이 빠져 끊겼다)
+        route.item_chord_tol = ITEM_CHORD_TOL_FINE_M
+        sp = plan_speeds(route, profile=g.p)
     # 실제 궤적은 계획선 위 지점을 이은 선(보정이 맞을 때)과 곡선 바깥으로 옮긴 지점을 이은 선(보정이 지나칠 때) 사이 → 둘 다 본다.
     # 옮긴 선만 바깥 가장자리에 걸리면 이 경로는 보정 없이 보낸다 (예전 방식, 안쪽 질러가기 남음)
-    line = [route.pts[0]] + [(x, y) for x, y, _ in (sp.items_on_path or sp.items)]
-    mchk = g.check_route(line, check_radius=False, label="MISSION_ITEMS")
+    if first["ok"]:
+        mchk = first
+    else:
+        line = [route.pts[0]] + [(x, y) for x, y, _ in (sp.items_on_path or sp.items)]
+        mchk = g.check_route(line, check_radius=False, label="MISSION_ITEMS")
+    mchk["item_chord_tol_m"] = getattr(route, "item_chord_tol", None)
     comp = "OFF"
     if mchk["ok"] and sp.items_on_path is not None and sp.items != sp.items_on_path:
         cchk = g.check_route([route.pts[0]] + [(x, y) for x, y, _ in sp.items], check_radius=False, label="MISSION_ITEMS_COMP")
@@ -220,14 +232,26 @@ def plan_approach(net: RoadNetwork, fire: FireArea, start: DirPos, target_lat: f
             if tried:
                 plan.detail["route_check_rejected"] = tried
             if relaxed:
-                plan.detail["junction_joins_relaxed"] = sorted([list(a), list(b)] for a, b in relaxed)
+                lv1 = [x for x in relaxed if not isinstance(x[1], int)]
+                lv2 = [x[0] for x in relaxed if isinstance(x[1], int)]
+                if lv1:
+                    plan.detail["junction_joins_relaxed"] = sorted([list(a), list(b)] for a, b in lv1)
+                if lv2:
+                    plan.detail["junction_joins_relaxed_long"] = sorted([list(a), list(b)] for a, b in lv2)   # 24 m 연결 곡선
             return plan
         # 실패 원인이 교차로 회전이면 먼저 그 회전의 이음매만 다르게 다듬어 다시 검사한다 (drive_graph.build_route relax).
         # 다듬은 선형의 이음매 꺾임 때문에 실제로 지날 수 있는 회전을 빼던 문제 (2026-10-10: 국도 31 내린천로·덕산로 교차로 —
         # B 거점 → A 지역 경로가 끊겼다). 지금 통과하는 경로는 바뀌지 않는다 (실패할 때만)
         unit = g.blame(plan.route, v["issue"])
-        if unit[0] == "TURN" and (tuple(unit[1]), tuple(unit[2])) not in relaxed and len(relaxed) < JOIN_RELAX_MAX:
-            relaxed.add((tuple(unit[1]), tuple(unit[2])))
+        pair = (tuple(unit[1]), tuple(unit[2])) if unit[0] == "TURN" else None
+        if pair is not None and pair not in relaxed and (pair, 2) not in relaxed and len(relaxed) < JOIN_RELAX_MAX:
+            relaxed.add(pair)
+            continue
+        if pair is not None and pair in relaxed and (pair, 2) not in relaxed:
+            # 2단계: 12 m 연결 곡선으로도 걸리면 24 m 로 한 번 더 (회전을 빼기 전에). 2026-10-10 총괄 폐루프 발화점 → 인제119
+            # 복귀: 거점 진입 회전이 0.02 m 초과로 빠져 끊겼다 (24 m 에서 통과)
+            relaxed.discard(pair)
+            relaxed.add((pair, 2))
             continue
         bans += 1
         if not _ban(g, plan.route, v["issue"], start, banned_turns, banned_roads, tried):

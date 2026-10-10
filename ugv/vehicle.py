@@ -864,6 +864,7 @@ class Vehicle:
             caps.append(1.0)
         r = Route(pts, [max(c, 1.0) for c in caps], [], self.plan.dest, self.plan.dest, 0.0)
         r.item_comp_l = getattr(self.plan.route, "item_comp_l", None)     # 원래 경로 검사에서 보정을 껐으면 정지 경로도 끈다
+        r.item_chord_tol = getattr(self.plan.route, "item_chord_tol", None)  # 촘촘한 미션 지점으로 통과한 경로면 정지 경로도
         return plan_speeds(r, tel.speed_mps, profile=self.profile).items
 
     async def set_hold(self, s_hold: float, info: dict):
