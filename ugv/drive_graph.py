@@ -908,22 +908,43 @@ class DriveGraph:
             a, b = pts[i], pts[i + 1]
             return a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
 
-        # 차체 검사 값은 0.25 m 격자(방문 위치는 걸음 1·0.25 m 라 늘 이 격자 위, 마지막 정차 자세 L 만 따로)에서 필요할 때 묶어
-        # 계산한다: 처음 필요한 격자점 k 에서 k..k+3 (세밀 걸음)과 k+4, k+8, … (거친 걸음) 을 한 번에. 값·방문 위치는 예전과 같다
+        # 0.25 m 격자(방문 위치는 걸음 1·0.25 m 라 늘 이 격자 위, 마지막 정차 자세 L 만 따로)의 위치·진행 방향·세 점 반경을
+        # numpy 로 한 번에 (at() 와 같은 식). 차체 검사 값은 필요할 때 묶어 계산: 처음 필요한 격자점 k 에서 k..k+3 (세밀 걸음)과
+        # k+4, k+8, … (거친 걸음). 방문 위치·판정은 예전과 같다 (위치 계산을 자세마다 하던 것이 소방차 B→A 평가 시간의 대부분)
+        import numpy as np
+        P_ = np.asarray(pts, dtype=float)
+        C_ = np.asarray(cum, dtype=float)
+        ng = max(0, int(math.ceil(L / CHECK_FINE_STEP_M)))
+        Sg = np.arange(ng) * CHECK_FINE_STEP_M
+        Sg = Sg[Sg < L]
+
+        def at_v(S):
+            i = np.clip(np.searchsorted(C_, S, side="left") - 1, 0, len(C_) - 2)
+            seg = C_[i + 1] - C_[i]
+            t = np.where(seg > 0, (S - C_[i]) / np.where(seg > 0, seg, 1.0), 0.0)
+            return P_[i, 0] + (P_[i + 1, 0] - P_[i, 0]) * t, P_[i, 1] + (P_[i + 1, 1] - P_[i, 1]) * t
+        if len(Sg) and L > 0:
+            Xg, Yg = at_v(Sg)
+            yax, yay = at_v(np.maximum(0.0, Sg - YAW_WINDOW_M))
+            ycx, ycy = at_v(np.minimum(L, Sg + YAW_WINDOW_M))
+            Wg = np.where(np.hypot(ycx - yax, ycy - yay) > 1e-6, np.arctan2(ycy - yay, ycx - yax), 0.0)
+            wv = min(RADIUS_WINDOW_M, L / 2)
+            lo = np.maximum(0.0, np.minimum(Sg - wv, L - 2 * wv))
+            ax_, ay_ = at_v(lo)
+            bx_, by_ = at_v(lo + wv)
+            cx_, cy_ = at_v(lo + 2 * wv)
+            area2 = np.abs((bx_ - ax_) * (cy_ - ay_) - (by_ - ay_) * (cx_ - ax_))
+            dprod = np.hypot(bx_ - ax_, by_ - ay_) * np.hypot(cx_ - bx_, cy_ - by_) * np.hypot(cx_ - ax_, cy_ - ay_)
+            Rg = np.where(area2 < 1e-9, np.inf, dprod / (2.0 * np.maximum(area2, 1e-300))) if wv >= 1.0 else np.full(len(Sg), np.inf)
         ex_memo = {}
 
         def ex_at(k):
             v = ex_memo.get(k)
             if v is None:
                 want = [j for j in list(range(k, k + 4)) + list(range(k + 4, k + 4 * 64, 4))
-                        if j * CHECK_FINE_STEP_M < L and j not in ex_memo]
-                qs = [at(j * CHECK_FINE_STEP_M) for j in want]
-                ys = []
-                for j in want:
-                    s_ = j * CHECK_FINE_STEP_M
-                    ya_, yc_ = at(max(0.0, s_ - YAW_WINDOW_M)), at(min(L, s_ + YAW_WINDOW_M))
-                    ys.append(math.atan2(yc_[1] - ya_[1], yc_[0] - ya_[0]) if math.dist(ya_, yc_) > 1e-6 else 0.0)
-                vals = self._excess_many([q_[0] for q_ in qs], [q_[1] for q_ in qs], ys)
+                        if j < len(Sg) and j not in ex_memo]
+                idx = np.asarray(want)
+                vals = self._excess_many(Xg[idx], Yg[idx], Wg[idx])
                 for j, v_ in zip(want, vals):
                     ex_memo[j] = float(v_)
                 v = ex_memo[k]
@@ -935,22 +956,28 @@ class DriveGraph:
         exempt_open = True
         sv, last = 0.0, False
         while L > 0:
-            q = at(sv)
             w = min(RADIUS_WINDOW_M, L / 2)
-            lo = max(0.0, min(sv - w, L - 2 * w))
-            a, c = at(lo), at(lo + 2 * w)
-            # 진행 방향(접선)은 짧은 대칭 창으로 — 긴 창은 직선·원호 경계에서 차체 방향을 틀리게 잡는다
-            ya, yc = at(max(0.0, sv - YAW_WINDOW_M)), at(min(L, sv + YAW_WINDOW_M))
-            yaw = math.atan2(yc[1] - ya[1], yc[0] - ya[0]) if math.dist(ya, yc) > 1e-6 else 0.0
-            R = math.inf
+            kg = None if last else int(round(sv / CHECK_FINE_STEP_M))
+            if kg is not None and kg < len(Sg):
+                q = (float(Xg[kg]), float(Yg[kg]))
+                yaw = float(Wg[kg])
+                R = float(Rg[kg])
+            else:                                            # 마지막 정차 자세 (격자 밖)
+                q = at(sv)
+                lo = max(0.0, min(sv - w, L - 2 * w))
+                a, c = at(lo), at(lo + 2 * w)
+                # 진행 방향(접선)은 짧은 대칭 창으로 — 긴 창은 직선·원호 경계에서 차체 방향을 틀리게 잡는다
+                ya, yc = at(max(0.0, sv - YAW_WINDOW_M)), at(min(L, sv + YAW_WINDOW_M))
+                yaw = math.atan2(yc[1] - ya[1], yc[0] - ya[0]) if math.dist(ya, yc) > 1e-6 else 0.0
+                R = _radius3(a, at(lo + w), c) if w >= 1.0 else math.inf
+                kg = None
             if w >= 1.0:
-                R = _radius3(a, at(lo + w), c)
                 min_r = min(min_r, R)
                 if check_radius and R < self.p.r_min * 0.98:
                     n_rad += 1
                     issues.append({"kind": "STEERING_LIMIT", "s_m": round(sv, 1), "x": round(q[0], 1), "y": round(q[1], 1),
                                    "value": round(R, 2)})
-            ex = self.body_excess(q[0], q[1], yaw) if last else ex_at(int(round(sv / CHECK_FINE_STEP_M)))
+            ex = self.body_excess(q[0], q[1], yaw) if kg is None else ex_at(kg)
             worst = max(worst, ex)
             if e0 is None:
                 e0 = ex
