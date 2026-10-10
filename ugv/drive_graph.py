@@ -775,30 +775,112 @@ class DriveGraph:
         return fp, fv
 
     # ------------------------------------------------------------------ 최종 경로 검사
+    _FINE_M = 25.0
+
+    def _box_segments(self, x: float, y: float, max_m: float):
+        """(x, y) ± max_m 와 겹치는 25 m 세밀 격자 칸의 도로 선분 numpy 배열 (A, D=B-A, L2, 반폭) — 칸 상자별로 캐시.
+        선분은 자기 경계 상자가 걸친 칸마다 색인 → max_m 안 선분은 빠짐없이 들어 있다. 최종 경로 검사에서 차체 검사를 수십만 번
+        하는데, 예전에는 200 m 칸 상자(선분 수백 개)를 매번 목록→배열로 바꿔 계산했다 (2026-10-10: 소방차 B→A 평가 평균 44 s·
+        최대 82 s, 그중 body_excess 61 s — 총괄 평가 제한 10 s)."""
+        import numpy as np
+        F = self._FINE_M
+        idx = self.__dict__.get("_fine_index")
+        if idx is None:
+            A, B, HW, idx = [], [], [], {}
+            for rid, road in self.net.roads.items():
+                for si in range(len(road.xy) - 1):
+                    (ax, ay), (bx, by) = road.xy[si], road.xy[si + 1]
+                    k = len(A)
+                    A.append((ax, ay))
+                    B.append((bx, by))
+                    HW.append(self.half_w[rid])
+                    for ci in range(int(min(ax, bx) // F), int(max(ax, bx) // F) + 1):
+                        for cj in range(int(min(ay, by) // F), int(max(ay, by) // F) + 1):
+                            idx.setdefault((ci, cj), []).append(k)
+            A_, B_ = np.asarray(A, dtype=float), np.asarray(B, dtype=float)
+            D = B_ - A_
+            self._fine_all = (A_, D, np.maximum((D ** 2).sum(1), 1e-12), np.asarray(HW, dtype=float))
+            self._fine_index = idx
+        key = (int((x - max_m) // F), int((x + max_m) // F), int((y - max_m) // F), int((y + max_m) // F))
+        cache = self.__dict__.setdefault("_box_cache", {})
+        v = cache.get(key)
+        if v is None:
+            ks = sorted({k for ci in range(key[0], key[1] + 1) for cj in range(key[2], key[3] + 1)
+                         for k in idx.get((ci, cj), ())})
+            if ks:
+                A_, D, L2, HW = self._fine_all
+                sel = np.asarray(ks)
+                v = (A_[sel], D[sel], L2[sel], HW[sel])
+            else:
+                v = ()
+            if len(cache) > 20000:
+                cache.clear()
+            cache[key] = v
+        return v
+
     def body_excess(self, x: float, y: float, yaw: float) -> float:
-        """뒤축 (x, y)·진행 방향 yaw(ENU rad) 자세에서 차체 둘레 표본이 추정 도로 띠 합집합 밖으로 나간 최대 거리 (안이면 ≤ 0)."""
-        near = self.net.near(x, y, 15.0)
-        margin = max((self.half_w[r] - d for r, d in near.items()), default=-math.inf)   # 가장 안쪽 도로 띠의 남은 여유
+        """뒤축 (x, y)·진행 방향 yaw(ENU rad) 자세에서 차체 둘레 표본이 추정 도로 띠 합집합 밖으로 나간 최대 거리 (안이면 ≤ 0).
+        계산은 예전과 같다: 뒤축에서 15 m 안 도로들의 (반폭 − 거리) 최댓값이 차체 도달 거리 이상이면 그 띠 안 (상한값),
+        아니면 둘레 표본마다 근처 칸 선분까지 (거리 − 반폭) 최솟값의 최댓값. 선분 배열만 칸 상자별로 캐시해 빨라졌다."""
+        import numpy as np
         reach = self.p.body_reach
+        seg = self._box_segments(x, y, 15.0 + reach)
+        if not seg:
+            ch, sh = math.cos(yaw), math.sin(yaw)
+            return max(self.outside_m(x + fx * ch - fy * sh, y + fx * sh + fy * ch) for fx, fy in self.p.body_samples)
+        A_, D, L2, HW = seg
+        # 뒤축 점의 각 선분까지 거리 → 15 m 안 선분의 (반폭 − 거리) 최댓값 = 가장 안쪽 도로 띠의 남은 여유 (near() 와 같은 값)
+        T0 = np.clip(((x - A_[:, 0]) * D[:, 0] + (y - A_[:, 1]) * D[:, 1]) / L2, 0.0, 1.0)
+        d0 = np.hypot(x - A_[:, 0] - T0 * D[:, 0], y - A_[:, 1] - T0 * D[:, 1])
+        w = d0 <= 15.0
+        margin = float((HW[w] - d0[w]).max()) if w.any() else -math.inf
         if margin >= reach:                              # 차체가 어느 방향으로 돌아도 그 띠 안 → 상한값 (≤ 0)
             return reach - margin
         ch, sh = math.cos(yaw), math.sin(yaw)
-        # 둘레 표본 전부를 한 번에: 근처 도로 선분을 한 번 모아 numpy 로 (표본마다 격자를 다시 훑지 않는다 — 소방차처럼
-        # 표본이 많으면 최종 검사가 수십 초 걸렸다). 결과는 outside_m 을 표본마다 부른 것과 같다
-        rids, A, B = self.net.segments_near(x, y, 15.0 + reach)
-        if not rids:
-            return max(self.outside_m(x + fx * ch - fy * sh, y + fx * sh + fy * ch) for fx, fy in self.p.body_samples)
-        import numpy as np
-        S = np.asarray(self.p.body_samples)
-        P = np.stack([x + S[:, 0] * ch - S[:, 1] * sh, y + S[:, 0] * sh + S[:, 1] * ch], axis=1)
-        A_, B_ = np.asarray(A), np.asarray(B)
-        HW = np.asarray([self.half_w[r] for r in rids])
-        D = B_ - A_
-        L2 = np.maximum((D ** 2).sum(1), 1e-12)
-        T = np.clip(((P[:, None, :] - A_[None]) * D[None]).sum(2) / L2[None], 0.0, 1.0)
-        Q = A_[None] + T[..., None] * D[None]
-        dist = np.hypot(P[:, None, 0] - Q[..., 0], P[:, None, 1] - Q[..., 1])
+        S = self.p.__dict__.get("_samples_np")
+        if S is None:
+            S = np.asarray(self.p.body_samples, dtype=float)
+            object.__setattr__(self.p, "_samples_np", S)
+        Px = x + S[:, 0] * ch - S[:, 1] * sh
+        Py = y + S[:, 0] * sh + S[:, 1] * ch
+        T = np.clip(((Px[:, None] - A_[None, :, 0]) * D[None, :, 0] + (Py[:, None] - A_[None, :, 1]) * D[None, :, 1]) / L2[None],
+                    0.0, 1.0)
+        dist = np.hypot(Px[:, None] - A_[None, :, 0] - T * D[None, :, 0], Py[:, None] - A_[None, :, 1] - T * D[None, :, 1])
         return float((dist - HW[None]).min(axis=1).max())
+
+    def _excess_many(self, X, Y, YAW):
+        """body_excess 를 여러 자세에 한 번에 (값은 같다 — 도로 띠 밖 8 m 넘게 나간 표본의 초과량 크기만 달라질 수 있다:
+        자세 묶음의 근처 선분 합집합을 쓰므로). 최종 경로 검사의 호출 고정 비용을 줄인다."""
+        import numpy as np
+        X, Y, YAW = np.asarray(X, float), np.asarray(Y, float), np.asarray(YAW, float)
+        reach = self.p.body_reach
+        rad = 15.0 + reach
+        self._box_segments(float(X[0]), float(Y[0]), rad)              # 세밀 색인 준비
+        F = self._FINE_M
+        ks = sorted({k for ci in range(int((X.min() - rad) // F), int((X.max() + rad) // F) + 1)
+                     for cj in range(int((Y.min() - rad) // F), int((Y.max() + rad) // F) + 1)
+                     for k in self._fine_index.get((ci, cj), ())})
+        if not ks:
+            return np.array([self.body_excess(x, y, t) for x, y, t in zip(X, Y, YAW)])
+        A_, D, L2, HW = (v[np.asarray(ks)] for v in self._fine_all)
+        T0 = np.clip(((X[:, None] - A_[None, :, 0]) * D[None, :, 0] + (Y[:, None] - A_[None, :, 1]) * D[None, :, 1]) / L2[None],
+                     0.0, 1.0)
+        d0 = np.hypot(X[:, None] - A_[None, :, 0] - T0 * D[None, :, 0], Y[:, None] - A_[None, :, 1] - T0 * D[None, :, 1])
+        m = np.where(d0 <= 15.0, HW[None] - d0, -np.inf).max(axis=1)
+        out = reach - m
+        slow = np.nonzero(m < reach)[0]
+        if slow.size:
+            S = self.p.__dict__.get("_samples_np")
+            if S is None:
+                S = np.asarray(self.p.body_samples, dtype=float)
+                object.__setattr__(self.p, "_samples_np", S)
+            ch, sh = np.cos(YAW[slow]), np.sin(YAW[slow])
+            Px = X[slow, None] + S[None, :, 0] * ch[:, None] - S[None, :, 1] * sh[:, None]       # (k, n)
+            Py = Y[slow, None] + S[None, :, 0] * sh[:, None] + S[None, :, 1] * ch[:, None]
+            T = np.clip(((Px[..., None] - A_[:, 0]) * D[:, 0] + (Py[..., None] - A_[:, 1]) * D[:, 1]) / L2, 0.0, 1.0)
+            dist = np.hypot(Px[..., None] - A_[:, 0] - T * D[:, 0], Py[..., None] - A_[:, 1] - T * D[:, 1])
+            out[slow] = (dist - HW).min(axis=2).max(axis=1)
+        return out
 
     def check_route(self, route, *, check_radius: bool = True, label: str = "ROUTE") -> dict:
         """최종 주행 선형(다듬은 경로, 또는 PX4 미션 지점을 이은 선)을 차가 따라갈 때(뒤축이 선 위) 주행 가능한지.
@@ -822,6 +904,27 @@ class DriveGraph:
             a, b = pts[i], pts[i + 1]
             return a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t
 
+        # 차체 검사 값은 0.25 m 격자(방문 위치는 걸음 1·0.25 m 라 늘 이 격자 위, 마지막 정차 자세 L 만 따로)에서 필요할 때 묶어
+        # 계산한다: 처음 필요한 격자점 k 에서 k..k+3 (세밀 걸음)과 k+4, k+8, … (거친 걸음) 을 한 번에. 값·방문 위치는 예전과 같다
+        ex_memo = {}
+
+        def ex_at(k):
+            v = ex_memo.get(k)
+            if v is None:
+                want = [j for j in list(range(k, k + 4)) + list(range(k + 4, k + 4 * 64, 4))
+                        if j * CHECK_FINE_STEP_M < L and j not in ex_memo]
+                qs = [at(j * CHECK_FINE_STEP_M) for j in want]
+                ys = []
+                for j in want:
+                    s_ = j * CHECK_FINE_STEP_M
+                    ya_, yc_ = at(max(0.0, s_ - YAW_WINDOW_M)), at(min(L, s_ + YAW_WINDOW_M))
+                    ys.append(math.atan2(yc_[1] - ya_[1], yc_[0] - ya_[0]) if math.dist(ya_, yc_) > 1e-6 else 0.0)
+                vals = self._excess_many([q_[0] for q_ in qs], [q_[1] for q_ in qs], ys)
+                for j, v_ in zip(want, vals):
+                    ex_memo[j] = float(v_)
+                v = ex_memo[k]
+            return v
+
         issues, exempt, min_r, worst = [], [], math.inf, -math.inf
         n_rad = n_body = 0
         e0 = None
@@ -843,7 +946,7 @@ class DriveGraph:
                     n_rad += 1
                     issues.append({"kind": "STEERING_LIMIT", "s_m": round(sv, 1), "x": round(q[0], 1), "y": round(q[1], 1),
                                    "value": round(R, 2)})
-            ex = self.body_excess(q[0], q[1], yaw)
+            ex = self.body_excess(q[0], q[1], yaw) if last else ex_at(int(round(sv / CHECK_FINE_STEP_M)))
             worst = max(worst, ex)
             if e0 is None:
                 e0 = ex
