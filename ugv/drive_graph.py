@@ -63,6 +63,7 @@ BEND_TANGENT_SHARE = 0.45       #   이웃 선분 길이의 이 비율까지만 
 ARC_STEP_M = 2.0                # 원호 표본 간격 상한
 ARC_SAGITTA_M = 0.02            # 원호 표본을 이은 현이 원호에서 벗어나는 최대 거리
 JOIN_BLEND_M = 12.0              # 교차로 원호 방향선과 도로 선형을 잇는 연결 곡선 길이 (이음매 어긋남을 풀어 준다)
+JOIN_BLEND_MIN_M = 6.0          # 이보다 짧은 이음매 연결 곡선은 넣지 않는다 (짧은 곡선 = 급한 원호)
 JOIN_BLEND_M_2 = 24.0            # 재다듬기 2단계: 12 m 연결 곡선으로도 최종 검사에 걸리는 회전만 더 길게 (회전을 빼기 전에)
 JUNCTION_ARC_MIN_DEG = 20.0     # 교차로 진입·진출 방향 차이가 이보다 작으면(거의 직진 통과) 교차로 원호 대신 도로 선형을 다듬는다
 
@@ -741,8 +742,14 @@ class DriveGraph:
             # 되짚는 지그재그(덕산로 교차로, 0.13 m 선분)·원호 시작점 꺾임(내린천로, 원호가 방향선보다 김)이 생겨 최종 검사가 막았다
             bl = JOIN_BLEND_M_2 if relaxed == 2 else JOIN_BLEND_M
             blend_in = max(0.0, min(bl, s0 - span_in - s_done - 0.5)) if relaxed else 0.0
+            # 짧은 연결 곡선은 꺾임을 없애는 대신 최소 회전반경 미달 원호를 만든다 (2026-10-11 Gazebo B-fire1: 출발점이 방향선 시작 4 m 앞 →
+            # 반경 5.29 m < 0.98 × 5.43, 복귀 경로 없음) → JOIN_BLEND_MIN_M 보다 짧으면 넣지 않는다 (최종 검사가 판정)
+            if blend_in < JOIN_BLEND_MIN_M:
+                blend_in = 0.0
             gap_out = min(L - s0 - span_out - 0.5, ((nxt[0] - min(nxt[1], nxt[0]) - s0 - span_out) / 2) if nxt else math.inf)
             blend_out = max(0.0, min(bl, gap_out)) if relaxed else 0.0
+            if blend_out < JOIN_BLEND_MIN_M:
+                blend_out = 0.0
             for k in range(len(pts)):
                 if s_done < cum[k] < s0 - span_in - blend_in - 0.05:
                     out.append(pts[k])

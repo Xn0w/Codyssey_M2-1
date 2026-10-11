@@ -338,3 +338,26 @@ def test_destination_with_near_sharp_bend_requires_return_check(tmp_path, monkey
     V = f.vehicles["A-fire1"]
     ev = asyncio.run(V.evaluate({"task_id": "T", "decision_id": "D", "target_node": node_id_of(net.at("682502608", r.length / 2))}))
     assert ev["verdict"] == "REJECT" and "NO_RETURN_FROM_DEST_AFTER_CHECK" in ev["detail"], ev.get("detail")
+
+
+def test_fire_truck_returns_home_from_stop_near_junction_direction_line(tmp_path):
+    """2026-10-11 Gazebo 지속 운용: B-fire1 이 도로 683400481 s 58.5 (교차로 495720 앞 20 m) 에 도착한 뒤 복귀가 계속 거절됐다 —
+    이음매 완화 시도의 짧은 연결 곡선(4 m)이 반경 5.29 m 원호를 만들고, 그 사유가 원래의 '여유만 부족' 을 덮어 감속 대안도 못 썼다.
+    짧은 연결 곡선 생략 + 모든 시도 사유 보존 뒤 수락 (원인 검증: Fable 에이전트 재현)."""
+    import asyncio
+    from ugv.geo import FRAME as F
+    from ugv.tests.test_multi_vehicle import make_fleet
+    p = NET.at("683400481", 58.5)
+    la, lo = F.to_ll(p.x, p.y)
+    cfg = [{**c, "driver": "sim"} for c in FLEET_CFG]
+    for c in cfg:
+        if c["resource_id"] == "B-fire1":
+            c["initial"] = {"lat": la, "lon": lo, "heading_deg": 92.3}
+
+    async def go():
+        f, _ = make_fleet(tmp_path, cfg)
+        B = f.vehicles["B-fire1"]
+        acc = B.station["access_point"]
+        ev = await B.evaluate({"task_id": "H", "decision_id": "D", "target_node": f"RP:{acc['road_id']}:{acc['s_m']:.1f}"})
+        assert ev["verdict"] == "ACCEPT", ev.get("detail")
+    asyncio.run(go())

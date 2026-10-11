@@ -137,6 +137,7 @@ def verify_route(net: RoadNetwork, route: Route, graph=None) -> dict:
     g = graph or net.graph
     chk = g.check_route(route)
     out = {"ok": chk["ok"], "route": chk, "mission": None, "issue": chk["issues"][0] if chk["issues"] else None}
+    _note_issue(out["issue"])
     if not chk["ok"]:
         return out
     sp = plan_speeds(route, profile=g.p)
@@ -167,7 +168,20 @@ def verify_route(net: RoadNetwork, route: Route, graph=None) -> dict:
     out["mission"] = mchk
     if not mchk["ok"]:
         out["ok"], out["issue"] = False, {**mchk["issues"][0], "stage": "MISSION_ITEMS"}
+        _note_issue(out["issue"])
     return out
+
+
+def _note_issue(issue):
+    """계획 한 번 안의 모든 검증 실패 사유 (이음매 완화 시도 포함) — plan_approach 의 감속 대안 판단용.
+    예전에는 마지막(완화한) 시도의 사유만 남아, 원래 '여유만 부족' 이 완화 시도의 회전반경 위반에 덮였다 (2026-10-11 B-fire1)."""
+    lst = getattr(_ISSUES_TLS, "issues", None)
+    if lst is not None and issue is not None:
+        lst.append(issue)
+
+
+import threading as _threading
+_ISSUES_TLS = _threading.local()
 
 
 def _check_report(v: dict) -> dict:
@@ -205,13 +219,19 @@ def plan_approach(net: RoadNetwork, fire: FireArea, start: DirPos, target_lat: f
     (사용자 결정 2026-10-11: 여유 부족 → 감속 → 그래도 안 되면 다른 경로·거절. 다른 경로 탐색은 1차 계획이 회전 제외로 이미 했다).
     결과 detail.track_margin 에 여유 충족 여부·감속 구간·검증 상태. 차체가 도로 밖이면 예전처럼 거절."""
     from .drive_graph import _MARGIN_TLS
-    plan = _plan_approach(net, fire, start, target_lat, target_lon, **kw)
+    _ISSUES_TLS.issues = []
+    try:
+        plan = _plan_approach(net, fire, start, target_lat, target_lon, **kw)
+        seen = list(_ISSUES_TLS.issues)
+    finally:
+        _ISSUES_TLS.issues = None
     if plan.status == "OK":
         if plan.detail is not None:
             plan.detail["track_margin"] = {"ok": True}
         return plan
     tried = (plan.detail or {}).get("route_check_rejected") or []
-    if not any((t.get("issue") or {}).get("margin_m") and (t["issue"].get("value") or 0) <= 0.02 for t in tried):
+    margin_only = [i for i in [t.get("issue") or {} for t in tried] + seen if i.get("margin_m") and (i.get("value") or 0) <= 0.02]
+    if not margin_only:
         return plan
     _MARGIN_TLS.margin = 0.0
     try:
