@@ -9,10 +9,10 @@ raster_paths:
   aspect_path: "data/processed/aspect_5186.tif"                       # 2025
   fuel_path: "../data/inje2019/fuel/fuel_type_2019.tif"               # 2019
   roads_path: "../data/inje2019/roads/roads_raster_2019.tif"          # 2019
-  buildings_path: "data/inje2019/buildings/buildings_inje_2019.tif"   # 2019
+#  buildings_path: "data/inje2019/buildings/buildings_inje_2019.tif"   # 2019
 #  fuel_path: "data/processed/fuel_type.tif"                          # 2025
 #  roads_path: "data/processed/roads_raster.tif"                      # 2025
-#  buildings_path: "data/processed/buildings_inje.tif"                # 2025      
+  buildings_path: "data/processed/buildings_inje.tif"                # 2025      
   water_path: "../data/inje2019/water/inje_2019_water_mask_5186.tif"  # 2019
 
 # --- Grid spatial settings --------------------------------------------------
