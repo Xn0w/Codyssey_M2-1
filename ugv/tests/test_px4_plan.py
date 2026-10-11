@@ -97,3 +97,17 @@ def test_first_item_ahead_skips_items_passed_during_upload():
     assert sent[k][1] > 17.0 + 3.0 and k == 4
     assert first_item_ahead(sent, (0.0, 4.0), 0.0) == 0              # 아직 첫 항목(선행 지점) 전 — 평소 출발 그대로
     assert first_item_ahead(sent, (200.0, 17.0), 9.0) == 0           # 미션 선에서 멀면 맞추지 않음
+
+
+def test_first_item_ahead_ignores_route_coming_back_over_parked_position():
+    """경로가 블록을 돌아 출발 위치를 반대로 다시 지나면, 그 되돌아오는 선분이 정차한 차와 겹친다.
+    업로드 동안 갈 수 있었던 거리 상한 밖 선분은 짝짓지 않는다 (2026-10-11 Gazebo c23 A-ugv1 SK102: 정차 출발인데 뒤쪽 항목 44 부터 시작해
+    제자리 선회·도로 이탈 — 원인 검증 Fable)."""
+    from ugv.drivers.px4 import first_item_ahead
+    sent = [(0.0, 5.0, 3, False), (0.0, 40.0, 5, True), (30.0, 40.0, 5, True), (30.0, 20.0, 5, True), (-30.0, -20.0, 5, True),
+            (-30.0, -60.0, 5, True)]
+    assert first_item_ahead(sent, (0.0, 0.0), 0.0) > 0                       # 상한 없음: 되돌아오는 선분을 짝지음 (예전 결함)
+    assert first_item_ahead(sent, (0.0, 0.0), 0.0, max_along_m=10.0) == 0     # 정차 출발 상한 ≈ 10 m: 평소 출발
+    # 원래 사례 (업로드 8.9 s, 9 m/s): 상한 ≈ 90 m 안에서는 그대로 지나친 항목을 건너뛴다
+    sent2 = [(0.0, 5.0 + 10.0 * i, 9, True) for i in range(12)]
+    assert first_item_ahead(sent2, (0.0, 17.0), 9.0, max_along_m=90.0) == first_item_ahead(sent2, (0.0, 17.0), 9.0) > 0

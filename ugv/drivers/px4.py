@@ -73,14 +73,18 @@ def park_due(speed_mps: float, now: float, still_since, finished_since):
 
 
 START_AHEAD_SEARCH = 60     # 시작 지점을 찾을 때 앞쪽 몇 개 항목까지 보는가 (업로드 동안 지나칠 수 있는 범위)
+START_AHEAD_ACCEL_MPS2 = 1.5  # 업로드 동안 거리 상한의 가속 여유 (차종 최대 가속 1.2~1.5)
 START_AHEAD_MAX_OFF_M = 30.0   # 미션 선에서 이보다 멀면 맞추지 않는다 (다른 곳 — 서버 감시가 맡는다)
 
 
-def first_item_ahead(sent, pos, v_mps: float) -> int:
+def first_item_ahead(sent, pos, v_mps: float, max_along_m: float = None) -> int:
     """업로드가 끝나 미션을 시작하기 직전 위치 pos 에서, 보낸 미션 [(x, y, v, through)] 중 차가 아직 지나지 않은 첫 항목 번호.
     미션 선(항목을 이은 선) 위 차 진행 위치 + (수용 반경 + 1 s 주행) 보다 앞에 있는 첫 항목. 0 이면 그대로 시작.
     (2026-10-11 Gazebo 지속 운용: 목표 교체 때 긴 미션 업로드 8.9 s 동안 지나쳐 첫 항목들이 차 뒤에 남자 PX4 로버가 되돌아 맴돌다 도로 이탈 —
-    원인 검증: Fable 서브에이전트)"""
+    원인 검증: Fable 서브에이전트)
+    max_along_m: 업로드 동안 차가 미션 선을 따라 갈 수 있었던 최대 거리. 그보다 먼 선분은 짝짓지 않는다 — 경로가 블록을 돌아 출발 도로를
+    반대로 다시 지나면 그 되돌아오는 선분이 주차 위치와 겹쳐, 정차한 차를 '이미 476 m 지나왔다' 로 보고 뒤쪽 항목 44 부터 시작해
+    제자리 180° 선회·도로 이탈 (2026-10-11 Gazebo c23 A-ugv1 SK102 — 원인 검증: Fable 서브에이전트)"""
     pts = [(it[0], it[1]) for it in sent[:START_AHEAD_SEARCH + 1]]
     if len(pts) < 2:
         return 0
@@ -89,6 +93,8 @@ def first_item_ahead(sent, pos, v_mps: float) -> int:
         cum.append(cum[-1] + math.dist(a, b))
     best = (math.inf, 0.0)
     for k, (a, b) in enumerate(zip(pts, pts[1:])):
+        if max_along_m is not None and cum[k] > max_along_m:
+            break                                  # 업로드 동안 갈 수 없었던 곳 (되돌아오는 경로 등)
         dx, dy = b[0] - a[0], b[1] - a[1]
         L2 = dx * dx + dy * dy
         t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((pos[0] - a[0]) * dx + (pos[1] - a[1]) * dy) / L2))
@@ -288,6 +294,7 @@ class Px4Driver(Driver):
         here = (tel.x, tel.y) if tel is not None else items[0][:2]
         plan = []
         sent = mavsdk_plan(items, here, tel.speed_mps if tel is not None else 0.0)
+        t_up, v_up = time.monotonic(), (max(tel.speed_mps, 0.0) if tel is not None else 0.0)
         self.last_sent = {"wall": time.time(), "here": [round(here[0], 2), round(here[1], 2)],
                           "items": [[round(x, 2), round(y, 2), round(v, 2), th] for x, y, v, th in sent]}
         for x, y, v, through in sent:
@@ -302,7 +309,14 @@ class Px4Driver(Driver):
                 await self._mis.upload_mission(MissionPlan(plan))
                 await self._ensure_armed()
                 tel2 = self.telemetry()
-                k0 = first_item_ahead(sent, (tel2.x, tel2.y), tel2.speed_mps) if tel2 is not None else 0
+                if tel2 is not None:
+                    # 업로드 동안 갈 수 있었던 거리 상한: 선행 지점 + 수용 반경 + (더 빠른 속도 + 가속 여유) × 경과 + 여유
+                    dt = time.monotonic() - t_up
+                    reach = LEAD_BASE_M + ACCEPT_M + (max(v_up, tel2.speed_mps) + START_AHEAD_ACCEL_MPS2 * dt) * dt + 2.0
+                    k0 = first_item_ahead(sent, (tel2.x, tel2.y), tel2.speed_mps, max_along_m=reach)
+                    self.last_sent["start_reach_m"] = round(reach, 1)
+                else:
+                    k0 = 0
                 if k0 > 0:
                     # 업로드 동안 지나친 항목은 건너뛰고 차 앞 항목부터 (뒤에 남은 항목으로 되돌아가지 않게)
                     try:
