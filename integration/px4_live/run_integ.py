@@ -43,7 +43,8 @@ PROFILE = {
     "uav": {"UAV_ID": "A-uav1", "UAV_MODE": "real", "PX4_ADDRESS": "udpin://0.0.0.0:14540"},
     "orch": {"ORCH_ENV_MODE": "team_http", "ORCH_ENV_URL": "http://127.0.0.1:8300", "ORCH_UAV_ENDPOINTS_REPLACE": "1",
              "ORCH_UAV_ENDPOINTS": "A-uav1=http://127.0.0.1:8000", "ORCH_UGV_RETURN_HOME": "1", "ORCH_OBS_PLANNER": "0",
-             "ORCH_PREEMPTIVE_MONITOR": "0", "ORCH_AUTO_RECON_GROUND": "0"},
+             "ORCH_PREEMPTIVE_MONITOR": "0", "ORCH_AUTO_RECON_GROUND": "0",
+             "ORCH_RECON_OBSERVE_S": "600"},          # 자동 초기 정찰 UAV 화재 감시 10 분 (UAV API 상한 600 s)
     "clock": ["--speed", "1", "--no-llm-pause"],
     "operator_ground_types": ["UGV"],
 }

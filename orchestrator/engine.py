@@ -564,6 +564,9 @@ class Orchestrator:
                 dur = (config.OBS_INITIAL_ORBIT_DURATION_S if task.plan_id == "INITIAL_NEAREST_UAV"
                        else config.EDGE_SWEEP_PROFILE["duration_s"])
                 body["observe_duration_s"] = int(mods.get("observe_duration_s", dur))
+            elif config.RECON_OBSERVE_S:
+                # 계획 밖 임무(자동 초기 정찰 등)의 관측 체류 — 실행별 설정 (통합 시연: 화재 감시 시간). 평가·실행 요청에 같은 값
+                body["observe_duration_s"] = int(mods.get("observe_duration_s", config.RECON_OBSERVE_S))
         return body
 
     # ------------------------------------------------------------------
