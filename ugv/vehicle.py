@@ -103,6 +103,9 @@ STOP_SUP_ACCEL_MPS = 0.8  # 정지 명령 뒤 지연이 지나서도 처음 속�
 STOP_SUP_ACCEL_HOLD_S = 2.0  # 그 가속이 이만큼 이어져야 '감속 안 함' (명령 교체 순간의 짧은 흔들림과 구분 — 거리·시간 상한은 따로)
 STOP_SLOW_FINISH_MPS = 1.2  # 정지 미션 끝 구간 항목 최소 속도(1 m/s) + 여유 — 이 미만·허용 거리 안이면 시간 초과를 고장으로 묶지 않음
 STOP_CONFIRM_S = 1.0
+START_END_M = 15.0          # 출발 도로에서 진행 방향으로 남은 거리가 이보다 짧으면 (교차로 회전 계획 어려움 — 약 14 m 안) 거의 같은 거리의 다른 도로를 본다
+START_ALIGN_MIN = 0.5       # 그 다른 도로의 방향과 진행 방향 차이 60° 안 (회전 도중 정차는 두 도로 모두 수십 도 어긋난다)
+START_TIE_M = 1.0           # 가장 가까운 도로와 이 거리 차 안의 도로만 (교차로 근처 동률)
 STOP_ROAD_SNAP_MAX_M = 5.0  # 정지 경로를 '진행 방향 도로' 로 만들 수 있는 도로까지 최대 거리 (밖이면 진행 방향 직선 제동)
 OFFROAD_STOP_M = 2.0        # 주행 중 실제 차체가 도로 띠 밖으로 이만큼 넘게 나가면 (OFFROAD_CONFIRM_S 지속) 고장·정지
 OFFROAD_CONFIRM_S = 2.0      # 정지 감독: 0.2 m/s 미만(최신 텔레메트리)이 이만큼 이어지면 정차 확인
@@ -291,6 +294,35 @@ class Vehicle:
         srt = sorted(self._lat_samples)
         return min(max(self.cmd_latency_s, srt[int(0.8 * (len(srt) - 1))]), config.CMD_LATENCY_MAX_S)
 
+    def _start_dirpos(self, tel, pos, heading_deg: float) -> Optional[DirPos]:
+        """출발 도로·방향. 가장 가까운 도로 위 진행 방향 앞 교차로까지 START_END_M 미만이면 (정차 상태에서 교차로 회전 계획이 안 되는 거리),
+        거의 같은 거리(START_TIE_M 안)의 다른 도로 중 진행 방향과 60° 안이고 앞으로 갈 거리가 더 긴 도로로 잡는다
+        (같은 자리의 다른 해석 — 계획 경로는 실제 자세로 다시 검증된다).
+        (2026-10-11 Gazebo c23: 소방차가 교차로 495011 에서 2.5 m 떨어져 정차 — 두 도로 2.52·2.74 m. 위치 오차로 이미 지나온 도로 끝에서
+        교차로를 향하는 출발로 잡혀 모든 경로가 거절돼 갇혔다. 회전 도중 정차: 지나온 도로와 39°, 다음 도로와 47° 차이)"""
+        dp = self.graph.dirpos(pos, heading_deg)
+        if dp is None or self.graph.ahead_m(dp) >= START_END_M:
+            return dp
+        hx, hy = math.sin(math.radians(heading_deg)), math.cos(math.radians(heading_deg))
+        best = None
+        for rid, dist in self.net.near(tel.x, tel.y, pos.dist + START_TIE_M).items():
+            if rid == pos.road_id:
+                continue
+            q = self.net.on_road(rid, tel.x, tel.y)
+            r = self.net.roads[rid]
+            p0 = self.net.at(rid, max(0.0, q.s - 2.0))
+            p1 = self.net.at(rid, min(r.length, q.s + 2.0))
+            tx, ty = p1.x - p0.x, p1.y - p0.y
+            n = math.hypot(tx, ty) or 1.0
+            if abs(tx * hx + ty * hy) / n < START_ALIGN_MIN:
+                continue
+            d2 = self.graph.dirpos(q, heading_deg)
+            if d2 is None or self.graph.ahead_m(d2) <= self.graph.ahead_m(dp):
+                continue
+            if best is None or self.graph.ahead_m(d2) > self.graph.ahead_m(best[1]):
+                best = (dist, d2)
+        return best[1] if best else dp
+
     def here_state(self):
         """계획 출발 상태: (DirPos — 진행 방향, 명령 교체 지연 동안 갈 거리만큼 앞, 속도 m/s, 오류 사유)."""
         tel = self.driver.telemetry()
@@ -298,7 +330,7 @@ class Vehicle:
             return None, 0.0, "COMMUNICATION_FAILURE: 차량 위치 없음"
         pos = self.net.snap(tel.x, tel.y)
         hd = self._plan_heading(tel)
-        dp = self.graph.dirpos(pos, hd if hd is not None else tel.heading_deg)
+        dp = self._start_dirpos(tel, pos, hd if hd is not None else tel.heading_deg)
         if dp is None:
             return None, tel.speed_mps, f"WRONG_WAY_ON_ONEWAY: 일방통행 도로 {pos.road_id} 를 거꾸로 향함"
         v = max(tel.speed_mps, 0.0)
