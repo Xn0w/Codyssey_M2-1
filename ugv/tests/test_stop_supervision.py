@@ -195,7 +195,7 @@ def test_slow_finish_over_time_is_cut_without_fault(tmp_path):
         await A.execute(body("C1", *FRAME.to_ll(A.access.x - 900, A.access.y - 700)))
         await _steps(f, clock, 25)
         await A.abort("C1")
-        A.driver.runaway_mps = 0.3                         # 정지 미션 끝에서 0.3 m/s 로 기어감 (거리 안)
+        A.driver.runaway_mps = 0.9                         # 정지 미션 끝에서 0.9 m/s 로 다가감 (항목 최소 속도 근처, 거리 안)
         await _steps(f, clock, 40)
         assert _ev(A, "STOP_SLOW_FINISH_CUT") and _ev(A, "STOP_CONFIRMED")
         assert A.fault is None and A.state != "FAULT"

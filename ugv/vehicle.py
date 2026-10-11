@@ -101,6 +101,7 @@ STOP_SUP_LAT_PAD_S = 1.0  # 허용 거리의 명령 지연 몫에 더하는 시�
 STOP_SUP_SLACK_S = 4.0    # 정지 감독 허용 시간 = 허용 거리를 평균 속도(처음 속도의 절반)로 가는 시간 + 명령 지연 + 이 여유
 STOP_SUP_ACCEL_MPS = 0.8  # 정지 명령 뒤 지연이 지나서도 처음 속도보다 이만큼 빨라지면 감속이 진행되지 않는 것
 STOP_SUP_ACCEL_HOLD_S = 2.0  # 그 가속이 이만큼 이어져야 '감속 안 함' (명령 교체 순간의 짧은 흔들림과 구분 — 거리·시간 상한은 따로)
+STOP_SLOW_FINISH_MPS = 1.2  # 정지 미션 끝 구간 항목 최소 속도(1 m/s) + 여유 — 이 미만·허용 거리 안이면 시간 초과를 고장으로 묶지 않음
 STOP_CONFIRM_S = 1.0      # 정지 감독: 0.2 m/s 미만(최신 텔레메트리)이 이만큼 이어지면 정차 확인
 # 정지·양보 명령이 이 시간 안에 끝나지 않으면 '전달 여부 불명' 실패로 본다 (실측 명령 교체 지연 최대 CMD_LATENCY_MAX_S 6 s + 여유)
 
@@ -1034,9 +1035,10 @@ class Vehicle:
             self._event("STOP_NOT_CONFIRMED", why=why, speed_mps=round(tel.speed_mps, 2),
                         travel_m=round(s["travel_m"], 1), allow_m=s["allow_m"], attempt=s["escalations"])
             await self._cut_drive(why)
-            # 허용 거리 안에서 0.5 m/s 미만으로 마무리하는데 시간만 넘은 경우(PX4 미션 끝 저속 기어가기 — 2026-10-11 Gazebo UGV 취소
-            # 13.9 s, 같은 조건 다른 실행 8.6 s)는 구동 차단(정차 유지)만 하고 고장으로 묶지 않는다. 거리 초과·감속 안 함·고속 시간 초과는 고장
-            slow_finish = why.startswith("TIME") and tel.speed_mps < 0.5 and s["travel_m"] <= s["allow_m"]
+            # 허용 거리 안에서 저속(STOP_SLOW_FINISH_MPS 미만 — 정지 미션 끝 구간은 항목 최소 속도 1 m/s 로 다가간다)으로 마무리하는데
+            # 시간만 넘은 경우(2026-10-11 Gazebo UGV 취소 13.7~13.9 s, 그때 0.9 m/s)는 구동 차단(정차 유지)만 하고 고장으로 묶지 않는다.
+            # 거리 초과·감속 안 함·고속 시간 초과는 고장
+            slow_finish = why.startswith("TIME") and tel.speed_mps < STOP_SLOW_FINISH_MPS and s["travel_m"] <= s["allow_m"]
             if slow_finish:
                 self._event("STOP_SLOW_FINISH_CUT", speed_mps=round(tel.speed_mps, 2), travel_m=round(s["travel_m"], 1))
             elif first and self.state not in ("FAULT", "DANGER"):
