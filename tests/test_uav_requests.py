@@ -184,12 +184,14 @@ def test_route_required_mode(tmp_path):
 
 
 def test_route_cruise_clears_dem_terrain(uav):
-    """능선 목표: 경로 중간 지형이 관측고도보다 높아 순항고도를 올린다 (DEM 이 있을 때)"""
+    """능선 너머 목표: 경로 중간 지형이 관측고도보다 높아 순항고도를 올린다 (DEM 이 있을 때).
+    2026-10-11: A 기지가 원통 → 인제119 로 바뀐 뒤(2026-10-08) 예전 목표(38.0425, 128.2541, 지면 804 m)는 경로에 더 높은 지형이 없어
+    순항 = 관측고도(894 m)였다 (원통 기지에서는 1072.9 m). 인제119 에서 능선을 넘는 골짜기 목표로 바꿈 (지면 = gz_bridge.terrain_elev)"""
     caps = httpx.get(f"{uav.url}/uav/{UAV}/capabilities").json()
     if not caps["route"]["dem"]:
         pytest.skip("DEM(rasterio) 없음")
     mock_set(uav, battery_pct=100)
-    r = ev(uav, target={"lat": 38.0425, "lon": 128.2541, "alt_m_amsl": 804.0})
+    r = ev(uav, target={"lat": 38.0314, "lon": 128.1285, "alt_m_amsl": 205.2})
     c = r["constraints"]
     assert c["cruise_alt_m_amsl"] > c["flight_alt_m_amsl"] and c["terrain_check"] in ("OK", "PARTIAL")
 
