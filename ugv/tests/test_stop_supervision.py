@@ -200,3 +200,24 @@ def test_slow_finish_over_time_is_cut_without_fault(tmp_path):
         assert _ev(A, "STOP_SLOW_FINISH_CUT") and _ev(A, "STOP_CONFIRMED")
         assert A.fault is None and A.state != "FAULT"
     asyncio.run(go())
+
+
+def test_vehicle_body_off_road_is_faulted_and_stopped(tmp_path):
+    """계획 경로 30 m 기준과 따로, 실제 차체가 도로 띠 밖 2 m 넘게 2 s 이어지면 OFF_ROAD 고장·정지 (2026-10-11 Gazebo 도로 밖 43.9 m)."""
+    async def go():
+        f, clock = make_fleet(tmp_path, [FLEET_CFG[0]])
+        A = f.vehicles["A-ugv1"]
+        await A.execute(body("R2", *FRAME.to_ll(A.access.x - 900, A.access.y - 700)))
+        await _steps(f, clock, 25)
+        import math
+        hd = math.radians(A.driver.heading)
+        A.driver.x += 12.0 * math.cos(hd)                     # 진행 방향 오른쪽으로 12 m (도로 밖, 계획 경로 30 m 안)
+        A.driver.y -= 12.0 * math.sin(hd)
+        A.driver.path = []                                    # 그 자리에서 직진 흉내는 하지 않고 텔레메트리만 도로 밖
+        A.driver.v = 6.0
+        for _ in range(8):
+            clock.advance(0.5)
+            await A.tick()
+        assert A.state == "FAULT" and A.fault.startswith("OFF_ROAD")
+        assert _ev(A, "STOP_PATH")[-1]["basis"].startswith("DRIVER_DEFAULT")   # 도로에서 멀어 진행 방향 직선 제동
+    asyncio.run(go())

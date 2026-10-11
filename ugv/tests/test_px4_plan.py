@@ -85,3 +85,15 @@ def test_px4_telemetry_without_velocity_is_not_fresh_standstill():
     d._mono["velocity"] = _t.monotonic()
     tel = d.telemetry()
     assert tel.age_s() < 1.0 and tel.speed_mps == 0.0 and not tel.armed
+
+
+def test_first_item_ahead_skips_items_passed_during_upload():
+    """업로드 동안 지나친 항목은 건너뛴다 (2026-10-11 Gazebo: 첫 항목들이 차 뒤 → 로버 되돌기·도로 이탈)."""
+    from ugv.drivers.px4 import first_item_ahead
+    sent = [(0.0, 23.0, 9.0, True), (0.0, 6.7, 9.0, True), (0.0, 10.6, 9.0, True), (0.0, 18.1, 9.0, True), (0.0, 42.9, 9.0, True),
+            (0.0, 80.0, 9.0, True), (0.0, 120.0, 9.0, False)]
+    sent = [(0.0, 5.0, 9.0, True)] + sent[1:]                       # 선행 지점(차 뒤) + 항목들, 북쪽(+y)으로 진행
+    k = first_item_ahead(sent, (0.0, 17.0), 9.0)                     # 차는 y 17 — 항목 0~3 은 뒤·밑
+    assert sent[k][1] > 17.0 + 3.0 and k == 4
+    assert first_item_ahead(sent, (0.0, 4.0), 0.0) == 0              # 아직 첫 항목(선행 지점) 전 — 평소 출발 그대로
+    assert first_item_ahead(sent, (200.0, 17.0), 9.0) == 0           # 미션 선에서 멀면 맞추지 않음

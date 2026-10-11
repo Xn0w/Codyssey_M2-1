@@ -102,7 +102,10 @@ STOP_SUP_SLACK_S = 4.0    # 정지 감독 허용 시간 = 허용 거리를 평�
 STOP_SUP_ACCEL_MPS = 0.8  # 정지 명령 뒤 지연이 지나서도 처음 속도보다 이만큼 빨라지면 감속이 진행되지 않는 것
 STOP_SUP_ACCEL_HOLD_S = 2.0  # 그 가속이 이만큼 이어져야 '감속 안 함' (명령 교체 순간의 짧은 흔들림과 구분 — 거리·시간 상한은 따로)
 STOP_SLOW_FINISH_MPS = 1.2  # 정지 미션 끝 구간 항목 최소 속도(1 m/s) + 여유 — 이 미만·허용 거리 안이면 시간 초과를 고장으로 묶지 않음
-STOP_CONFIRM_S = 1.0      # 정지 감독: 0.2 m/s 미만(최신 텔레메트리)이 이만큼 이어지면 정차 확인
+STOP_CONFIRM_S = 1.0
+STOP_ROAD_SNAP_MAX_M = 5.0  # 정지 경로를 '진행 방향 도로' 로 만들 수 있는 도로까지 최대 거리 (밖이면 진행 방향 직선 제동)
+OFFROAD_STOP_M = 2.0        # 주행 중 실제 차체가 도로 띠 밖으로 이만큼 넘게 나가면 (OFFROAD_CONFIRM_S 지속) 고장·정지
+OFFROAD_CONFIRM_S = 2.0      # 정지 감독: 0.2 m/s 미만(최신 텔레메트리)이 이만큼 이어지면 정차 확인
 # 정지·양보 명령이 이 시간 안에 끝나지 않으면 '전달 여부 불명' 실패로 본다 (실측 명령 교체 지연 최대 CMD_LATENCY_MAX_S 6 s + 여유)
 
 
@@ -652,7 +655,7 @@ class Vehicle:
         self.state = state
         self.stop_path_pts, self.command_uncertain, self._hold_failures = None, False, 0
         self._stop_sup = None                       # 새 주행 미션 — 주행 감독이 맡는다
-        self._off_since, self._near_i = None, 0
+        self._off_since, self._near_i, self._offroad_since = None, 0, None
         self._move_ref = (self.clock.now(), t.x, t.y) if t else None
         self._drive_started_sim = self.clock.now()
         return self.seq
@@ -684,6 +687,10 @@ class Vehicle:
                     prefer = [(tel.x, tel.y)] + self.speed.pts[i + 1:]
                 pos = self.net.snap(tel.x, tel.y)
                 dp = g.dirpos(pos, tel.heading_deg) if prefer is None else None
+                if prefer is None and dp is not None and not self._road_stop_fits(pos, tel):
+                    # 도로에서 멀거나 도로 방향이 진행 방향과 크게 다르면 '진행 방향 도로' 정지 경로가 차 옆·뒤를 가리킨다
+                    # (2026-10-11 Gazebo: 도로 밖 46 m 에서 옆 도로로 향한 정지 경로 → 급회전·맴돌기). 진행 방향 직선 제동으로
+                    dp = None
                 info = {"basis": "NO_ROAD_DIRECTION", "needed_m": round(need, 1), "speed_mps": round(v, 2)}
                 if prefer is not None or dp is not None:
                     pts, got = g.stop_path(dp, need, prefer)
@@ -909,6 +916,20 @@ class Vehicle:
                 else:
                     self._fail("ARRIVAL_MISMATCH", f"미션 끝, 목적지까지 {to_dest:.1f} m")
             return
+        # 도로 경계 이탈 (계획 경로 이탈과 따로): 실제 차체가 도로 띠 밖으로 OFFROAD_STOP_M 넘게 OFFROAD_CONFIRM_S 이어지면 고장·정지.
+        # 계획 경로 30 m·5 s 기준은 도로 밖 수십 m 를 늦게 잡았다 (2026-10-11 Gazebo 지속 운용: 경로 이탈 확정 전 33 s·260 m, 도로 밖 43.9 m)
+        if tel.speed_mps >= 1.0:
+            ex = self._body_outside(tel)
+            if ex > OFFROAD_STOP_M:
+                self._offroad_since = self._offroad_since if getattr(self, "_offroad_since", None) is not None else now
+                if now - self._offroad_since >= OFFROAD_CONFIRM_S:
+                    async with self.lock:
+                        self._fail("OFF_ROAD", f"차체가 추정 도로 띠 밖 {ex:.1f} m ({OFFROAD_CONFIRM_S:g} s 넘게)")
+                        await self._safe_stop()
+                        self.state = "FAULT"
+                    return
+            else:
+                self._offroad_since = None
         # 경로 이탈
         if d > config.OFF_ROUTE_M:
             self._off_since = self._off_since if self._off_since is not None else now
@@ -958,6 +979,26 @@ class Vehicle:
         return (f"{st}: 화재 자료 나이 {info.get('age_s')} s (허용 {config.FIRE_DATA_MAX_AGE_S:g} s), "
                 f"오류 {info.get('error')}" if st != "NOT_CONFIGURED" else
                 "NOT_CONFIGURED: 환경 서버(UGV_ENV_URL) 미설정 — 무화재 시험은 UGV_ALLOW_NO_FIRE_DATA=1 로 명시")
+
+    def _road_stop_fits(self, pos, tel) -> bool:
+        """진행 방향 도로 정지 경로를 쓸 수 있는가: 도로까지 STOP_ROAD_SNAP_MAX_M 안, 도로 방향과 진행 방향 차이 60° 안."""
+        if pos is None or pos.dist > STOP_ROAD_SNAP_MAX_M:
+            return False
+        r = self.net.roads[pos.road_id]
+        a = self.net.at(pos.road_id, max(0.0, pos.s - 2.0))
+        b = self.net.at(pos.road_id, min(r.length, pos.s + 2.0))
+        hd = bearing_deg(b.x - a.x, b.y - a.y)
+        dh = abs((tel.heading_deg - hd + 180.0) % 360.0 - 180.0)
+        return min(dh, 180.0 - dh) <= 60.0
+
+    def _body_outside(self, tel) -> float:
+        """실제 차체(차종 치수·진행 방향)가 추정 도로 띠 밖으로 나간 거리 (m, 안이면 ≤ 0). 텔레메트리 위치 기준(차체 중심·뒤축)을 맞춘다."""
+        yaw = math.radians(90.0 - tel.heading_deg)
+        x, y = tel.x, tel.y
+        if getattr(self.driver, "position_ref", "rear_axle") == "center":
+            x -= self.profile.rear_axle_from_center_m * math.cos(yaw)
+            y -= self.profile.rear_axle_from_center_m * math.sin(yaw)
+        return self.graph.body_excess(x, y, yaw)
 
     # ------------------------------------------------------------------ 정지 감독
     @property

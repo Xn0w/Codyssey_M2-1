@@ -312,7 +312,7 @@ def test_stall_and_off_route_faults(tmp_path):
         v.driver.x += 80.0                                  # 경로에서 80 m 밀려남
         v.driver.path, v.driver.k = [(v.driver.x + 500, v.driver.y, 10.0)], 0
         await run_for(v, clock, config.OFF_ROUTE_CONFIRM_S + 2)
-        assert v.state == "FAULT" and v.fault.startswith("OFF_ROUTE")
+        assert v.state == "FAULT" and v.fault.startswith(("OFF_ROAD", "OFF_ROUTE"))   # 도로 경계 감시(2 s)가 경로 이탈(5 s)보다 먼저 잡는다
     asyncio.run(go())
 
 
