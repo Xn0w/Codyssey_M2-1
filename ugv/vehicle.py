@@ -105,7 +105,11 @@ STOP_SLOW_FINISH_MPS = 1.2  # 정지 미션 끝 구간 항목 최소 속도(1 m/
 STOP_CONFIRM_S = 1.0
 START_END_M = 15.0          # 출발 도로에서 진행 방향으로 남은 거리가 이보다 짧으면 (교차로 회전 계획 어려움 — 약 14 m 안) 거의 같은 거리의 다른 도로를 본다
 START_ALIGN_MIN = 0.5       # 그 다른 도로의 방향과 진행 방향 차이 60° 안 (회전 도중 정차는 두 도로 모두 수십 도 어긋난다)
+START_STILL_MPS = 0.5       # 이보다 느릴 때만 (정차) 출발 도로 다른 해석을 본다 — 주행 중은 계획 경로 방위·투영이 맡는다
 START_TIE_M = 1.0           # 가장 가까운 도로와 이 거리 차 안의 도로만 (교차로 근처 동률)
+COAST_DECEL_MPS2 = 0.5      # 시동 꺼진 뒤 관성 감속 가정 (Gazebo c23 B-ugv1: 13.5 m/s → 정차 약 22 s, 0.6 m/s²)
+COAST_PAD_S = 2.0
+COAST_MIN_MPS = 0.5         # 시동 꺼지기 직전 속도가 이보다 낮으면 보류하지 않는다
 STOP_ROAD_SNAP_MAX_M = 5.0  # 정지 경로를 '진행 방향 도로' 로 만들 수 있는 도로까지 최대 거리 (밖이면 진행 방향 직선 제동)
 OFFROAD_STOP_M = 2.0        # 주행 중 실제 차체가 도로 띠 밖으로 이만큼 넘게 나가면 (OFFROAD_CONFIRM_S 지속) 고장·정지
 OFFROAD_CONFIRM_S = 2.0      # 정지 감독: 0.2 m/s 미만(최신 텔레메트리)이 이만큼 이어지면 정차 확인
@@ -132,6 +136,63 @@ def _progress_index(x, y, pts, cum, near_i, back=20, ahead=200, tol_m=3.0, gap_m
                 k += 1                                   # 그 통과 안에서 가장 가까운 구간
             return ds[k], lo + k
     return ds[b], lo + b
+
+
+def choose_start_dirpos(net, graph, x: float, y: float, heading_deg: float, speed_mps: float,
+                        route: Optional[Route] = None, pos: Optional[RoadPos] = None) -> Optional[DirPos]:
+    """계획 출발 도로·방향.
+
+    기본: 가장 가까운 도로 + 진행 방위로 향하는 노드 (예전 그대로). 주행 중(START_STILL_MPS 이상)이거나 앞 교차로까지 START_END_M 이상이면
+    여기서 끝난다. 정차 중 교차로 START_END_M 안 (정차 상태 교차로 회전 계획이 안 되는 거리)에서는 같은 자리의 다른 해석을 본다 —
+    가장 가까운 도로와 거리 차 START_TIE_M 안의 도로만:
+      1) 직전 주행 경로(도로 연결 순서): 차가 그 경로 선 위(OFF_ROUTE_M/3 안)에 있으면 후보 중 경로에서 가장 진행한 구간을
+         경로의 방향으로 (정차 중 진행 방위는 PX4 추정이 흘러 믿기 어렵다 — 2026-10-11 B3).
+      2) 경로 정보가 없거나 맞지 않을 때만: 진행 방위와 60° 안이고 앞으로 갈 거리가 더 긴 도로.
+    (2026-10-11 Gazebo c23: 소방차가 교차로 495011 에서 2.5 m 떨어져 회전 도중 정차 — 두 도로 2.52·2.74 m, 방향 차 39°·47°.
+    위치 오차 0.2 m 로 지나온 도로 끝(교차로까지 2.8 m)이 출발로 잡혀 복귀·출동이 모두 거절돼 갇혔다)"""
+    pos = pos if pos is not None else net.snap(x, y)
+    dp = graph.dirpos(pos, heading_deg)
+    if speed_mps >= START_STILL_MPS or (dp is not None and graph.ahead_m(dp) >= START_END_M):
+        return dp
+    base = graph.ahead_m(dp) if dp is not None else -1.0
+    cands = [(pos.road_id, pos)]
+    for rid, dist in net.near(x, y, pos.dist + START_TIE_M).items():
+        if rid != pos.road_id and dist <= pos.dist + START_TIE_M:
+            cands.append((rid, net.on_road(rid, x, y)))
+    # 1) 직전 주행 경로
+    if route is not None and route.legs and route.pts and _dist_to_polyline(x, y, route.pts)[0] <= config.OFF_ROUTE_M / 3:
+        idx = {}
+        for k, (rid, _frm, to) in enumerate(route.legs):
+            idx.setdefault(rid, []).append((k, to))
+        near_k = [k for k, _ in idx.get(pos.road_id, [])]
+        on_route = []
+        for rid, q in cands:
+            for k, to in idx.get(rid, []):
+                if not near_k or any(k0 - 1 <= k <= k0 + 2 for k0 in near_k):   # 가장 가까운 도로 구간 주변만 (같은 도로 재방문 제외)
+                    on_route.append((k, DirPos(q, to)))
+        if on_route:
+            k, d2 = max(on_route, key=lambda t: t[0])
+            if graph.oneway_ok(d2.road_id, graph.other(d2.road_id, d2.toward)):
+                return d2
+    # 2) 진행 방위
+    if dp is None:
+        return None
+    hx, hy = math.sin(math.radians(heading_deg)), math.cos(math.radians(heading_deg))
+    best = None
+    for rid, q in cands[1:]:
+        r = net.roads[rid]
+        p0 = net.at(rid, max(0.0, q.s - 2.0))
+        p1 = net.at(rid, min(r.length, q.s + 2.0))
+        tx, ty = p1.x - p0.x, p1.y - p0.y
+        n = math.hypot(tx, ty) or 1.0
+        if abs(tx * hx + ty * hy) / n < START_ALIGN_MIN:
+            continue
+        d2 = graph.dirpos(q, heading_deg)
+        if d2 is None or graph.ahead_m(d2) <= base:
+            continue
+        if best is None or graph.ahead_m(d2) > graph.ahead_m(best):
+            best = d2
+    return best if best is not None else dp
 
 
 class Vehicle:
@@ -194,6 +255,7 @@ class Vehicle:
         self.stop_path_pts = None
         self.command_uncertain = False
         self._stop_retry_at = -1e9
+        self._last_armed = None          # (시각, 속도) 시동 걸린 상태의 마지막 텔레메트리 — 시동 꺼진 뒤 관성 주행 추정용
         self._stop_sup = None            # 정지 감독 (위 머리말). 정차가 확인되면 None, 마지막 결과는 last_stop_result
         self.last_stop_result = None
         self._hold_failures = 0
@@ -295,33 +357,8 @@ class Vehicle:
         return min(max(self.cmd_latency_s, srt[int(0.8 * (len(srt) - 1))]), config.CMD_LATENCY_MAX_S)
 
     def _start_dirpos(self, tel, pos, heading_deg: float) -> Optional[DirPos]:
-        """출발 도로·방향. 가장 가까운 도로 위 진행 방향 앞 교차로까지 START_END_M 미만이면 (정차 상태에서 교차로 회전 계획이 안 되는 거리),
-        거의 같은 거리(START_TIE_M 안)의 다른 도로 중 진행 방향과 60° 안이고 앞으로 갈 거리가 더 긴 도로로 잡는다
-        (같은 자리의 다른 해석 — 계획 경로는 실제 자세로 다시 검증된다).
-        (2026-10-11 Gazebo c23: 소방차가 교차로 495011 에서 2.5 m 떨어져 정차 — 두 도로 2.52·2.74 m. 위치 오차로 이미 지나온 도로 끝에서
-        교차로를 향하는 출발로 잡혀 모든 경로가 거절돼 갇혔다. 회전 도중 정차: 지나온 도로와 39°, 다음 도로와 47° 차이)"""
-        dp = self.graph.dirpos(pos, heading_deg)
-        if dp is None or self.graph.ahead_m(dp) >= START_END_M:
-            return dp
-        hx, hy = math.sin(math.radians(heading_deg)), math.cos(math.radians(heading_deg))
-        best = None
-        for rid, dist in self.net.near(tel.x, tel.y, pos.dist + START_TIE_M).items():
-            if rid == pos.road_id:
-                continue
-            q = self.net.on_road(rid, tel.x, tel.y)
-            r = self.net.roads[rid]
-            p0 = self.net.at(rid, max(0.0, q.s - 2.0))
-            p1 = self.net.at(rid, min(r.length, q.s + 2.0))
-            tx, ty = p1.x - p0.x, p1.y - p0.y
-            n = math.hypot(tx, ty) or 1.0
-            if abs(tx * hx + ty * hy) / n < START_ALIGN_MIN:
-                continue
-            d2 = self.graph.dirpos(q, heading_deg)
-            if d2 is None or self.graph.ahead_m(d2) <= self.graph.ahead_m(dp):
-                continue
-            if best is None or self.graph.ahead_m(d2) > self.graph.ahead_m(best[1]):
-                best = (dist, d2)
-        return best[1] if best else dp
+        return choose_start_dirpos(self.net, self.graph, tel.x, tel.y, heading_deg, tel.speed_mps,
+                                   self.plan.route if self.plan is not None else None, pos)
 
     def here_state(self):
         """계획 출발 상태: (DirPos — 진행 방향, 명령 교체 지연 동안 갈 거리만큼 앞, 속도 m/s, 오류 사유)."""
@@ -383,6 +420,20 @@ class Vehicle:
             plan = plan_approach(self.net, fire, start, float(tgt["lat"]), float(tgt["lon"]), v0=v0, access=self.access,
                                  fixed_dest=fixed, graph=self.graph, avoid_roads=avoid,
                                  arrive_toward=self.access_toward if home else None)
+            spare = {k: v for k, v in avoid.items() if str(v).endswith("(대기 도로)")}
+            if home and plan.status != "OK" and spare:
+                # 같은 거점 다른 차의 대기 도로(지금 그 차가 서 있지 않은 도로)를 피하면 복귀 경로가 없다 → 그 도로를 넣어 다시 계획하고 보고.
+                # (2026-10-11 Gazebo c23: B 거점 대기 도로 683400513 이 회전 모형상 거점 주변과 도로망을 잇는 유일한 연결로 — B-fire1 이
+                # 거점 12 m 옆에서 복귀가 계속 거절돼 갇혔다. 원인 검증 Fable. 대기 도로 선택 자체의 수정은 범위 밖 — 보고서 한계)
+                plan2 = plan_approach(self.net, fire, start, float(tgt["lat"]), float(tgt["lon"]), v0=v0, access=self.access,
+                                      fixed_dest=fixed, graph=self.graph,
+                                      avoid_roads={k: v for k, v in avoid.items() if k not in spare},
+                                      arrive_toward=self.access_toward)
+                if plan2.status == "OK":
+                    plan2.detail["spare_roads_released"] = spare
+                    plan2.detail["spare_release_reason"] = ("같은 거점 다른 차 대기 도로를 피하면 복귀 경로 없음 — 그 차는 지금 그 도로에 없다. "
+                                                            "마주침은 교통 관리가 조정")
+                    plan = plan2
             if v0 < 0.05:
                 self._plan_cache = (key, self.clock.now(), plan)
         plan = self._check_start_road_blocker(plan, start, home)
@@ -853,6 +904,8 @@ class Vehicle:
                 await self._safe_stop()
                 self.state = "FAULT"
             return
+        if tel.armed:
+            self._last_armed = (now, max(tel.speed_mps, 0.0))
         if self.state == "STOPPING" and self._standstill(tel):
             self.state = "IDLE"
             self.stop_path_pts = None
@@ -1036,7 +1089,16 @@ class Vehicle:
     @property
     def stop_cut_active(self) -> bool:
         """정지 감독이 구동 차단으로 넘어갔고 아직 정차가 확인되지 않음 (ugv/traffic.py 는 이때 점유를 넓게 본다)."""
-        return self._stop_sup is not None and self._stop_sup["escalations"] > 0
+        return self._stop_sup is not None and (self._stop_sup["escalations"] > 0 or bool(self._stop_sup.get("coast_hold_until")))
+
+    def _disarm_coast_until(self, tel) -> Optional[float]:
+        """시동이 꺼진 차의 정차 확인을 미룰 시각 (없으면 None). PX4 로버는 시동이 꺼지면 위치·속도 추정을 정지로 보고한다 —
+        2026-10-11 Gazebo c23: B-ugv1 시동 꺼진 뒤 실제 13.5 m/s 로 약 75 m 관성 주행하는 동안 텔레메트리는 0.2 m 이동·속도 0.
+        시동 걸린 마지막 속도 v 로 관성 감속 COAST_DECEL_MPS2 를 가정해 v / a + COAST_PAD_S 동안은 텔레메트리 정차를 믿지 않는다."""
+        if tel.armed or self._last_armed is None or self._last_armed[1] < COAST_MIN_MPS:
+            return None
+        t, v = self._last_armed
+        return t + v / COAST_DECEL_MPS2 + COAST_PAD_S
 
     def _sup_begin(self, tel, path_len, basis):
         """정지 감독 시작 (정지 명령을 보낸 직후). 이미 감독 중이면(정지 재시도·운영자 /stop 반복) 처음 시각·허용 거리를 그대로 둔다 —
@@ -1076,12 +1138,25 @@ class Vehicle:
         s["vmax"] = max(s["vmax"], tel.speed_mps)
         if tel.speed_mps < 0.2:
             s["still_since"] = s["still_since"] if s["still_since"] is not None else now
+            coast = self._disarm_coast_until(tel)
+            if coast is not None and now < coast:
+                if not s.get("coast_hold_until"):
+                    v = self._last_armed[1]
+                    s["coast_hold_until"] = round(coast, 1)
+                    s["coast_est_m"] = round(v * v / (2.0 * COAST_DECEL_MPS2), 1)
+                    self._event("STOP_COAST_HOLD", v_armed_mps=round(v, 2), until_s=round(coast, 1), coast_est_m=s["coast_est_m"],
+                                why="시동 꺼짐 — 텔레메트리 정차를 믿지 않고 관성 주행 추정 시간까지 정차 확인 보류")
+                return
             if now - s["still_since"] >= STOP_CONFIRM_S:
                 self.last_stop_result = {"basis": s["basis"], "v0_mps": s["v0"], "travel_m": round(s["travel_m"], 1),
                                          "allow_m": s["allow_m"], "time_s": round(now - s["t0"], 1),
                                          "cut_drive": s["escalations"] > 0, "cut_attempts": s["escalations"],
                                          # 허용 거리를 넘어 섰다 (예: 링크 단절 중 PX4 자체 정지 — 그동안 감독은 거리를 볼 수 없다)
                                          "exceeded_allow": s["travel_m"] > s["allow_m"]}
+                if s.get("coast_hold_until"):
+                    # 시동 꺼진 뒤 정차 — 실제 이동은 관측할 수 없었다 (추정 관성 거리만)
+                    self.last_stop_result.update({"basis_note": "DISARMED_COAST_ASSUMED", "coast_est_m": s["coast_est_m"],
+                                                  "exceeded_allow": None})
                 self._stop_sup = None
                 self._event("STOP_CONFIRMED", **self.last_stop_result)
             return

@@ -221,3 +221,26 @@ def test_vehicle_body_off_road_is_faulted_and_stopped(tmp_path):
         assert A.state == "FAULT" and A.fault.startswith("OFF_ROAD")
         assert _ev(A, "STOP_PATH")[-1]["basis"].startswith("DRIVER_DEFAULT")   # 도로에서 멀어 진행 방향 직선 제동
     asyncio.run(go())
+
+
+def test_disarmed_vehicle_stop_not_confirmed_from_frozen_telemetry(tmp_path):
+    """PX4 로버는 시동이 꺼지면 위치·속도를 정지로 보고한다 (2026-10-11 Gazebo c23 B-ugv1: 실제 13.5 m/s 관성 주행 75 m 동안 텔레메트리 0).
+    시동 걸린 마지막 속도 v 로 v / COAST_DECEL + PAD 동안 정차 확인을 보류하고, 그동안 READY 가 아니며 점유는 넓게 본다."""
+    import dataclasses
+
+    async def go():
+        f, clock, A = await _fault_at_speed(tmp_path)
+        v_armed = A._last_armed[1]
+        assert v_armed > 5
+        orig = A.driver.telemetry
+        A.driver.telemetry = lambda: dataclasses.replace(orig(), speed_mps=0.0, armed=False)   # 시동 꺼짐 — 정지로 보고
+        hold = v_armed / VM.COAST_DECEL_MPS2 + VM.COAST_PAD_S
+        states = []
+        await _steps(f, clock, hold - 3.0, lambda: states.append(A.resource_state()))
+        assert not _ev(A, "STOP_CONFIRMED") and _ev(A, "STOP_COAST_HOLD") and A.stop_cut_active
+        assert "READY" not in states
+        await _steps(f, clock, 8.0)
+        res = _ev(A, "STOP_CONFIRMED")[-1]
+        assert res["basis_note"] == "DISARMED_COAST_ASSUMED" and res["exceeded_allow"] is None
+        assert res["coast_est_m"] > 20
+    asyncio.run(go())

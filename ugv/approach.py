@@ -400,7 +400,12 @@ def _plan_once(net: RoadNetwork, fire: FireArea, start: DirPos, target_lat: floa
     # 기준 시간 = 목표 APPROACH_NEAR_M 안 후보 중 가장 빠른 도착 (없으면 전체). 그보다 최대 ETA 여유만큼 늦는
     # 후보 중 목표에 가장 가까운 지점. 목표에 150 m 더 가까워지려고 수십 분 돌아가는 일을 막는다 (2026-10-09 실측:
     # 트윈 화재에서 271 m·27 km 우회 36분 대신 523 m·5 km 6분). 비교 시간은 방향을 반영한 도로 시간이다
-    near_set = [o for o in ok if o[1] <= config.APPROACH_NEAR_M] or ok
+    near_set = [o for o in ok if o[1] <= config.APPROACH_NEAR_M]
+    if not near_set:
+        # 목표 APPROACH_NEAR_M 안에 갈 수 있는 지점이 없으면 기준을 '목표에 가장 가까운 후보(25 m 단위)' 로. 예전에는 전체 중 가장 빠른 후보
+        # (출발점 바로 앞)가 기준이 돼 1.9 km 떨어진 목표가 12 m 앞 지점으로 풀렸다 (2026-10-11 Gazebo c23 B-fire1 — 원인 검증 Fable)
+        dmin = min(o[1] for o in ok)
+        near_set = [o for o in ok if round(o[1] / 25.0) <= round(dmin / 25.0)]
     t_ref = min(o[3] for o in near_set)
     limit = t_ref + max(config.APPROACH_ETA_SLACK_S, config.APPROACH_ETA_SLACK_RATIO * t_ref)
     dest, d, c, t, arr = min((o for o in ok if o[3] <= limit), key=lambda o: (round(o[1] / 25.0), o[3]))
