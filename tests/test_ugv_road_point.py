@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 """도로 위 지점에 서기 (ugv/road_point.py) — 노드가 아닌 긴 도로 중간에서 계측.
 
 실행 (저장소 루트):  python -m pytest tests/test_ugv_road_point.py -q
@@ -53,8 +54,9 @@ def test_stop_on_road_point(tmp_path):
         road_id, mid, edge = _pick_road(url)
         target = {"lat": mid[0] + 0.0002, "lon": mid[1]}            # 도로에서 약 20 m 떨어진 계측 지점
 
-        # 기본(노드) 방식은 그대로: stop_point 없이 노드로
-        ev = httpx.post(f"{url}/ugv/{RID}/evaluate", json={"task_id": "N1", "decision_id": "D", "target": target}).json()
+        # 노드 방식: stop_point 없이 노드로
+        ev = httpx.post(f"{url}/ugv/{RID}/evaluate", json={"task_id": "N1", "decision_id": "D", "target": target,
+                                                          "target_mode": "node"}).json()
         assert ev["verdict"] == "ACCEPT" and ev["stop_point"] is None
 
         ev = httpx.post(f"{url}/ugv/{RID}/evaluate", json={"task_id": "P1", "decision_id": "D", "target": target,

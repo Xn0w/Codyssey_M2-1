@@ -16,6 +16,7 @@
 #   A-ugv1    1             14541         r1_rover
 #   B-ugv1    2             14542         r1_rover
 #   A-fire1   3             14543         r1_rover + 경광등·방수포 (fire_truck, FIRE_TRUCK=0 이면 r1_rover 그대로)
+#   B-fire1   4             14544         A-fire1 과 같음 (B 기린119)
 #   인스턴스 0 / 14540 은 UAV 몫이라 비워 둔다.
 #
 # 동작

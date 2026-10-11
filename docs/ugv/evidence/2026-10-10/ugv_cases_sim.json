@@ -1,0 +1,552 @@
+{
+ "generated": "2026-10-10 12:46:31",
+ "driver": "sim",
+ "time_scale": "200",
+ "history_run_id": "20261010T124612",
+ "cases": [
+  {
+   "no": 1,
+   "case": "수락: 기본(node 방식)",
+   "request": {
+    "method": "POST",
+    "path": "/ugv/A-ugv1/evaluate",
+    "body": {
+     "task_id": "E1",
+     "decision_id": "D",
+     "target": {
+      "lat": 38.02845,
+      "lon": 128.1309
+     }
+    }
+   },
+   "status": 200,
+   "response": {
+    "verdict": "ACCEPT",
+    "eta_sec": 344,
+    "reason": null,
+    "detail": null,
+    "target_node": {
+     "node_id": "494959",
+     "lat": 38.028786,
+     "lon": 128.130717,
+     "snap_m": 40.7
+    },
+    "path": [
+     "A",
+     "495012",
+     "495011",
+     "495009",
+     "495085",
+     "495043",
+     "494938",
+     "495079",
+     "494865",
+     "494989",
+     "494992",
+     "494993",
+     "495019",
+     "495130",
+     "494991",
+     "494922",
+     "494921",
+     "495016",
+     "494917",
+     "495015",
+     "494949",
+     "494951",
+     "494961",
+     "494960",
+     "494957",
+     "494948",
+     "494956",
+     "494959"
+    ],
+    "stop_point": null
+   },
+   "ok": true,
+   "note": "경로 노드 28개, ETA 344초 = 5.7분 (시뮬레이션)"
+  },
+  {
+   "no": 2,
+   "case": "수락: 도로 위 지점(road_point 방식)",
+   "request": {
+    "method": "POST",
+    "path": "/ugv/A-ugv1/evaluate",
+    "body": {
+     "task_id": "E2",
+     "decision_id": "D",
+     "target": {
+      "lat": 38.02845,
+      "lon": 128.1309
+     },
+     "target_mode": "road_point"
+    }
+   },
+   "status": 200,
+   "response": {
+    "verdict": "ACCEPT",
+    "eta_sec": 345,
+    "reason": null,
+    "detail": "도로 682501427 위 지점 (도로에서 32 m)",
+    "target_node": {
+     "node_id": "494959",
+     "lat": 38.028786,
+     "lon": 128.130717,
+     "snap_m": 32.3
+    },
+    "path": [
+     "A",
+     "495012",
+     "495011",
+     "495009",
+     "495085",
+     "495043",
+     "494938",
+     "495079",
+     "494865",
+     "494989",
+     "494992",
+     "494993",
+     "495019",
+     "495130",
+     "494991",
+     "494922",
+     "494921",
+     "495016",
+     "494917",
+     "495015",
+     "494949",
+     "494951",
+     "494961",
+     "494960",
+     "494957",
+     "494948",
+     "494956",
+     "494959"
+    ],
+    "stop_point": {
+     "road_id": "682501427",
+     "lat": 38.0285928,
+     "lon": 128.1305786,
+     "snap_m": 32.3,
+     "along_m": 44.4
+    }
+   },
+   "ok": true,
+   "note": null
+  },
+  {
+   "no": 3,
+   "case": "거절: 목표가 도로에서 너무 멂",
+   "request": {
+    "method": "POST",
+    "path": "/ugv/A-ugv1/evaluate",
+    "body": {
+     "task_id": "E3",
+     "decision_id": "D",
+     "target": {
+      "lat": 38.0985,
+      "lon": 128.101
+     }
+    }
+   },
+   "status": 200,
+   "response": {
+    "verdict": "REJECT",
+    "eta_sec": null,
+    "reason": "TARGET_UNREACHABLE",
+    "detail": "가장 가까운 도로 노드가 6750 m 떨어짐 (허용 2000 m)",
+    "target_node": null,
+    "path": null,
+    "stop_point": null
+   },
+   "ok": true,
+   "note": "가장 가까운 도로 노드까지 6750 m (기준 2000 m)"
+  },
+  {
+   "no": 4,
+   "case": "거절: 짐이 적재 한도 초과 (UGV 100 kg)",
+   "request": {
+    "method": "POST",
+    "path": "/ugv/A-ugv1/evaluate",
+    "body": {
+     "task_id": "E4",
+     "decision_id": "D",
+     "target": {
+      "lat": 38.02845,
+      "lon": 128.1309
+     },
+     "cargo": {
+      "name": "호스 릴",
+      "kg": 500
+     }
+    }
+   },
+   "status": 200,
+   "response": {
+    "verdict": "REJECT",
+    "eta_sec": null,
+    "reason": "REQUIRED_CAPABILITY_UNAVAILABLE",
+    "detail": "적재 한도 초과: 500 kg > 100 kg",
+    "target_node": null,
+    "path": null,
+    "stop_point": null
+   },
+   "ok": true,
+   "note": null
+  },
+  {
+   "no": 5,
+   "case": "준비: 목표 노드를 통제 (닿은 도로 전부)",
+   "request": {
+    "method": "POST",
+    "path": "/roads/nodes/494959/block",
+    "body": {
+     "blocked": true
+    }
+   },
+   "status": 200,
+   "response": {
+    "node_id": "494959",
+    "blocked": true,
+    "roads": [
+     "682501427",
+     "682501428",
+     "682501898"
+    ]
+   },
+   "ok": true,
+   "note": null
+  },
+  {
+   "no": 6,
+   "case": "거절: 목표로 가는 길이 통제됨",
+   "request": {
+    "method": "POST",
+    "path": "/ugv/A-ugv1/evaluate",
+    "body": {
+     "task_id": "E5",
+     "decision_id": "D",
+     "target": {
+      "lat": 38.02845,
+      "lon": 128.1309
+     }
+    }
+   },
+   "status": 200,
+   "response": {
+    "verdict": "REJECT",
+    "eta_sec": null,
+    "reason": "ROAD_BLOCKED",
+    "detail": "화재에서 가장 가까운 노드 494959(41 m) 도달 불가, 차단 도로 682501428",
+    "target_node": {
+     "node_id": "494959",
+     "lat": 38.028786,
+     "lon": 128.130717,
+     "snap_m": 40.7
+    },
+    "path": null,
+    "stop_point": null
+   },
+   "ok": true,
+   "note": null
+  },
+  {
+   "no": 7,
+   "case": "주행 시작",
+   "request": {
+    "method": "POST",
+    "path": "/ugv/A-ugv1/execute",
+    "body": {
+     "task_id": "RUN1",
+     "decision_id": "D",
+     "target": {
+      "lat": 38.02845,
+      "lon": 128.1309
+     }
+    }
+   },
+   "status": 200,
+   "response": {
+    "status": "STARTED",
+    "eta_sec": 344,
+    "target_node": {
+     "node_id": "494959",
+     "lat": 38.028786,
+     "lon": 128.130717,
+     "snap_m": 40.7
+    },
+    "duplicate": false,
+    "tracking_url": "/ugv/A-ugv1/task/RUN1"
+   },
+   "ok": true,
+   "note": null
+  },
+  {
+   "no": 8,
+   "case": "같은 주행 요청 재전송 → 새로 출발하지 않음",
+   "request": {
+    "method": "POST",
+    "path": "/ugv/A-ugv1/execute",
+    "body": {
+     "task_id": "RUN1",
+     "decision_id": "D",
+     "target": {
+      "lat": 38.02845,
+      "lon": 128.1309
+     }
+    }
+   },
+   "status": 200,
+   "response": {
+    "status": "STARTED",
+    "duplicate": true,
+    "current_status": "IN_PROGRESS"
+   },
+   "ok": true,
+   "note": null
+  },
+  {
+   "no": 9,
+   "case": "거절: 다른 임무 수행 중",
+   "request": {
+    "method": "POST",
+    "path": "/ugv/A-ugv1/evaluate",
+    "body": {
+     "task_id": "E6",
+     "decision_id": "D",
+     "target": {
+      "lat": 38.02845,
+      "lon": 128.1309
+     }
+    }
+   },
+   "status": 200,
+   "response": {
+    "verdict": "REJECT",
+    "eta_sec": null,
+    "reason": "BUSY",
+    "detail": "수행 중 task RUN1",
+    "target_node": null,
+    "path": null,
+    "stop_point": null
+   },
+   "ok": true,
+   "note": null
+  },
+  {
+   "no": 10,
+   "case": "주행 중 상태",
+   "request": {
+    "method": "GET",
+    "path": "/ugv",
+    "body": null,
+    "params": {
+     "base": "A"
+    }
+   },
+   "status": 200,
+   "response": [
+    {
+     "resource_id": "A-ugv1",
+     "state": "RUNNING",
+     "current_node": null,
+     "current_road_id": "682501896",
+     "current_task_id": "RUN1"
+    },
+    {
+     "resource_id": "A-fire1",
+     "state": "READY",
+     "current_node": "A",
+     "current_road_id": null,
+     "current_task_id": null
+    }
+   ],
+   "ok": true,
+   "note": null
+  },
+  {
+   "no": 11,
+   "case": "정상 도착",
+   "status": 200,
+   "ok": true,
+   "response": {
+    "status": "COMPLETED",
+    "progress": {
+     "phase": "ARRIVED",
+     "stage": "1/1",
+     "waypoint": 44,
+     "total": 44
+    },
+    "observation": {
+     "observation_type": "ROAD_STATUS",
+     "arrived_node": "494959",
+     "position": {
+      "lat": 38.028786,
+      "lon": 128.130717
+     },
+     "fuel_pct": 94.48794563736907
+    },
+    "timing": {
+     "start": {
+      "wall_s": 0.0,
+      "wall_epoch": 1791636373.19,
+      "server_sim_s": 1.49,
+      "px4_time_s": null
+     },
+     "end": {
+      "wall_s": 2.01,
+      "wall_epoch": 1791636375.21,
+      "server_sim_s": 403.71,
+      "px4_time_s": null
+     },
+     "eta_sec": 344,
+     "wall_elapsed_s": 2.0,
+     "server_sim_elapsed_s": 402.2,
+     "actual_over_eta": 1.17
+    },
+    "drive_log": "/tmp/ugv_cases/drive_logs/RUN1.csv"
+   },
+   "note": "actual_over_eta 는 실제 도착 / ETA. 배속 200 에서는 주행 확인 주기(실제 0.5초 = 시뮬레이션 100초) 단위로 도착을 확정하므로 ETA 보다 늦게 잡힌다"
+  },
+  {
+   "no": 12,
+   "case": "주행 시작 (우회 시험)",
+   "request": {
+    "method": "POST",
+    "path": "/ugv/B-ugv1/execute",
+    "body": {
+     "task_id": "RUN2",
+     "decision_id": "D",
+     "target": {
+      "lat": 38.02845,
+      "lon": 128.1309
+     }
+    }
+   },
+   "status": 200,
+   "response": {
+    "status": "STARTED",
+    "eta_sec": 1942
+   },
+   "ok": true,
+   "note": null
+  },
+  {
+   "no": 13,
+   "case": "주행 중 앞길 도로 통제",
+   "request": {
+    "method": "POST",
+    "path": "/roads/683401006/block",
+    "body": {
+     "blocked": true
+    }
+   },
+   "status": 200,
+   "response": {
+    "road_id": "683401006",
+    "blocked": true,
+    "blocked_by": [
+     "manual"
+    ]
+   },
+   "ok": true,
+   "note": null
+  },
+  {
+   "no": 14,
+   "case": "주행 중 우회 후 도착",
+   "status": 200,
+   "ok": true,
+   "response": {
+    "status": "COMPLETED",
+    "reroutes": [
+     {
+      "sim_time_s": 616.7,
+      "result": "REROUTED",
+      "blocked_road_id": "683401006",
+      "eta_s": 2737
+     }
+    ]
+   }
+  },
+  {
+   "no": 15,
+   "case": "주행 시작 (우회 불가 시험)",
+   "request": {
+    "method": "POST",
+    "path": "/ugv/A-fire1/execute",
+    "body": {
+     "task_id": "RUN3",
+     "decision_id": "D",
+     "target": {
+      "lat": 38.02845,
+      "lon": 128.1309
+     }
+    }
+   },
+   "status": 200,
+   "response": {
+    "status": "STARTED",
+    "eta_sec": 344
+   },
+   "ok": true,
+   "note": null
+  },
+  {
+   "no": 16,
+   "case": "주행 중 목표가 막혀 우회 불가 → 실패",
+   "status": 200,
+   "ok": true,
+   "response": {
+    "task": {
+     "status": "FAILED",
+     "error": "ROAD_BLOCKED: 주행 중 682501428 차단, 우회 경로 없음",
+     "reroutes": [
+      {
+       "sim_time_s": 3565.1,
+       "result": "NO_ROUTE",
+       "blocked_road_id": "682501428",
+       "eta_s": null
+      }
+     ]
+    },
+    "vehicle_state": "READY"
+   },
+   "note": "고장이 아니므로 차는 READY"
+  },
+  {
+   "no": 17,
+   "case": "정지 요청",
+   "request": {
+    "method": "POST",
+    "path": "/ugv/A-ugv1/stop",
+    "body": null
+   },
+   "status": 200,
+   "response": {
+    "cancelled_task": "RUN4",
+    "state": "READY",
+    "current_node": "495015"
+   },
+   "ok": true,
+   "note": null
+  },
+  {
+   "no": 18,
+   "case": "정지 후 임무 상태",
+   "request": {
+    "method": "GET",
+    "path": "/ugv/A-ugv1/task/RUN4",
+    "body": null
+   },
+   "status": 200,
+   "response": {
+    "status": "CANCELLED",
+    "error": "stopped by request"
+   },
+   "ok": true,
+   "note": null
+  }
+ ]
+}

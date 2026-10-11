@@ -1,0 +1,8 @@
+# feat/ugv-road-view (UGV_TARGET_MODE 기본 road_point), 2026-10-11 13:56, macOS, 저장소 루트
+$ .venv/bin/python -m pytest tests/test_ugv_*.py -q
+.....
+5 passed in 8.70s
+
+$ .venv/bin/python docs/ugv/evidence/2026-10-10/ugv_cases.py /tmp/ugv_cases.json
+1~18번 모두 OK (ETA 344초, 노드 6750 m 거절, ROAD_BLOCKED, BUSY, 우회 남은 ETA 2737초, 정지 CANCELLED)
+all ok: True run 20261011T135705
