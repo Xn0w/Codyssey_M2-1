@@ -23,6 +23,9 @@ RESOURCES = [
      "base": "A", "home_node": "A", "px4_instance": 3, "px4_model": "r1_rover", "max_speed_mps": 2.0},
     {"resource_id": "B-ugv1",  "resource_type": "UGV",
      "base": "B", "home_node": "B", "px4_instance": 2, "px4_model": "r1_rover", "max_speed_mps": 60 / 3.6},
+    # B 소방차 (2026-10-10): 팀 시나리오 구성(A·B 소방서에 UGV 1 + 소방차 1, 모두 4대)에 맞춰 추가. 설정은 A-fire1 과 같다
+    {"resource_id": "B-fire1", "resource_type": "FIRE_ENGINE",
+     "base": "B", "home_node": "B", "px4_instance": 4, "px4_model": "r1_rover", "max_speed_mps": 2.0},
 ]
 # 추가 UGV (sim 전용, 기본 없음). UGV_EXTRA="자원:거점[:출발노드],..." — 출발노드를 생략하면 거점 노드.
 # 예: 트윈 --extra-fleet 의 원통(C)은 도로망 밖이라 가장 가까운 도로 노드(495165 광치령로, 1.3 km 남쪽)에서 출발
@@ -120,9 +123,9 @@ FAULT_CONFIRM_S = 3.0        # 차량 이상이 이 시간 이상 계속돼야 �
 #   UGV_APPROACH_FALLBACK=1: 가장 가까운 노드로 못 가면 APPROACH_MAX_M 안의 다음 노드로 접근
 TARGET_SNAP_M = float(os.getenv("UGV_TARGET_SNAP_M", "2000"))      # 가장 가까운 노드가 이보다 멀면 TARGET_UNREACHABLE (루트 config.UGV_TARGET_SNAP_M 과 같은 값)
 APPROACH_FALLBACK = os.getenv("UGV_APPROACH_FALLBACK", "0") == "1"
-# 목적지 방식 (ugv/road_point.py): node = 목표에서 가장 가까운 도로 노드(기본, 지금까지 동작) /
-#   road_point = 목표에서 가장 가까운 도로 위 점에 선다 (교차로 사이 긴 도로 중간 계측용). 요청마다 target_mode 로 바꿀 수 있다
-TARGET_MODE = os.getenv("UGV_TARGET_MODE", "node")
+# 목적지 방식 (ugv/road_point.py): road_point = 목표에서 가장 가까운 도로 위 점에 선다 (기본, 2026-10-11 — 총괄 2 km 시야와 함께 쓰기로 함) /
+#   node = 목표에서 가장 가까운 도로 노드(10/11 이전 기본, 10/11 이전 시험은 모두 이 방식). 요청마다 target_mode 로 바꿀 수 있다
+TARGET_MODE = os.getenv("UGV_TARGET_MODE", "road_point")
 APPROACH_MAX_M = float(os.getenv("UGV_APPROACH_MAX_M", "500"))     # fallback 접근 노드의 화재 거리 상한
 
 # 시연용 가속 — 6노드 시연 도로망(graph_data_demo, 총괄 orchestrator_v012 데모)에서만 쓴다.

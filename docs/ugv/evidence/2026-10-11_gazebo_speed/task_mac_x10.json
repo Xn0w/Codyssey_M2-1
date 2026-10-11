@@ -1,0 +1,67 @@
+{
+ "task": {
+  "task_id": "VIEW-CMD-6526bb8b",
+  "resource_id": "A-ugv1",
+  "status": "COMPLETED",
+  "target_node": "495083",
+  "progress": {
+   "phase": "ARRIVED",
+   "stage": "1/1",
+   "waypoint": 24,
+   "total": 24
+  },
+  "observation": {
+   "observation_type": "ROAD_STATUS",
+   "arrived_node": "495083",
+   "position": {
+    "lat": 38.035284399999995,
+    "lon": 128.14549019999998
+   },
+   "fuel_pct": 50.0
+  },
+  "cargo": null,
+  "started_sim_s": 216.0,
+  "eta_sec": 1880,
+  "drive_log": "ugv/.state/drive_logs/VIEW-CMD-6526bb8b.csv",
+  "timing": {
+   "start": {
+    "wall_s": 0.0,
+    "wall_epoch": 1791651893.47,
+    "server_sim_s": 216.0,
+    "px4_time_s": 600.504
+   },
+   "end": {
+    "wall_s": 189.62,
+    "wall_epoch": 1791652083.09,
+    "server_sim_s": 2110.0,
+    "px4_time_s": 2494.504
+   },
+   "eta_sec": 1880,
+   "wall_elapsed_s": 189.6,
+   "server_sim_elapsed_s": 1894.0,
+   "px4_elapsed_s": 1894.0,
+   "real_time_factor": 9.99,
+   "actual_over_eta": 1.01
+  }
+ },
+ "meta": {
+  "hash": "23dc9481a165e871326da730babeea15d0e2b1c842bc509e50f4c2cea6c76913",
+  "response": {
+   "task_id": "VIEW-CMD-6526bb8b",
+   "resource_id": "A-ugv1",
+   "status": "STARTED",
+   "tracking_url": "/ugv/A-ugv1/task/VIEW-CMD-6526bb8b",
+   "target_node": {
+    "node_id": "495083",
+    "lat": 38.03528,
+    "lon": 128.145491,
+    "snap_m": 0.0
+   },
+   "eta_sec": 1880,
+   "stop_point": null,
+   "duplicate": false,
+   "current_status": null
+  },
+  "created_wall": "2026-10-10T17:04:53.465450+00:00"
+ }
+}
