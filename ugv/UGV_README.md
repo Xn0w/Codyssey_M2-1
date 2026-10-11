@@ -124,7 +124,7 @@ Gazebo 화면의 소방차(A-fire1, 2026-10-05 주행 영상에서 캡처). UGV(
 |도로 상황 반영·우회|도로 통제와 혼잡을 출처별(시나리오 / 수동 / 구역)로 관리하고, 시나리오 CSV를 시각에 맞춰 적용합니다. 주행 중 앞길이 막히면 경로를 다시 찾습니다. 화재는 도로를 막지 않습니다 (팀 결정)|[road_status.py](road_status.py)<br>└ [`RoadStatus`](road_status.py#L18)<br>[scenario.py](scenario.py)<br>└ [`tick`](scenario.py#L121)<br>[server.py](server.py)<br>└ [`_drive_leg` 안 재탐색](server.py#L601)<br>[agent.py](agent.py)<br>├ [`blocked_ahead`](agent.py#L242)<br>└ [`reroute`](agent.py#L320)|
 |시뮬레이션 시계|환경 모듈의 `/health` 시각을 따라갑니다. 환경 모듈이 10초 넘게 응답하지 않으면 혼자 흐릅니다|[server.py](server.py)<br>└ [`_env_clock_loop`](server.py#L114)<br>[sim_clock.py](sim_clock.py)<br>├ [`SimClock`](sim_clock.py#L26)<br>└ [`follow_env`](sim_clock.py#L136)|
 |기록|네 갈래로 남깁니다.<br>① 실행별 사건 기록: 판단·주행·고장을 시뮬레이션 시각과 함께. 최근 30회 보관, 다시 보기의 근거<br>② 임무별 주행 CSV: 0.5초 간격 위치·속도·경로 이탈 거리<br>③ 오케스트레이터 보고 목록 (`/reports`)<br>④ 임무 저장: 서버를 다시 켜도 임무 상태 복구|[history.py](history.py)<br>└ [`record`](history.py#L58)<br>[drive_log.py](drive_log.py)<br>└ [`DriveLog`](drive_log.py#L29)<br>[reporter.py](reporter.py)<br>└ [`report`](reporter.py#L56)<br>[server.py](server.py)<br>├ [`_report`](server.py#L230)<br>└ [`STORE`](server.py#L69) (`ugv_tasks.json`)|
-|도로 상황판|지도 위에 차량·경로·막힌 도로를 표시하고, 지난 실행을 다시 재생하고, 차를 골라 직접 지시합니다 (직접 지시는 오케스트레이터의 안전 검토를 거치지 않음)|[static/road_view.html](static/road_view.html)<br>[server.py](server.py)<br>├ [`view_vehicles`](server.py#L1403)<br>├ [`view_command`](server.py#L1463)<br>└ [`view_dispatch`](server.py#L1295)|
+|도로 상황판|지도 위에 차량·경로·막힌 도로를 표시하고, 지난 실행을 다시 재생하고, 차를 골라 직접 지시합니다 (직접 지시는 오케스트레이터의 안전 검토를 거치지 않음). 화면 머리와 지도 위에 "AI 생성 화면"을 늘 표시합니다 (화면·지도 그림을 AI 코딩 도구로 만든 코드가 그림)|[static/road_view.html](static/road_view.html)<br>[server.py](server.py)<br>├ [`view_vehicles`](server.py#L1403)<br>├ [`view_command`](server.py#L1463)<br>└ [`view_dispatch`](server.py#L1295)|
 
 #### 1. 주행 전 임무 평가
 ![Swagger에서 A-ugv1 평가 요청 → 수락(ACCEPT), ETA 344초, 목표 노드 494959 (도로에서 40.7 m)](ugv_image/swagger_evaluate_accept.png)
@@ -582,6 +582,7 @@ Gazebo  (`gz sim`, 월드 1개에 차량 여러 대)
 |`UGV_REPORT_URL`|비어 있음|사건 보고를 보낼 주소. 비우면 기록만|
 |`UGV_STATE_DIR`|`ugv/.state`|임무 저장·기록 폴더|
 |`UGV_TARGET_SNAP_M`|`2000`|목표에서 도로까지 허용 거리(m)|
+|`UGV_EXTRA`|비어 있음|추가 UGV (sim 전용). `자원:거점[:출발노드],…` 예: `C-ugv1:C:495165`. 총괄 테스트 저장소의 같은 옵션과 맞춘 것|
 |`UGV_TARGET_MODE`|`road_point`|`road_point` = 도로 위 가장 가까운 점에 섬 (10/11부터 기본, 총괄 2 km 시야와 함께 쓰기로 함), `node` = 가장 가까운 교차로에 섬 (10/11 이전 기본, 그 전 시험은 모두 이 방식)|
 |`UGV_HISTORY_DIR`|`ugv/.state/history`|실행 기록 폴더 (다시 보기). 최근 30개 보관|
 |`UGV_CLOCK_SOURCE`|`px4`|PX4 드라이버일 때 UGV 시계가 Gazebo 시간을 따름. `wall`이면 벽시계 × `UGV_TIME_SCALE`|
