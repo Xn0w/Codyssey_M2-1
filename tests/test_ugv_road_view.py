@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 """UGV 도로 상황판 — 실행 기록(ugv/history.py)과 상황판용 API.
 
 실행 (저장소 루트):  python -m pytest tests/test_ugv_road_view.py -q

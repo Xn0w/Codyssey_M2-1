@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# 작성: AI 코딩 도구(Claude Code)를 사용해 작성·검토한 코드다.
 """트윈 거절 시연 운용자 — 도로에서 2 km 넘게 먼 산속 칸으로 UGV 정찰을 총괄에 요청해 거절(TARGET_UNREACHABLE)을 받는다.
 
 tools/twin_ground_dispatch.py 와 같은 '사람 역할' 스크립트다. 불 시나리오·도로 시나리오는 건드리지 않고

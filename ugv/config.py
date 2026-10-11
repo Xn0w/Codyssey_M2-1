@@ -8,29 +8,37 @@ import os
 # max_speed_mps: 차량 최고속도(시뮬레이션 초당 m). 도로별 속도 = min(max(도로 제한속도, MIN_ROAD_SPEED_KMH), 이 값) ÷ 혼잡 배율.
 #   r1_rover 2.1 (RO_MAX_THR_SPEED), rover_ackermann 3.1, lawnmower 2.7 — PX4 v1.16 기본 파라미터 기준.
 #   실제 소방차(수십 km/h)가 아니라 Gazebo 차량 속도에 맞춘 값이다. 실제 시간감은 UGV_TIME_SCALE 로 맞춘다.
-# sim_speed_mps: sim 드라이버(PX4 없이)로 달릴 때만 쓰는 속도. 없으면 max_speed_mps. ETA 도 같은 값으로 낸다.
-#   세 대 모두 60 km/h (상한, 총괄 브랜치 결정 2026-10-07 과 같은 값). 느린 도로는 하한 50 km/h (MIN_ROAD_SPEED_KMH) —
-#   sim 주행은 도로마다 50~60 km/h. PX4 는 r1_rover 라 2.0 그대로 (하한보다 작은 최고속도가 우선이라 영향 없음).
+# sim_speed_mps: sim 드라이버(PX4 없이)로 달릴 때만 쓰는 속도. ETA 도 같은 값으로 낸다.
+#   모든 차량 60 km/h (상한, 총괄 브랜치 결정 2026-10-07 과 같은 값). 느린 도로는 하한 50 km/h (MIN_ROAD_SPEED_KMH) —
+#   sim 주행은 도로마다 50~60 km/h. PX4 는 r1_rover 라 max_speed_mps 를 2.0 으로 묶는다 (아래 반복문, 하한보다 작은 최고속도가 우선).
 # 스폰 위치는 ugv/data/road_network.json 의 spawn[resource_id] (build_road_network.py 가 계산).
 RESOURCES = [
+    # UGV 최고속도 60 km/h (총괄 브랜치 사용자 결정 2026-10-07: 50~60 km/h, 실제 소방차 수준. sim 주행 기준 —
+    # Gazebo r1_rover 는 이 속도를 내지 못한다). 이전 값 2.0 m/s (r1_rover 기본)
     {"resource_id": "A-ugv1",  "resource_type": "UGV",
-     "base": "A", "home_node": "A", "px4_instance": 1, "px4_model": "r1_rover", "max_speed_mps": 2.0,
-     "sim_speed_mps": 60 / 3.6},
+     "base": "A", "home_node": "A", "px4_instance": 1, "px4_model": "r1_rover", "max_speed_mps": 60 / 3.6},
     # 소방차도 r1_rover 기반 (2026-10-03 WSL): rover_ackermann 은 명령 없이(disarm 상태) 조향된 채 굴러가
     # 도로 밖으로 떨어졌다. 경광등·방수포는 px4-start.sh 가 r1_rover 위에 붙인다 (ugv/gazebo/fire_truck)
     {"resource_id": "A-fire1", "resource_type": "FIRE_ENGINE",
-     "base": "A", "home_node": "A", "px4_instance": 3, "px4_model": "r1_rover", "max_speed_mps": 2.0,
-     "sim_speed_mps": 60 / 3.6},
+     "base": "A", "home_node": "A", "px4_instance": 3, "px4_model": "r1_rover", "max_speed_mps": 2.0},
     {"resource_id": "B-ugv1",  "resource_type": "UGV",
-     "base": "B", "home_node": "B", "px4_instance": 2, "px4_model": "r1_rover", "max_speed_mps": 2.0,
-     "sim_speed_mps": 60 / 3.6},
+     "base": "B", "home_node": "B", "px4_instance": 2, "px4_model": "r1_rover", "max_speed_mps": 60 / 3.6},
     # B 소방차 (2026-10-10): 팀 시나리오 구성(A·B 소방서에 UGV 1 + 소방차 1, 모두 4대)에 맞춰 추가. 설정은 A-fire1 과 같다
     {"resource_id": "B-fire1", "resource_type": "FIRE_ENGINE",
-     "base": "B", "home_node": "B", "px4_instance": 4, "px4_model": "r1_rover", "max_speed_mps": 2.0,
-     "sim_speed_mps": 60 / 3.6},
+     "base": "B", "home_node": "B", "px4_instance": 4, "px4_model": "r1_rover", "max_speed_mps": 2.0},
 ]
+# 추가 UGV (sim 전용, 기본 없음). UGV_EXTRA="자원:거점[:출발노드],..." — 출발노드를 생략하면 거점 노드.
+# 예: 트윈 --extra-fleet 의 원통(C)은 도로망 밖이라 가장 가까운 도로 노드(495165 광치령로, 1.3 km 남쪽)에서 출발
+for _i, _p in enumerate(p for p in os.getenv("UGV_EXTRA", "").split(",") if ":" in p):
+    _rid, _base, *_node = _p.split(":")
+    RESOURCES.append({"resource_id": _rid, "resource_type": "UGV", "base": _base, "home_node": _node[0] if _node else _base,
+                      "px4_instance": 10 + _i, "px4_model": "r1_rover", "max_speed_mps": 60 / 3.6})
 for _r in RESOURCES:
     _r["px4_port"] = 14540 + _r["px4_instance"]
+    # 속도 (UGV 담당 2026-10-09): sim 주행은 모든 차량 60 km/h (sim_speed_mps), PX4(Gazebo r1_rover)에는 낼 수 있는
+    # 2.0 m/s 까지만 명령한다 (max_speed_mps 상한). 위 목록·추가 UGV 가 60/3.6 이어도 PX4 명령은 2.0 으로 묶인다.
+    _r.setdefault("sim_speed_mps", 60 / 3.6)
+    _r["max_speed_mps"] = min(_r["max_speed_mps"], 2.0)
 
 # 장비 (ugv/equipment.py) — 잠정값
 #   소방차: 물탱크·방수량. [봉인 — UGV_SUPPRESSION=1 일 때만] 도착하면 자동으로 진압(SUPPRESSING) — 물이 바닥나거나 /suppress stop 까지.
@@ -80,8 +88,9 @@ ENV_CLOCK_POLL_S = float(os.getenv("UGV_ENV_CLOCK_POLL_S", "1.0"))
 # 총괄 주소 — 도로 상황판의 노드 클릭 출동 요청을 여기 POST /tasks 로 전달한다 (ugv/server.py /view/dispatch)
 ORCH_URL = os.getenv("UGV_ORCH_URL", "http://127.0.0.1:8200")
 
-# 도로 환경 시나리오(차단 도로·경유 불가 노드·혼잡의 시간대, CSV 또는 JSON). 기본은 시나리오 없음(도로 전부 열림)
-# — 2026-10-08 발표 범위에서 길막·혼잡 제외. 켜기: UGV_SCENARIO=ugv/scenarios/inje_girin.csv
+# 도로 환경 시나리오(차단 도로·경유 불가 노드·혼잡의 시간대, CSV 또는 JSON). 비우면 시나리오 없음
+# 총괄 브랜치 사용자 결정 2026-10-07: 도로 정체·통제 시나리오를 기본으로 끈다 (돌아가거나 느려지는 일 없음).
+# 다시 켜려면 UGV_SCENARIO=ugv/scenarios/inje_girin.csv
 SCENARIO_FILE = os.getenv("UGV_SCENARIO", "")
 # 차량 최고속도가 주어진 주행에서 도로 제한속도가 이보다 낮으면 이 값으로 본다 (50 km/h, 같은 결정). 0 이면 끔
 MIN_ROAD_SPEED_KMH = float(os.getenv("UGV_MIN_ROAD_SPEED_KMH", "50"))
