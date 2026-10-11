@@ -51,6 +51,8 @@ export GZ_SIM_RESOURCE_PATH="${GZ_SIM_RESOURCE_PATH:-}" GZ_SIM_SYSTEM_PLUGIN_PAT
 # shellcheck disable=SC1091
 . "$BUILD/rootfs/gz_env.sh"
 export GZ_SIM_RESOURCE_PATH="$REPO/ugv/gazebo/models:$REPO/ugv/gazebo/worlds:$GZ_SIM_RESOURCE_PATH"
+# 시험용 모델 변형(예: 바퀴 충돌체 비교)을 원본보다 먼저 찾게 한다 — 원본 모델 파일은 고치지 않는다
+if [ -n "${GZ_MODEL_OVERRIDE:-}" ]; then export GZ_SIM_RESOURCE_PATH="$GZ_MODEL_OVERRIDE:$GZ_SIM_RESOURCE_PATH"; fi
 export GZ_PARTITION="${GZ_PARTITION:-adair_ugv}"
 export GZ_IP="${GZ_IP:-127.0.0.1}"
 
