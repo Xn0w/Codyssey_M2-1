@@ -35,13 +35,13 @@ from ugv.terrain.dem import _K5186, _dem
 from ugv.tools.build_terrain_world import WORLD_ORIGIN_ALT, write_png16
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "logs" / "ugv" / "stage5" / "tiles"
+OUT = Path(os.getenv("ADAIR_TILES_OUT") or (ROOT / "logs" / "ugv" / "stage5" / "tiles"))   # 다른 폴더로 만들어 비교할 때 (기존 타일 보존)
 TILE_M = 1000.0
 N = 1025                     # 2^10 + 1 → 0.977 m 간격
 Q = 0.01                     # 높이 양자화 간격 (m) — 모든 타일 공통
 BLEND_M = 12.0               # build_terrain_world 와 같음
 JUNCTION_MODE = os.getenv("ADAIR_JUNCTION_MODE", "terrain")   # terrain: 교차로 안 = 다듬은 지형 면 Z / level: 도로 중심선 고도 혼합을 평활 (횡단 수평 유지)
-JUNC_LEVEL_SIGMA_M = 2.0           # level 모드 교차로 면 평활 (둔덕 제거). 2026-10-11 표본 25: σ2 교차로 횡경사 중앙값 4.0 %, σ4 4.5 %, σ7 6.0 % (σ7 은 턱 0.25 m)
+JUNC_LEVEL_SIGMA_M = float(os.getenv("ADAIR_JUNC_LEVEL_SIGMA_M", "0"))          # level 모드 교차로 면 평활 (둔덕 제거). 2026-10-11 표본 25: σ2 교차로 횡경사 중앙값 4.0 %, σ4 4.5 %, σ7 6.0 % (σ7 은 턱 0.25 m)
 JUNC_IN_M, JUNC_OUT_M = 15.0, 30.0   # 교차로 노드에서 JUNC_IN_M 안은 다듬은 지형 면 Z, JUNC_OUT_M 밖은 중심선 고도(횡단 평평), 사이는 연속 전이.
                                      # 교차로에서 여러 도로 중심선 고도를 섞으면 둔덕(2 m 간격 2차 차분 p95 0.22 m)이 생겨 회전 중 바퀴가 들려
                                      # 미끄러졌다 (2026-10-11 Gazebo: 요율/기구학 하위 10 % 0.28, 단일 높이장 b1 월드 0.44~0.61)
@@ -284,7 +284,8 @@ def build_tile(net, F, inc, half_w, i, j, junction_mode=None):
         # 교차로 안도 도로 중심선 고도 혼합(횡단 수평)을 쓰고, 도로마다 고도가 달라 생기는 둔덕만 공간 평활로 없앤다.
         # terrain 모드는 지형 면 Z 를 써 산비탈 교차로가 원지형 횡경사(중앙값 10.6 %)를 물려받았다 (2026-10-11 지도 대조)
         from scipy.ndimage import gaussian_filter
-        Sl = gaussian_filter(S, sigma=JUNC_LEVEL_SIGMA_M / cell, mode="nearest")
+        # σ 0 이면 평활 없음 — 값이 위치만으로 정해져 타일 이음매가 맞는다 (σ>0 은 타일마다 따로 평활해 이음매 최대 0.73 m 어긋남)
+        Sl = gaussian_filter(S, sigma=JUNC_LEVEL_SIGMA_M / cell, mode="nearest") if JUNC_LEVEL_SIGMA_M > 0 else S
         S = Sl * (1 - tj) + S * tj
     else:
         S = Z * (1 - tj) + S * tj
