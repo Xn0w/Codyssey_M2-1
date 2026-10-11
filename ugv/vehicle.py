@@ -96,6 +96,8 @@ STOP_RETRY_S = 2.0        # 정지 명령이 실패한 차(명령 불확실)는 
 STANDSTILL_ARMED_S = 5.0  # PX4 가 정차 유지(시동 끔)를 못 했을 때 정지로 보는 0.2 m/s 미만 지속 시간
 STOP_CMD_TIMEOUT_S = float(os.getenv("UGV_STOP_CMD_TIMEOUT_S", "8.0"))
 STOP_SUP_MARGIN_M = 5.0   # 정지 감독 허용 거리 = max(정지 경로, 제동거리) + 속도 × 명령 지연 + 이 여유
+STOP_SUP_LAT_PAD_S = 1.0  # 허용 거리의 명령 지연 몫에 더하는 시간 — 정지 명령 실제 지연이 추정(latency_s)보다 길다 (2026-10-11 Gazebo
+                          # 소방차 8.5 m/s 고장·취소: 44~46 m 로 허용 43 m 를 1~3 m 넘겨 서기 직전 차단 → 취소마다 고장)
 STOP_SUP_SLACK_S = 4.0    # 정지 감독 허용 시간 = 허용 거리를 평균 속도(처음 속도의 절반)로 가는 시간 + 명령 지연 + 이 여유
 STOP_SUP_ACCEL_MPS = 0.8  # 정지 명령 뒤 지연이 지나서도 처음 속도보다 이만큼 빨라지면 감속이 진행되지 않는 것
 STOP_SUP_ACCEL_HOLD_S = 2.0  # 그 가속이 이만큼 이어져야 '감속 안 함' (명령 교체 순간의 짧은 흔들림과 구분 — 거리·시간 상한은 따로)
@@ -971,7 +973,7 @@ class Vehicle:
         v0 = max(tel.speed_mps, 0.0) if tel is not None else 0.0
         lat = self.latency_s()
         reach = max(path_len or 0.0, self.profile.stop_distance(v0) if v0 >= 0.3 else 0.0)
-        allow = reach + v0 * lat + STOP_SUP_MARGIN_M
+        allow = reach + v0 * (lat + STOP_SUP_LAT_PAD_S) + STOP_SUP_MARGIN_M
         t_allow = (2.0 * reach / v0 if v0 >= 0.3 else 0.0) + lat + STOP_SUP_SLACK_S
         self._stop_sup = {"basis": basis, "t0": now, "x": tel.x if tel else None, "y": tel.y if tel else None,
                           "v0": round(v0, 2), "vmax": v0, "travel_m": 0.0, "allow_m": round(allow, 1),
