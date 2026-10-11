@@ -36,7 +36,10 @@ PROFILE = {
             "ENV_REPORT_DELAY_S": "60", "ENV_RESUME": "0"},
     "ugv": {"UGV_DRIVER": "px4", "UGV_VEHICLES_JSON": "logs/ugv/stage4/single_a_fleet.json",
             "UGV_ROAD_SUBSET": "logs/ugv/stage5/tiles/road_subset_tz_a33.json", "UGV_ENV_URL": "http://127.0.0.1:8300",
-            "UGV_TIME_SCALE": "1"},
+            "UGV_TIME_SCALE": "1",
+            # 곡선 횡가속 한도 1.5 → 1.0 m/s²: 지형 월드 시연 경로 출발 직후 교차로에서 조향 포화·이탈 0.37 m (사전 시험 1, 1.5) →
+            # 1.0 에서 이탈 0 (사전 시험 3·4). 원인(실제 지형 일부 회전의 요율 비 저하)은 미확정 — 평면·평탄 높이장은 차이 없음
+            "UGV_LAT_ACCEL": "1.0"},
     "uav": {"UAV_ID": "A-uav1", "UAV_MODE": "real", "PX4_ADDRESS": "udpin://0.0.0.0:14540"},
     "orch": {"ORCH_ENV_MODE": "team_http", "ORCH_ENV_URL": "http://127.0.0.1:8300", "ORCH_UAV_ENDPOINTS_REPLACE": "1",
              "ORCH_UAV_ENDPOINTS": "A-uav1=http://127.0.0.1:8000", "ORCH_UGV_RETURN_HOME": "1", "ORCH_OBS_PLANNER": "0",
@@ -74,6 +77,15 @@ def preflight(run: Path) -> dict:
         rep["ports"][name] = {"port": p, "listening_pid": owner}
         if owner:
             rep["problems"].append(f"포트 {p} ({name}) 사용 중 pid {owner} — 다른 시험·사용자 프로세스일 수 있어 끄지 않는다")
+    # 같은 번호 PX4 가 이미 떠 있으면 px4-start.sh 가 새로 띄우지 않고 그것을 쓴다 (2026-10-11 사전 시험 2: UGV 체인이 남긴 인스턴스 1 —
+    # 월드 없는 PX4 에 붙어 미션 업로드 시간 초과). 이번 작업의 UGV 체인(~/.adair-ugv)이 남긴 것은 UGV 포트 8100 이 비었을 때만 정리
+    stale = sh(WSL + ["bash", "-lc", "pgrep -fa 'bin/px4 -i (0|1) ' || true"]).stdout.strip()
+    if stale and not port_owner(8100):
+        sh(WSL + ["bash", "-lc", f"bash {wslpath(ROOT / 'ugv/tools/px4-stop.sh')}"])
+        rep["stale_px4_stopped"] = stale.splitlines()
+        stale = sh(WSL + ["bash", "-lc", "pgrep -fa 'bin/px4 -i (0|1) ' || true"]).stdout.strip()
+    if stale and "adair-integ" not in stale:
+        rep["problems"].append(f"PX4 인스턴스 0·1 이 이미 실행 중 (다른 시험): {stale.splitlines()}")
     v = sh(WSL + ["bash", "-lc", "cd ~/PX4-Autopilot && git describe --tags; gz sim --version | head -1; "
                                  "ls ~/PX4-Autopilot/build/px4_sitl_default/bin/px4"]).stdout.strip().splitlines()
     rep["px4_gz"] = v
@@ -214,9 +226,10 @@ def run_cmd(minutes: float, run: Path, pretest: bool = False, dry: bool = False)
         st = PROFILE["wsl_state"].replace("~", "$HOME")
         if not dry:
             sh(WSL + ["bash", "-lc", f"STATE={st} bash {wslpath(ROOT / 'integration/px4_live/wsl_stop.sh')}"])
-        # PX4 ULog 복사 (인스턴스 0·1 의 마지막 로그)
-        sh(WSL + ["bash", "-lc", f"mkdir -p {wslpath(run / 'ulog')} && for i in 0 1; do f=$(ls -t {st}/px4-$i/log/*/*.ulg 2>/dev/null | head -1); "
-                                 f"[ -n \"$f\" ] && cp \"$f\" {wslpath(run / 'ulog')}/px4-$i.ulg; cp {st}/px4-$i.log {wslpath(run / 'ulog')}/ 2>/dev/null; done"])
+        # PX4 ULog·로그 복사 (인스턴스 0·1 의 마지막 로그)
+        (run / "ulog").mkdir(exist_ok=True)
+        sh(WSL + ["bash", wslpath(ROOT / "integration/px4_live/wsl_copy_ulog.sh"), PROFILE["wsl_state"].replace("~/", ""),
+                  wslpath(run / "ulog")])
         print("종료·기록:", run)
 
 
