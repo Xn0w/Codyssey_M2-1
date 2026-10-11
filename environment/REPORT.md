@@ -7,7 +7,7 @@
 <summary>[2026년 9월 21일 - DEM, 산림지도, 도로망 데이터 전처리 및 초기 산불 확산 모델 구축]</summary>
 <br>
 
-## 1. 담당 작업
+### 1. 담당 작업
 - **전체 시스템에서의 역할**: 환경 / 산불 모델링
 - **핵심 역할 및 구현 방식**:
   - **GIS 2D 환경 격자 구축 (`src/environment/grid.py`)**: 인제 원통-기린 지역 등 실제 GIS raster 데이터(`dem_clipped.tif`, `slope_5186.tif`, `aspect_5186.tif`, `fuel_type.tif`, `roads_raster.tif`)를 입력 처리하여 90m 셀 해상도의 2D `EnvironmentGrid` 생성.
@@ -17,7 +17,7 @@
 
 ---
 
-## 2. 현재 진행 상황
+### 2. 현재 진행 상황
 
 - **완료 및 구현 중**: GIS 격자 구축, CA 산불 확산 엔진 초안, 위험도 산출, 환경 조회/API
   - **좌표계 / 격자 기준**:
@@ -34,7 +34,7 @@
 
 ---
 
-## 3. 연결할 내용
+### 3. 연결할 내용
 - **다른 파트에서 받아야 할 정보 (Inputs)**:
   - **UAV / UGV**: 현장 수색/대응 시 관측한 정밀 화재 좌표, 화재 상태(`BURNING`/`UNBURNED`), 풍속/풍향, 관측 보고서 (`ObservationReport`).
   - **시스템 통합**: Web 관제 UI / Gazebo 3D 연동용 공통 좌표계 기준점 및 메시지 payload 표준 스키마 (JSON/Protobuf).
@@ -44,7 +44,7 @@
 
 ---
 
-## 4. 막힌 점 & 멘토 질의사항
+### 4. 막힌 점 & 멘토 질의사항
 - **현재 상태**:
   - 핵심 환경 모델 기능(GIS 격자, CA 확산, 위험도 산출)은 초기 구현 상태이며, 현재는 통합 점검과 입력 데이터 품질 점검 단계에 있음.
 
@@ -54,7 +54,7 @@
 
 ---
 
-## 5. 다음 계획 및 도움
+### 5. 다음 계획 및 도움
 - **다음 계획**:
   - GIS 데이터 품질 점검; 모델 검증
   - 관측 반영 API 테스트 (화재 상태, 풍향/풍속, 셀 단위 습도)
@@ -66,10 +66,10 @@
 
 ---
 
-## 실행 화면
+### 6. 실행 화면
 
 ```bash
-$ python visualize_fire.py --x 19 --y 142 --steps 30 --save images/fire_spread.gif
+$ python visualize_fire.py --x 100 --y 125 --steps 20
 ```
 
 ![화재 확산 시뮬레이션](./images/fire_spread_1.gif)
@@ -83,15 +83,21 @@ $ python visualize_fire.py --x 19 --y 142 --steps 30 --save images/fire_spread.g
 <summary>[2026년 9월 28일 - 소방서 SOS반영하여 S_spread, S_human, S_infra, S_property, S_secondary 넣어 위험도 구성 변경]</summary>
 <br>
 
-완료 사항:
-- 산불 spread 계산을 risk.py 에서 fire_model.py으로 옮김.
-- N-step CA Monte Carlo ensemble를 넣어 전방 N=10을 보고 M=10를 돌려서 확률적으로 spread를 계산.
-- AHP를 통해서 위험도의 w_spread, w_human, w_infra, w_property, w_secondary등의 가중치 계산.
+### 1. 주요 배경 및 개선 사항
+- **소방 대응 원칙(SOS) 반영**: 소방 표준 현장 대응 우선순위(인명 보호 > 중요 시설 > 일반 재산 > 확산 방지)를 모델링에 수용하기 위해, 단일 지형 중심 위험도에서 5대 다기준 복합 위험도 체계(WLC)로 개편함.
+- **5대 위험도 세부 지표 도입**:
+  - $S_{\text{spread}}$: 동적 산불 확산 위협도 (기존 `risk.py`에서 물리/확률 계산을 `fire_model.py`로 분리 이관)
+  - $S_{\text{human}}$: 인명 보호 노출도 (`RESIDENTIAL` 주거 건물 프록시)
+  - $S_{\text{infra}}$: 중요 기반시설 노출도 (`IMPORTANT`, `CRITICAL` 시설 프록시)
+  - $S_{\text{property}}$: 일반 재산 노출도 (`COMMERCIAL`, `INDUSTRIAL` 건물 프록시)
+  - $S_{\text{secondary}}$: 2차 위험 노출도 (`SECONDARY_HAZARD` 위험물 저장시설 등 프록시)
+- **N-step CA 앙상블 확산 예측 도입**:
+  - 전방 $N=10$ 스텝의 CA 몬테카를로 시뮬레이션을 $M=10$회 반복 수행하여 확산 도달 확률($P_{\text{arrival}} \le N$)을 확률론적으로 산출.
+- **AHP(계층화 의사결정법) 기반 가중치 산출 (`src/ahp.py`)**:
+  - 쌍대비교 행렬을 통해 일관성 검증($CR < 0.10$)을 거쳐 복합 가중치($W_{\text{human}} \approx 0.634, W_{\text{infra}} \approx 0.182, W_{\text{property}} \approx 0.087, W_{\text{secondary}} \approx 0.060, W_{\text{spread}} \approx 0.038$) 도출 및 적용.
 
-다음 계획:
-- 산림지도 `dem_clipped.tif`사이즈로 확장하기
-- 도로망 `dem_clipped.tif`사이즈로 확장하기
-- 위험도 개선
+### 2. 다음 계획
+- 산림 피복 및 도로망 래스터 범위를 `dem_clipped.tif` 크기와 완전히 일치하도록 확장 전처리.
 
 <br>
 </details>
@@ -118,7 +124,7 @@ $ python visualize_fire.py --x 19 --y 142 --steps 30 --save images/fire_spread.g
 2. 2019년 실제 인제 산불난 지역 vs. 산불 확산 모델 초기 비교했을 때 불이 점화되지 않았음
     - 초기 테스트에서 점화되지 않은 이유: ignition cell에 데이터가 없었음 (nodata).
     - 불이 안 퍼지는 이유: 그 지역에 no fuel cell이 많음
-    - 풍향이 반대임: 점화되었을 때 기상청 ASOS 2019/04/04 14:45에 158.6 deg (남남동풍 - 남남동에서 오는 바람, 즉 북북서쪽)인데 지도에서 보면 불길이 퍼진 곳은 남남동쪽으로 보임. 기상청 ASOS에 있는 풍향(바람이 불어오는 방향) 데이터는 FROM이라고는 하지만 TOWARD일 수도 있으므로 설정파일에 두 모드를 넣고 테스트.
+    - 풍향이 산불 확산 방향과 반대임: 점화되었을 때 기상청 ASOS 2019/04/04 14:45에 158.6 deg (남남동풍 - 남남동에서 오는 바람, 즉 북북서쪽)인데 지도에서 보면 불길이 퍼진 곳은 남남동쪽으로 보임. 기상청 ASOS에 있는 풍향(바람이 불어오는 방향) 데이터는 FROM이라고는 하지만 TOWARD일 수도 있으므로 설정파일에 두 모드를 넣고 테스트.
     * 풍향 문제 해결: 설정 파일에 wind_direction_convention: "from" 나 "toward" 선택할 수 있게 넣음 -> 결국 `FROM`선택
     * 점화 문제 개선: fuel barrier: nodata (-9999) -> 데이터 없으면 nearest 선택 (도로 있으면 block하는 것도 넣음)
     * nodata 처리 개선: 연료(fuel) 래스터에는 약 7,463개의 nodata(`-9999`) 셀이 발화 지점 주변에 흩어져 있었는데, 기존에는 이를 실제 비연료(class 0)와 동일하게 방화벽으로 처리하여 연료 연결성이 끊기면서 산불이 발화 직후 소멸하는 문제가 있었음. 이를 해결하기 위해 nodata 셀을 가장 가까운 유효 연료 등급으로 채우는 최근접 이웃(nearest-neighbor) 보간 방식을 도입하되, 실제 비연료(class 0: 수역/도로/나지)는 방화벽으로 그대로 유지함. 소양강의 물은 nodata처리에서 제외. 또한 설정상 발화점(lat/lon → row=100, col=13)이 nodata 셀에 놓여 불이 시작되지 못했기 때문에, 발화점이 비연료/nodata 셀일 경우 가장 가까운 연료 셀로 이동(snap)시키는 옵션을 추가함. 
