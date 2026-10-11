@@ -48,3 +48,20 @@ def test_return_refused_keeps_occupancy(world, monkeypatch):
         orch.poll()
     att = orch.ledger.get_attempt(aid)
     assert att["substatus"] == "RETURNING" and att["detail"]["return_home"]["status"] == "NO_ACCESS_POINT"
+
+
+def test_queued_order_stop_skips_return_home(world, monkeypatch):
+    """작업 지시서 다음 지점이 기다리면 거점에 들르지 않고 반납 (건식 예행연습: 지점마다 거점 왕복하던 것)."""
+    monkeypatch.setattr(config, "UGV_RETURN_HOME", True)
+    monkeypatch.setattr(config, "OBS_PLANNER_ENABLED", True)
+    orch, ugv = world["orch"], world["ugv"]
+    ugv.default_script = _script
+    ugv.station = {"base_id": "A", "access_point": {"road_id": "682501660", "s_m": 46.8}}
+    task = submit(orch, request_id="G3", kind="GROUND_SUPPORT",
+                  requirements={"resource_types": ["UGV"], "sensor": None, "needs_env_ack": False})
+    aid = orch.dispatch(task.task_id)["attempt_id"]
+    monkeypatch.setattr(orch, "_queued_stop", lambda rid: True)
+    for _ in range(8):
+        orch.poll()
+    assert orch.ledger.get_attempt(aid)["substatus"] == "RELEASED"
+    assert not [c for c in ugv.calls if c[0] == "POST" and c[1].endswith("/execute") and c[2]["task_id"].endswith("-HOME")]

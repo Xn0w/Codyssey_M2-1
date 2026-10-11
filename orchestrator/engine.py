@@ -1966,6 +1966,12 @@ class Orchestrator:
         2) 그 복귀 임무가 COMPLETED 이고 차량 READY → False (호출 쪽이 RELEASED). FAILED·거절이면 반납하지 않고 운용자 확인 대기."""
         rid, aid = att["resource_id"], att["attempt_id"]
         rh = detail.get("return_home")
+        if rh is None and config.OBS_PLANNER_ENABLED and self._queued_stop(rid):
+            # 작업 지시서의 다음 지점이 기다린다 → 거점에 들르지 않고 반납해 다음 지점으로 (2026-10-11 건식: 지점마다 거점 왕복)
+            if v is not None and v.ready and v.current_task_id is None:
+                self.ledger.log("UGV_RETURN_HOME_SKIPPED", task_id=att["task_id"], attempt_id=aid, resource_id=rid,
+                                reason="NEXT_ORDER_STOP_QUEUED")
+                return False
         if rh is None:
             if v is None or not v.ready or v.current_task_id is not None:
                 return None if att["substatus"] in ("RETURNING", "FAULTED") else move("RETURNING", "UGV_STOP_UNCONFIRMED")
