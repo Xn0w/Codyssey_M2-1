@@ -160,3 +160,12 @@
 - 작업 브랜치 wip/curve-comp (../ADAIR_wt_comp): 6d50a9e 성능, 3d0fcd9 곡선 보정(검증 전), 막힘 거절 커밋 → 검증 뒤 feat 로 cherry-pick
 - 총괄 폐루프: `python logs/ugv/stage4/orch_loop.py --url <UGV 서버> --scenario loop|fault|blocked --tag <이름>`
 - 전체 시험: `.venv\Scripts\python.exe -m pytest ugv/tests -q`
+
+## 2026-10-11 저녁 — 최종 후보 38aa911 (코드 동결)
+- c23 지속 운용(f3369fe)에서 찾은 결함 4건 Fable 원인 검증 → 21890a9·27a9f25 → **38aa911** (시작 항목 경로 진행 위치). 21890a9·27a9f25 는 후보에서 내림.
+- 자동 시험 38aa911: 613 passed, 8 skipped (실기동 시험), 0 failed.
+- 같은 커밋 Gazebo: 교차로 재현 3회 (출발 도로 수정 확인, ±0.2 m 출발 OFF_ROAD — 알려진 결함 1), 정지 재검증 목표 교체 통과·고장/취소 무효(소방차 교차로 앞 갇힘 — 알려진 결함 2),
+  통합 1차 무효(총괄 배정 멈춤, 원인 미확인) → **재실행 run_20261011_181821 통과** (이탈 0, 지형 여유 85.2 m, 시작 항목 0 → PX4 순서 진행).
+- 18:38~ chain26: 정지 재검증 고장·취소 (새 스폰, c26_stopv) → 지속 운용 (c26_soak, 시간 남는 만큼).
+- 보고서: docs/intergration/04 의 0절·5-0·7절, docs/ugv/UGV_검증보고서_24h.md 9-B.
+- 19:55 chain26 끝: c26_soak 40 분 FINISHED (38aa911). 재시작 정상, 교차 충돌 회피 불가 정지 1건 (2대), 차체 도로 밖 최대 0.15 m (A-ugv1). 19:55~ 마무리: 문서·도구 로컬 커밋, 이번 작업 프로세스 정리.
