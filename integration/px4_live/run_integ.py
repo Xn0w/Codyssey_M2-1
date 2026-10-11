@@ -97,7 +97,9 @@ def preflight(run: Path) -> dict:
     rep["dem_sha1"] = version.file_sha1(str(ROOT / "environment" / "data" / "processed" / "dem_clipped.tif"))
     rep["road_subset_sha1"] = version.file_sha1(str(ROOT / PROFILE["ugv"]["UGV_ROAD_SUBSET"]))
     rep["tiles_meta_sha1"] = version.file_sha1(str(tiles / "tiles.json"))
-    rep["llm_key_present"] = bool(os.getenv("OPENAI_API_KEY"))          # 값은 기록하지 않는다
+    import orchestrator.config as oc                                   # 총괄과 같은 방식으로 ADAIR/.env 를 읽는다
+    rep["llm_key_present"] = bool(os.getenv(oc.LLM_API_KEY_ENV))          # 값은 기록하지 않는다 (있는지만)
+    rep["llm_model"] = oc.LLM_MODEL
     (run / "preflight.json").write_text(json.dumps(rep, ensure_ascii=False, indent=1), encoding="utf-8")
     return rep
 
