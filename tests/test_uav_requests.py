@@ -10,8 +10,8 @@ import pytest
 
 from tests.test_exec_idempotency import UAV, UAV_DIR, Server, TARGET, wait
 
-# 원통 기지에서 약 3 km. 복귀가 몇 초(실제 시간) 걸려 복귀 중 상태를 볼 수 있다
-NEAR = {"lat": 38.1000, "lon": 128.2150, "alt_m_amsl": 400.0}
+# 인제 기지 북쪽 약 3 km. 복귀가 몇 초(실제 시간) 걸려 복귀 중 상태를 볼 수 있다
+NEAR = {"lat": 38.0884, "lon": 128.1685, "alt_m_amsl": 570.0}
 
 
 def start(tmp_path, **env):
@@ -184,12 +184,12 @@ def test_route_required_mode(tmp_path):
 
 
 def test_route_cruise_clears_dem_terrain(uav):
-    """능선 목표: 경로 중간 지형이 관측고도보다 높아 순항고도를 올린다 (DEM 이 있을 때)"""
+    """능선 너머 목표(인제 기지 동남쪽 약 3 km 골짜기): 경로 중간 지형이 관측고도보다 높아 순항고도를 올린다 (DEM 이 있을 때)"""
     caps = httpx.get(f"{uav.url}/uav/{UAV}/capabilities").json()
     if not caps["route"]["dem"]:
         pytest.skip("DEM(rasterio) 없음")
     mock_set(uav, battery_pct=100)
-    r = ev(uav, target={"lat": 38.0425, "lon": 128.2541, "alt_m_amsl": 804.0})
+    r = ev(uav, target={"lat": 38.0514, "lon": 128.1985, "alt_m_amsl": 218.0})
     c = r["constraints"]
     assert c["cruise_alt_m_amsl"] > c["flight_alt_m_amsl"] and c["terrain_check"] in ("OK", "PARTIAL")
 

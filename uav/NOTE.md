@@ -5,6 +5,11 @@
 
 > 이 문서는 **구축 과정 기록**이다. 현재 실행 방법은 [README.md](README.md),
 > API 사양은 [API_DEFINE.md](API_DEFINE.md), 팀 합의 정책은 [docs/uav/uav_final](../docs/uav/uav_final) 을 따른다.
+>
+> **2026-10-10 기준 달라진 점** (본문의 예전 서술보다 이쪽이 우선)
+> - 기지: A=**인제119**(38.0614, 128.1685), B=기린119(37.9647, 128.3184). 팀 거점 단일 출처 `environment/config/fire_stations.json` 을 읽는다. Gazebo 스폰도 인제119.
+> - 판정 순서와 reason: [API_DEFINE.md](API_DEFINE.md) 표가 기준. COUNTER 는 `RETURN_MARGIN_INSUFFICIENT`(관측 시간 축소) 하나뿐이고, `DEADLINE_TIGHT` 는 REJECT, `MODERATE_WIND` 는 ACCEPT 의 경고(`constraints.warnings`)다.
+> - 마감 필드는 `deadline`(시각) 대신 `remaining_time_s`(남은 시뮬레이션 초)다.
 
 ---
 
@@ -190,11 +195,12 @@ mavsdk 3.x 가 깔린 환경으로 real 모드를 띄우면 실패한다.
 
 ## 4. 시나리오 좌표
 
-산불 지역: **원통119 ↔ 기린119 사이** (강원 인제군)
+산불 지역: **A 기지 ↔ 기린119 사이** (강원 인제군). 처음에는 A 기지를 원통119로 잡았고, 2026-10-10 팀 거점 파일에 맞춰 인제119로 바꿨다.
 
 | 지점 | 좌표 (근사) | 고도 |
 |---|---|---|
-| 원통119안전센터 | 38.1205, 128.2018 | ~235 m |
+| 인제119안전센터 (A, 현재) | 38.0614, 128.1685 | ~199 m |
+| 원통119안전센터 (A, 2026-10-09까지) | 38.1205, 128.2018 | ~235 m |
 | 기린119안전센터 | 37.9645, 128.3062 | ~285 m |
 | 중간 지점 | 38.0425, 128.2541 | **~804 m** (SRTM 30 m 기준) / 761 m (팀 DEM `dem_gangwon.tif` 90 m 기준) |
 
@@ -250,17 +256,14 @@ mavsdk 3.x 가 깔린 환경으로 real 모드를 띄우면 실패한다.
    - margin < 0               → REJECT / LOW_BATTERY
    - margin < BATTERY_RESERVE_PCT → COUNTER / RETURN_MARGIN_INSUFFICIENT (체류시간↓ 제안)
 
-3단계: 시간 (deadline 이 있을 때만)
-   - deadline 이미 지남        → REJECT / TIMEOUT
-   - ETA > 남은 시간           → COUNTER / DEADLINE_TIGHT (가능 시각 제시)
+3단계: 시간 (remaining_time_s 가 있을 때만, 시뮬레이션 초)
+   - 남은 시간 ≤ 0             → REJECT / TIMEOUT
+   - ETA > 남은 시간           → REJECT / DEADLINE_TIGHT
 
-4단계: 풍속 주의
-   - 풍속 ≥ COUNTER 기준       → COUNTER / MODERATE_WIND
-
-모두 통과                      → ACCEPT
+모두 통과                      → ACCEPT (풍속 ≥ 8 m/s 면 constraints.warnings=["MODERATE_WIND"])
 ```
 
-앞 단계의 COUNTER 에 걸리면 풍속이 8~10 m/s 여도 `MODERATE_WIND` 가 아닌 그 사유로 나간다.
+2단계의 정확한 순서(COUNTER 를 LOW_BATTERY 보다 먼저 검사)와 전체 표는 [API_DEFINE.md](API_DEFINE.md) 를 따른다.
 
 ### 6-2. 설정값 (전부 잠정 — 팀 합의안 `docs/uav/uav_final` 10절)
 
@@ -502,7 +505,7 @@ health: gps_ok= True home_ok= True
 기본 홈 위치는 **스위스 취리히(47.3979, 8.5461)** 다. 4절 좌표로 바꿔야
 거리·ETA·지형 계산이 의미를 갖는다. 평지 월드(`px4-start.sh`)는 환경변수로 지정한다.
 강원 지형 월드(`px4-start-kangwon.sh`)는 월드 원점이 `gz_bridge.py` datum 이라 `PX4_HOME_*` 를 쓰지 않고
-`PX4_GZ_MODEL_POSE`(gazebo/spawn.env)로 원통119 에 스폰한다.
+`PX4_GZ_MODEL_POSE`(gazebo/spawn.env)로 A 기지(인제119)에 스폰한다.
 
 ```bash
 docker rm -f px4

@@ -19,7 +19,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 UAV_DIR = ROOT / "uav" / "uav-agent"
 UAV = "A-uav1"
-TARGET = {"lat": 38.1250, "lon": 128.2060, "alt_m_amsl": 240.0}     # 원통 기지 근처 (짧은 비행)
+TARGET = {"lat": 38.0659, "lon": 128.1685, "alt_m_amsl": 204.0}     # 인제 기지 북쪽 약 500 m (짧은 비행)
 
 
 def _port():

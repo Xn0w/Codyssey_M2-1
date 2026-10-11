@@ -21,14 +21,19 @@ AGL_MARGIN_M = 10           # target_agl_m 위에 더하는 여유고도
 
 # 기지 (시나리오: A·B 소방서에 UAV 2대씩. UAV_ID 앞글자로 소속을 정한다 — "A-uav1" → A)
 # (lat, lon, 지면 해발고도 m). Mock 의 출발·복귀 위치다. real 은 PX4 home 을 쓴다.
-HOME_BASES = {
-    "A": (38.1205, 128.2018, 235.0),   # 원통119 — Gazebo 강원 월드 스폰 위치와 같음
-    "B": (37.9645, 128.3062, 279.0),   # 기린119 — 팀 DEM 지면고도
-}
+# 위치는 팀 거점 좌표 단일 출처 environment/config/fire_stations.json (INT-04) 을 읽는다 — A=인제119, B=기린119.
+# 지면 해발고도는 그 파일에 없어서 같은 DEM(dem_clipped.tif) 값을 적어 둔다.
+import json as _json
+import os as _os
+from pathlib import Path as _Path
+
+_STATIONS_FILE = _Path(__file__).resolve().parents[2] / "environment" / "config" / "fire_stations.json"
+_STATION_GROUND_M = {"A": 199.2, "B": 282.4}
+HOME_BASES = {s["base_id"]: (s["lat"], s["lon"], _STATION_GROUND_M[s["base_id"]])
+              for s in _json.loads(_STATIONS_FILE.read_text(encoding="utf-8"))["stations"]}
 
 # 전진 이착륙 (mock 전용). UAV_HOME="lat,lon,지면해발" 을 주면 소속 기지 대신 그 지점에서 뜨고 내린다.
 # 소방차에 싣고 현장 근처로 가서 띄우는 운용을 흉내 낸다 (2019 인제 트윈 시나리오 B). real 은 PX4 home 을 쓴다.
-import os as _os
 if _os.getenv("UAV_HOME"):
     _lat, _lon, _alt = (float(v) for v in _os.environ["UAV_HOME"].split(","))
     HOME_BASES = {k: (_lat, _lon, _alt) for k in HOME_BASES}

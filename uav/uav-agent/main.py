@@ -49,7 +49,7 @@ app = FastAPI(
 # 이 프로세스가 담당하는 UAV 1대. 여러 대를 운용하면 서버를 나누고 각자 다른 값을 준다.
 #   UAV_ID=A-uav1 ... --port 8000
 #   UAV_ID=A-uav2 ... --port 8001
-# 앞글자가 소속 기지다(A=원통119, B=기린119). Mock 은 그 기지에서 출발·복귀한다.
+# 앞글자가 소속 기지다(A=인제119, B=기린119 — environment/config/fire_stations.json). Mock 은 그 기지에서 출발·복귀한다.
 UAV_ID = os.getenv("UAV_ID", "A-uav1")
 
 provider = get_provider(UAV_ID)
