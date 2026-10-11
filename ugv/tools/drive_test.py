@@ -18,6 +18,7 @@ import asyncio
 import csv
 import json
 import math
+import os
 import subprocess
 import sys
 import time
@@ -49,7 +50,7 @@ def to_wsl_path(p: Path) -> str:
 
 # ---------------------------------------------------------------------------- 기록
 def start_tracker(out_csv: Path, duration_s: float, world="adair_flat", model="adair_ugv_1"):
-    cmd = ["wsl.exe", "-d", WSL_DISTRO, "--", "env", "GZ_PARTITION=adair_ugv", "GZ_IP=127.0.0.1",
+    cmd = ["wsl.exe", "-d", WSL_DISTRO, "--", "env", f"GZ_PARTITION={os.getenv('UGV_GZ_PARTITION', 'adair_ugv')}", "GZ_IP=127.0.0.1",
            "python3", to_wsl_path(ROOT / "ugv" / "tools" / "gz_track.py"), "--world", world, "--model", model,
            "--out", to_wsl_path(out_csv), "--duration", str(duration_s)]
     return subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

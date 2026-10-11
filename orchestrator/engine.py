@@ -1939,6 +1939,10 @@ class Orchestrator:
                 (x for x in client.states() if x.resource_id == att["resource_id"]), None)
         except Unreachable:
             v = None
+        if att["command"]["resource_type"] != "UAV" and config.UGV_RETURN_HOME:
+            out = self._ugv_return_home(att, client, v, detail, move)
+            if out is not False:
+                return out
         if v is not None and v.ready and v.current_task_id is None:
             # 기체 반납은 환경 반영 대기와 별개다. 대기 중인 관측은 장부(pending_applies)에 남아 계속 재반영된다
             out = move("RELEASED", "RESOURCE_READY_CONFIRMED", release=True,
@@ -1954,6 +1958,46 @@ class Orchestrator:
         if att["substatus"] in ("RETURNING", "FAULTED"):
             return None                     # 아직 READY 아님 → 점유 유지
         return move("RETURNING", "LANDED_READY_UNCONFIRMED")
+
+    def _ugv_return_home(self, att, client, v, detail, move):
+        """총괄이 관리하는 UGV 복귀 (config.UGV_RETURN_HOME). 돌려주는 값: False = 복귀 단계 끝(반납 판단은 호출 쪽 READY 확인),
+        None·dict = 아직 복귀 중(점유 유지).
+        1) 목적지 정차·READY(현재 임무 없음) 확인 → 소속 거점 대기 지점(UGV 상태의 station.access_point)으로 실행 (실행 키 <시도>-HOME)
+        2) 그 복귀 임무가 COMPLETED 이고 차량 READY → False (호출 쪽이 RELEASED). FAILED·거절이면 반납하지 않고 운용자 확인 대기."""
+        rid, aid = att["resource_id"], att["attempt_id"]
+        rh = detail.get("return_home")
+        if rh is None:
+            if v is None or not v.ready or v.current_task_id is not None:
+                return None if att["substatus"] in ("RETURNING", "FAULTED") else move("RETURNING", "UGV_STOP_UNCONFIRMED")
+            acc = ((v.raw or {}).get("station") or {}).get("access_point") or {}
+            if not acc.get("road_id"):
+                self.ledger.log("UGV_RETURN_HOME_UNAVAILABLE", task_id=att["task_id"], attempt_id=aid, resource_id=rid,
+                                reason="NO_ACCESS_POINT_IN_STATE")
+                return move("RETURNING", "UGV_RETURN_HOME_UNAVAILABLE", extra={"return_home": {"status": "NO_ACCESS_POINT"}})
+            key = f"{aid}-HOME"
+            payload = {"task_id": key, "decision_id": f"{att['decision_id']}-HOME",
+                       "target_node": f"RP:{acc['road_id']}:{float(acc['s_m']):.1f}"}
+            kind, resp = client.execute(rid, payload)
+            rh = {"exec_task_id": key, "target_node": payload["target_node"], "send": kind, "sent_wall": time.time(),
+                  "response": resp if kind != "ACK" else {k: resp.get(k) for k in ("status", "eta_sec", "task_id")}}
+            self.ledger.log("UGV_RETURN_HOME_SENT", task_id=att["task_id"], attempt_id=aid, resource_id=rid, result=kind,
+                            detail=rh)
+            return move("RETURNING", "UGV_RETURN_HOME_SENT", extra={"return_home": rh})
+        if rh.get("status") == "NO_ACCESS_POINT":
+            return None
+        if rh.get("send") == "REFUSED":
+            return None                                       # 복귀 거절 — 점유 유지, 운용자 확인 (장부에 기록됨)
+        st, d = client.task_status(rid, rh["exec_task_id"])
+        hs = (d or {}).get("status") if st == "OK" else None
+        if hs != rh.get("last_status"):
+            rh["last_status"] = hs
+            self.ledger.log("UGV_RETURN_HOME_PROGRESS", task_id=att["task_id"], attempt_id=aid, resource_id=rid,
+                            result=hs or st, detail={"provider": d if isinstance(d, dict) else None})
+            move("RETURNING", f"UGV_RETURN_HOME_{hs or st}", extra={"return_home": rh})
+        if hs == "COMPLETED" and v is not None and v.ready and v.current_task_id is None:
+            detail["return_home"] = {**rh, "completed_wall": time.time()}
+            return False
+        return None
 
     # ------------------------------------------------------------------
     # 수동 해소

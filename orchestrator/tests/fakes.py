@@ -140,6 +140,7 @@ class FakeUgv:
         self.default_script = None
         self.scripts = {}
         self.calls = []
+        self.station = None          # 주면 상태에 station.access_point 를 싣는다 (총괄 UGV 복귀 관리 시험)
 
     def handler(self, request):
         import time
@@ -151,7 +152,8 @@ class FakeUgv:
                 "resource_id": rid, "resource_type": "UGV", "base": "A", "state": u["state"],
                 "position": {"lat": u["lat"], "lon": u["lon"]}, "fuel_pct": 90.0, "current_node": "A",
                 "current_task_id": u["current_task_id"], "driver": "sim", "driver_status": "IDLE",
-                "updated_at": time.time()} for rid, u in self.units.items()])
+                "updated_at": time.time(), **({"station": self.station} if self.station else {})}
+                for rid, u in self.units.items()])
         m = re.match(r"/ugv/([^/]+)/(evaluate|execute|task)(?:/(.+))?", path)
         rid, op, tid = m.group(1), m.group(2), m.group(3)
         node = {"node_id": "N1", "lat": 38.07, "lon": 128.20, "snap_m": 10.0}

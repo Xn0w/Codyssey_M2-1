@@ -21,6 +21,7 @@ UAV 1대당 프로세스 1개다. 여러 대를 운용하면 UAV_ID 와 포트�
 문서: http://<host>:8000/docs
 """
 import asyncio
+import time
 import os
 import sys
 from datetime import datetime, timezone
@@ -326,9 +327,13 @@ async def _run_task(uav_id: str, req: ExecuteRequest, rt: dict):
                   "error": str(e), "progress": {"phase": "RETURNING"}})
         _save()
     except Exception as e:  # noqa: BLE001
-        t.update({"status": "FAILED", "progress": None, "error": str(e),
+        # 비행 중 오류(PX4 연결 단절 포함): 기체가 어디 있는지 모른다 → phase UNKNOWN (총괄은 점유 유지).
+        # 연결이 돌아오면 실제 상태와 대조해 거점 착륙·시동 해제가 확인될 때만 DONE (2026-10-11 Gazebo 단절 시험:
+        # PX4 failsafe RTL 로 거점에 착륙했는데 임무 기록은 물리 상태 미상으로 남아 사람이 확인해야 했다)
+        t.update({"status": "FAILED", "progress": {"phase": "UNKNOWN"}, "error": str(e),
                   "physical_failure_reason": "FLIGHT_ERROR"})
         _save()
+        await _reconcile_after_error(uav_id, tid)
         return
 
     global _returning
@@ -347,6 +352,33 @@ async def _run_task(uav_id: str, req: ExecuteRequest, rt: dict):
         _flights.pop(tid, None)
         if _returning is asyncio.current_task():
             _returning = None
+
+
+RECONCILE_HOME_M = 15.0      # 거점 착륙으로 볼 수평 거리 (PX4 home 기준)
+RECONCILE_MAX_S = 3600.0     # 대조를 계속 시도하는 시간 (실제 초)
+
+
+async def _reconcile_after_error(uav_id: str, tid: str) -> None:
+    """비행 오류 뒤 실제 상태 대조. 텔레메트리가 돌아오면: 공중이면 계속 기다리고, 착륙·시동 해제면
+    거점(home) RECONCILE_HOME_M 안 → phase DONE (근거 RECONCILED_LANDED_AT_HOME), 밖 → LANDED_AWAY (DONE 아님 — 회수 필요)."""
+    t = _tasks[tid]
+    t0 = time.monotonic()
+    while time.monotonic() - t0 < RECONCILE_MAX_S:
+        await asyncio.sleep(5.0)
+        try:
+            st = await provider.get_state(uav_id)
+            home = await provider.home()
+        except Exception:  # noqa: BLE001 — 아직 끊김
+            continue
+        if st.get("armed") or abs(st["position"].get("alt_m_agl") or 0.0) > 1.0:
+            continue                                         # 아직 비행 중 (PX4 failsafe 복귀 등)
+        d = evaluator.haversine_m(st["position"]["lat"], st["position"]["lon"], home[0], home[1])
+        t["reconciled"] = {"at": _now(), "dist_to_home_m": round(d, 1), "armed": st.get("armed"),
+                           "alt_m_agl": st["position"].get("alt_m_agl"), "flight_mode": st.get("flight_mode")}
+        t["progress"] = {"phase": "DONE" if d <= RECONCILE_HOME_M else "LANDED_AWAY",
+                         "basis": "RECONCILED_LANDED_AT_HOME" if d <= RECONCILE_HOME_M else "RECONCILED_LANDED_AWAY_FROM_HOME"}
+        _save()
+        return
 
 
 def _resolve_route(req: ExecuteRequest, state: dict, home, obs_alt: float, observe_s: int,

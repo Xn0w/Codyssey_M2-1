@@ -66,9 +66,14 @@ ENV_STATE_DIR = os.getenv("ORCH_ENV_STATE_DIR", str(Path(__file__).resolve().par
 # ---------------------------------------------------------------------------
 UAV_ENDPOINTS = dict(team_config.UAV_ENDPOINTS)
 # 실행별 덮어쓰기 (예: 트윈이 원통 예비 드론 C-uav1·2 주소를 준다). "C-uav1=http://127.0.0.1:8002,C-uav2=..."
+if os.getenv("ORCH_UAV_ENDPOINTS_REPLACE") == "1":      # 실행에 실제로 띄운 드론만 등록 (예비·mock 주소가 후보로 보이지 않게 — 통합 시연)
+    UAV_ENDPOINTS = {}
 UAV_ENDPOINTS.update(p.split("=", 1) for p in os.getenv("ORCH_UAV_ENDPOINTS", "").split(",") if "=" in p)
 UGV_SERVER_URL = team_config.UGV_SERVER_URL
-HTTP_TIMEOUT_S = float(os.getenv("ORCH_HTTP_TIMEOUT_S", "10"))   # PROVISIONAL (실제 시계)
+HTTP_TIMEOUT_S = float(os.getenv("ORCH_HTTP_TIMEOUT_S", "10"))
+# UGV 복귀를 총괄이 관리 (2026-10-11 통합 시연 요청): 목적지 정차·READY 확인 뒤 바로 반납하지 않고 소속 거점 대기 지점으로
+# 복귀 실행을 보내 그 임무 완료 + READY 일 때 반납한다 (복귀 중 점유 유지 = 재배정 없음). 기본 끔 (기존 계약 시험과 같은 동작)
+UGV_RETURN_HOME = os.getenv("ORCH_UGV_RETURN_HOME", "0") == "1"   # PROVISIONAL (실제 시계)
 
 # ---------------------------------------------------------------------------
 # 자원 상태 신선도 (PROVISIONAL, 사용자 결정 2026-09-29, 실제 시계 기준)
