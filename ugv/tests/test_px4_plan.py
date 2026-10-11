@@ -111,3 +111,85 @@ def test_first_item_ahead_ignores_route_coming_back_over_parked_position():
     # 원래 사례 (업로드 8.9 s, 9 m/s): 상한 ≈ 90 m 안에서는 그대로 지나친 항목을 건너뛴다
     sent2 = [(0.0, 5.0 + 10.0 * i, 9, True) for i in range(12)]
     assert first_item_ahead(sent2, (0.0, 17.0), 9.0, max_along_m=90.0) == first_item_ahead(sent2, (0.0, 17.0), 9.0) > 0
+
+
+# ---- 시작 항목 선택 회귀 (2026-10-11 검토 지적 1~7): 고른 항목 번호·위치·차와 거리·차 앞 여부
+def _along(sent, k):
+    return sum(math.dist(sent[i][:2], sent[i + 1][:2]) for i in range(k))
+
+
+def _check_ahead(sent, pos, k):
+    """고른 항목이 차 앞(미션 선 위 차 위치보다 뒤 진행)이고 수용 반경 밖인가."""
+    from ugv.drivers.px4 import ACCEPT_M
+    best = min(range(len(sent) - 1), key=lambda i: _seg_dist(sent[i][:2], sent[i + 1][:2], pos)[0])
+    d, t = _seg_dist(sent[best][:2], sent[best + 1][:2], pos)
+    s_car = _along(sent, best) + t * math.dist(sent[best][:2], sent[best + 1][:2])
+    return _along(sent, k) > s_car and math.dist(sent[k][:2], pos) > ACCEPT_M
+
+
+def _seg_dist(a, b, p):
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    L2 = dx * dx + dy * dy
+    t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2))
+    return math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy), t
+
+
+def _reach(v, dt):
+    from ugv.drivers.px4 import ACCEPT_M, LEAD_BASE_M, START_AHEAD_ACCEL_MPS2
+    return LEAD_BASE_M + ACCEPT_M + (v + START_AHEAD_ACCEL_MPS2 * dt) * dt + 2.0
+
+
+STRAIGHT = [(0.0, 5.0 + 10.0 * i, 9, True) for i in range(15)]
+# 블록을 돌아 출발 도로를 '같은 방향'으로 다시 지남 (y 축 위로 → 오른쪽 → 아래 → 왼쪽 → 다시 y 축 위로)
+LOOP_SAME = [(0.0, 5.0, 3, False), (0.0, 60.0, 5, True), (60.0, 60.0, 5, True), (60.0, -60.0, 5, True), (0.0, -60.0, 5, True),
+             (0.0, 60.0, 5, True), (0.0, 200.0, 5, True)]
+LOOP_REV = [(0.0, 5.0, 3, False), (0.0, 40.0, 5, True), (30.0, 40.0, 5, True), (30.0, 20.0, 5, True), (-30.0, -20.0, 5, True),
+            (-30.0, -60.0, 5, True)]
+ARC = [(30.0 * math.sin(a), 30.0 * (1 - math.cos(a)), 6, True) for a in [0.15 * i + 0.15 for i in range(20)]]   # 출발 직후 곡선
+
+
+import math  # noqa: E402
+
+
+def test_start_item_cases_from_standstill():
+    from ugv.drivers.px4 import first_item_ahead
+    # 계획 시점 위치 here = (0, 0). 정차 방위는 이 함수가 쓰지 않는다 (방위 오차 영향 없음 — 구조상)
+    for sent, name in ((STRAIGHT, "직선"), (LOOP_SAME, "같은 방향 재통과"), (LOOP_REV, "반대 방향 재통과"), (ARC, "곡선")):
+        for off in ((0.0, 0.0), (0.2, 0.0), (-0.2, 0.0), (0.0, 0.2), (0.0, -0.2)):          # ±0.2 m 위치 오차
+            for dt in (1.0, 3.0, 9.0):                                                         # 업로드 시간
+                k = first_item_ahead(sent, off, 0.0, max_along_m=_reach(0.0, dt), here=(0.0, 0.0))
+                assert k == 0, (name, off, dt, k)                                              # 정차 출발: 평소 출발 (첫 항목 = 선행 지점, 차 앞)
+                assert sent[0][1] > 0 or sent[0][0] > 0
+
+
+def test_start_item_cases_moving_upload_skips_only_passed_items():
+    from ugv.drivers.px4 import first_item_ahead
+    # 직선·한 번만 쓰는 도로: 9 m/s 로 8.9 s 업로드 동안 80 m 진행 → 지나친 항목만 건너뛰고 고른 항목은 차 앞
+    pos = (0.0, 85.0)
+    k = first_item_ahead(STRAIGHT, pos, 9.0, max_along_m=_reach(9.0, 8.9), here=(0.0, 0.0))
+    assert k > 0 and _check_ahead(STRAIGHT, pos, k) and math.dist(STRAIGHT[k][:2], pos) < 25.0
+    # 같은 방향 재통과 경로에서 첫 출현 구간을 달리는 중 (y 30): 두 번째 출현(누적 360 m 뒤)과 짝짓지 않는다
+    pos = (0.1, 30.0)
+    k = first_item_ahead(LOOP_SAME, pos, 6.0, max_along_m=_reach(6.0, 4.0), here=(0.0, 0.0))
+    assert k == 1 and _check_ahead(LOOP_SAME, pos, k)
+    # 곡선 위 (호 길이 약 20 m 진행): 고른 항목은 차 앞
+    a = 0.75
+    pos = (30.0 * math.sin(a) + 0.2, 30.0 * (1 - math.cos(a)))
+    k = first_item_ahead(ARC, pos, 6.0, max_along_m=_reach(6.0, 3.0), here=(0.0, 0.0))
+    assert k > 0 and _check_ahead(ARC, pos, k)
+
+
+def test_start_item_sk102_real_mission():
+    """c23 SK102 실제 미션 (Fable 재구성: 98 지점, 출발 도로를 반대로 다시 지남). 예전 44 → 0."""
+    import json
+    from pathlib import Path
+    from ugv.drivers.px4 import first_item_ahead
+    d = json.loads((Path(__file__).parent / "data" / "sk102_mission.json").read_text(encoding="utf-8"))
+    sent = [tuple(x) for x in d["sent"]]
+    here = tuple(d["here"])
+    assert first_item_ahead(sent, here, 0.0) == 44                                   # 예전 동작 (거리 상한·출발점 없음)
+    for dt in (1.1, 3.0, 9.0):
+        for off in ((0.0, 0.0), (0.2, 0.0), (-0.2, 0.0), (0.0, 0.2), (0.0, -0.2)):
+            pos = (here[0] + off[0], here[1] + off[1])
+            assert first_item_ahead(sent, pos, 0.0, max_along_m=_reach(0.0, dt), here=here) == 0
+            assert first_item_ahead(sent, pos, 0.0, here=here) == 0                   # 거리 상한 없이도 (경로 순서)

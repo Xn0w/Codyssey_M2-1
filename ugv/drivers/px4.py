@@ -74,39 +74,49 @@ def park_due(speed_mps: float, now: float, still_since, finished_since):
 
 START_AHEAD_SEARCH = 60     # 시작 지점을 찾을 때 앞쪽 몇 개 항목까지 보는가 (업로드 동안 지나칠 수 있는 범위)
 START_AHEAD_ACCEL_MPS2 = 1.5  # 업로드 동안 거리 상한의 가속 여유 (차종 최대 가속 1.2~1.5)
+START_TIE_M = 1.0              # 미션 선 여러 구간이 이 거리 차 안으로 맞으면 경로 순서상 앞 구간 (나중에 다시 지나는 곳 배제)
 START_AHEAD_MAX_OFF_M = 30.0   # 미션 선에서 이보다 멀면 맞추지 않는다 (다른 곳 — 서버 감시가 맡는다)
 
 
-def first_item_ahead(sent, pos, v_mps: float, max_along_m: float = None) -> int:
-    """업로드가 끝나 미션을 시작하기 직전 위치 pos 에서, 보낸 미션 [(x, y, v, through)] 중 차가 아직 지나지 않은 첫 항목 번호.
-    미션 선(항목을 이은 선) 위 차 진행 위치 + (수용 반경 + 1 s 주행) 보다 앞에 있는 첫 항목. 0 이면 그대로 시작.
+def first_item_ahead(sent, pos, v_mps: float, max_along_m: float = None, here=None) -> int:
+    """업로드가 끝나 미션을 시작하기 직전 위치 pos 에서, 보낸 미션 [(x, y, v, through)] 중 차가 아직 지나지 않은 첫 항목 번호. 0 이면 그대로 시작.
     (2026-10-11 Gazebo 지속 운용: 목표 교체 때 긴 미션 업로드 8.9 s 동안 지나쳐 첫 항목들이 차 뒤에 남자 PX4 로버가 되돌아 맴돌다 도로 이탈 —
     원인 검증: Fable 서브에이전트)
-    max_along_m: 업로드 동안 차가 미션 선을 따라 갈 수 있었던 최대 거리. 그보다 먼 선분은 짝짓지 않는다 — 경로가 블록을 돌아 출발 도로를
-    반대로 다시 지나면 그 되돌아오는 선분이 주차 위치와 겹쳐, 정차한 차를 '이미 476 m 지나왔다' 로 보고 뒤쪽 항목 44 부터 시작해
-    제자리 180° 선회·도로 이탈 (2026-10-11 Gazebo c23 A-ugv1 SK102 — 원인 검증: Fable 서브에이전트)"""
-    pts = [(it[0], it[1]) for it in sent[:START_AHEAD_SEARCH + 1]]
+
+    경로 진행 위치로 찾는다 — 같은 도로·같은 자리를 경로가 여러 번 지나도 출발부터 이어지는 첫 진행 구간에서만:
+      - 경로선 = 계획 시점 위치 here (미션을 만든 출발점) + 미션 항목들. 정차 출발이면 차는 첫 구간(here → 선행 지점) 위다.
+      - max_along_m (업로드 동안 갈 수 있었던 거리) 밖 구간은 보지 않는다.
+      - 거의 같은 거리(START_TIE_M 안)로 맞는 구간이 여럿이면 경로 순서상 가장 앞 구간 (뒤 구간 = 나중에 다시 지나는 곳).
+    (2026-10-11 Gazebo c23 A-ugv1 SK102: 블록을 돌아 출발 도로를 반대로 다시 지나는 구간이 주차 위치와 0.06 m 로 겹쳐, 정차한 차를
+    '이미 476 m 지나왔다' 로 보고 뒤쪽 항목 44 부터 시작 → 제자리 180° 선회·도로 이탈. 원인 검증: Fable 서브에이전트)"""
+    head = [tuple(here[:2])] if here is not None else []
+    pts = head + [(it[0], it[1]) for it in sent[:START_AHEAD_SEARCH + 1]]
+    off = len(head)                                 # pts 번호 - off = sent 번호
     if len(pts) < 2:
         return 0
     cum = [0.0]
     for a, b in zip(pts, pts[1:]):
         cum.append(cum[-1] + math.dist(a, b))
-    best = (math.inf, 0.0)
+    segs = []
     for k, (a, b) in enumerate(zip(pts, pts[1:])):
         if max_along_m is not None and cum[k] > max_along_m:
-            break                                  # 업로드 동안 갈 수 없었던 곳 (되돌아오는 경로 등)
+            break                                  # 업로드 동안 갈 수 없었던 곳
         dx, dy = b[0] - a[0], b[1] - a[1]
         L2 = dx * dx + dy * dy
         t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((pos[0] - a[0]) * dx + (pos[1] - a[1]) * dy) / L2))
         d = math.hypot(pos[0] - a[0] - t * dx, pos[1] - a[1] - t * dy)
-        if d < best[0]:
-            best = (d, cum[k] + t * (cum[k + 1] - cum[k]))
-    if best[0] > START_AHEAD_MAX_OFF_M or best[1] <= 0.5:
+        segs.append((d, cum[k] + t * (cum[k + 1] - cum[k])))
+    if not segs:
+        return 0
+    dmin = min(d for d, _ in segs)
+    d, along = next((d, s) for d, s in segs if d <= dmin + START_TIE_M)      # 경로 순서상 가장 앞 구간
+    lead = cum[off] if off else 0.0                 # 첫 미션 항목(선행 지점)까지 경로 거리
+    if d > START_AHEAD_MAX_OFF_M or along <= lead + 0.5:
         return 0                                   # 멀거나, 아직 첫 항목(선행 지점)에 닿지 않았다 — 평소 출발은 그대로
-    need = best[1] + ACCEPT_M + max(v_mps, 0.0) * 1.0
-    for k, c in enumerate(cum):
-        if c >= need:
-            return k
+    need = along + ACCEPT_M + max(v_mps, 0.0) * 1.0
+    for k in range(off, len(cum)):
+        if cum[k] >= need:
+            return k - off
     return 0
 
 
@@ -313,7 +323,7 @@ class Px4Driver(Driver):
                     # 업로드 동안 갈 수 있었던 거리 상한: 선행 지점 + 수용 반경 + (더 빠른 속도 + 가속 여유) × 경과 + 여유
                     dt = time.monotonic() - t_up
                     reach = LEAD_BASE_M + ACCEPT_M + (max(v_up, tel2.speed_mps) + START_AHEAD_ACCEL_MPS2 * dt) * dt + 2.0
-                    k0 = first_item_ahead(sent, (tel2.x, tel2.y), tel2.speed_mps, max_along_m=reach)
+                    k0 = first_item_ahead(sent, (tel2.x, tel2.y), tel2.speed_mps, max_along_m=reach, here=here)
                     self.last_sent["start_reach_m"] = round(reach, 1)
                 else:
                     k0 = 0
