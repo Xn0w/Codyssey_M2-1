@@ -1034,7 +1034,12 @@ class Vehicle:
             self._event("STOP_NOT_CONFIRMED", why=why, speed_mps=round(tel.speed_mps, 2),
                         travel_m=round(s["travel_m"], 1), allow_m=s["allow_m"], attempt=s["escalations"])
             await self._cut_drive(why)
-            if first and self.state not in ("FAULT", "DANGER"):
+            # 허용 거리 안에서 0.5 m/s 미만으로 마무리하는데 시간만 넘은 경우(PX4 미션 끝 저속 기어가기 — 2026-10-11 Gazebo UGV 취소
+            # 13.9 s, 같은 조건 다른 실행 8.6 s)는 구동 차단(정차 유지)만 하고 고장으로 묶지 않는다. 거리 초과·감속 안 함·고속 시간 초과는 고장
+            slow_finish = why.startswith("TIME") and tel.speed_mps < 0.5 and s["travel_m"] <= s["allow_m"]
+            if slow_finish:
+                self._event("STOP_SLOW_FINISH_CUT", speed_mps=round(tel.speed_mps, 2), travel_m=round(s["travel_m"], 1))
+            elif first and self.state not in ("FAULT", "DANGER"):
                 self._fail("STOP_NOT_CONFIRMED", f"정지 명령 뒤 {why} (속도 {tel.speed_mps:.1f} m/s) → 구동 차단")
 
     def _standstill(self, tel) -> bool:

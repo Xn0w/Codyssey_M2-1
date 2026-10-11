@@ -185,3 +185,18 @@ def test_stop_path_never_plans_faster_than_current_speed(tmp_path):
         res = _ev(A, "STOP_CONFIRMED")[-1]
         assert not res["cut_drive"] and not res["exceeded_allow"] and A.fault is None
     asyncio.run(go())
+
+
+def test_slow_finish_over_time_is_cut_without_fault(tmp_path):
+    """허용 거리 안 0.5 m/s 미만 마무리가 시간만 넘으면 구동 차단(정차 유지)만, 고장 아님 (Gazebo UGV 취소 13.9 s)."""
+    async def go():
+        f, clock = make_fleet(tmp_path, [FLEET_CFG[0]])
+        A = f.vehicles["A-ugv1"]
+        await A.execute(body("C1", *FRAME.to_ll(A.access.x - 900, A.access.y - 700)))
+        await _steps(f, clock, 25)
+        await A.abort("C1")
+        A.driver.runaway_mps = 0.3                         # 정지 미션 끝에서 0.3 m/s 로 기어감 (거리 안)
+        await _steps(f, clock, 40)
+        assert _ev(A, "STOP_SLOW_FINISH_CUT") and _ev(A, "STOP_CONFIRMED")
+        assert A.fault is None and A.state != "FAULT"
+    asyncio.run(go())
