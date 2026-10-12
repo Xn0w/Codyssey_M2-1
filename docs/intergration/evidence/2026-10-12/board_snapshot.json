@@ -1,0 +1,1434 @@
+﻿{
+    "mode":  "AUTO_HIGHER_RISK",
+    "modes":  [
+                  "HUMAN_CHOICE",
+                  "AUTO_HIGHER_RISK"
+              ],
+    "results":  [
+                    {
+                        "task_id":  "TASK-ba708b429b37",
+                        "kind":  "MONITOR",
+                        "cell_id":  "12_98",
+                        "purpose_status":  "IN_EXECUTION",
+                        "hold_reason":  null,
+                        "resume_condition":  null,
+                        "human_risk":  null,
+                        "human_risk_sources":  [
+
+                                               ],
+                        "human_risk_basis":  [
+
+                                             ],
+                        "forecast_arrival_s":  null,
+                        "risk_score":  null,
+                        "distance_m":  null,
+                        "nearest_protected":  null,
+                        "resource_id":  "A-uav1",
+                        "observation":  {
+                                            "result":  "NOT_DETECTED",
+                                            "source":  "SIMULATED",
+                                            "sensor_status":  "TEST_ONLY",
+                                            "sensor_type":  "THERMAL",
+                                            "failure_reason":  null,
+                                            "covered_cells":  [
+                                                                  "11_98"
+                                                              ],
+                                            "partial_cells":  [
+                                                                  "10_98",
+                                                                  "12_98"
+                                                              ],
+                                            "cell_coverage":  [
+                                                                  {
+                                                                      "cell_id":  "10_98",
+                                                                      "cell_size_m":  90.0,
+                                                                      "full":  false,
+                                                                      "fraction":  0.001533,
+                                                                      "rect":  [
+                                                                                   44.86,
+                                                                                   -45.0,
+                                                                                   45.0,
+                                                                                   43.909
+                                                                               ]
+                                                                  },
+                                                                  {
+                                                                      "cell_id":  "11_98",
+                                                                      "cell_size_m":  90.0,
+                                                                      "full":  true,
+                                                                      "fraction":  1.0,
+                                                                      "rect":  [
+                                                                                   -45.0,
+                                                                                   -45.0,
+                                                                                   45.0,
+                                                                                   45.0
+                                                                               ]
+                                                                  },
+                                                                  {
+                                                                      "cell_id":  "12_98",
+                                                                      "cell_size_m":  90.0,
+                                                                      "full":  false,
+                                                                      "fraction":  0.001437,
+                                                                      "rect":  [
+                                                                                   -45.0,
+                                                                                   -43.898,
+                                                                                   -44.869,
+                                                                                   45.0
+                                                                               ]
+                                                                  }
+                                                              ],
+                                            "detections":  [
+
+                                                           ],
+                                            "received_after_purpose":  null,
+                                            "target_covered":  true,
+                                            "resource_id":  "A-uav2",
+                                            "footprint":  {
+                                                              "width_m":  90.0,
+                                                              "height_m":  90.0,
+                                                              "agl_m":  90.01999999999998
+                                                          },
+                                            "simulation_time_s":  21000.0,
+                                            "observed_wall":  "2026-10-12T05:58:01.317105+00:00",
+                                            "is_fire_observation":  true,
+                                            "values":  null,
+                                            "scope":  null,
+                                            "same_visit_as":  null,
+                                            "env_apply":  {
+                                                              "result":  "ACK",
+                                                              "state_version":  29
+                                                          },
+                                            "extras":  [
+
+                                                       ],
+                                            "completion":  null
+                                        }
+                    },
+                    {
+                        "task_id":  "TASK-99c73a70b15c",
+                        "kind":  "MONITOR",
+                        "cell_id":  "12_99",
+                        "purpose_status":  "COMPLETED",
+                        "hold_reason":  null,
+                        "resume_condition":  null,
+                        "human_risk":  null,
+                        "human_risk_sources":  null,
+                        "human_risk_basis":  null,
+                        "forecast_arrival_s":  null,
+                        "risk_score":  null,
+                        "distance_m":  null,
+                        "nearest_protected":  null,
+                        "resource_id":  "A-uav2",
+                        "observation":  {
+                                            "result":  "NOT_DETECTED",
+                                            "source":  "SIMULATED",
+                                            "sensor_status":  "TEST_ONLY",
+                                            "sensor_type":  "THERMAL",
+                                            "failure_reason":  null,
+                                            "covered_cells":  [
+                                                                  "15_99"
+                                                              ],
+                                            "partial_cells":  [
+                                                                  "14_99",
+                                                                  "16_99"
+                                                              ],
+                                            "cell_coverage":  [
+                                                                  {
+                                                                      "cell_id":  "14_99",
+                                                                      "cell_size_m":  90.0,
+                                                                      "full":  false,
+                                                                      "fraction":  0.001425,
+                                                                      "rect":  [
+                                                                                   44.87,
+                                                                                   -45.0,
+                                                                                   45.0,
+                                                                                   43.909
+                                                                               ]
+                                                                  },
+                                                                  {
+                                                                      "cell_id":  "15_99",
+                                                                      "cell_size_m":  90.0,
+                                                                      "full":  true,
+                                                                      "fraction":  1.0,
+                                                                      "rect":  [
+                                                                                   -45.0,
+                                                                                   -45.0,
+                                                                                   45.0,
+                                                                                   45.0
+                                                                               ]
+                                                                  },
+                                                                  {
+                                                                      "cell_id":  "16_99",
+                                                                      "cell_size_m":  90.0,
+                                                                      "full":  false,
+                                                                      "fraction":  0.001425,
+                                                                      "rect":  [
+                                                                                   -45.0,
+                                                                                   -43.898,
+                                                                                   -44.87,
+                                                                                   45.0
+                                                                               ]
+                                                                  }
+                                                              ],
+                                            "detections":  [
+
+                                                           ],
+                                            "received_after_purpose":  null,
+                                            "target_covered":  true,
+                                            "resource_id":  "A-uav2",
+                                            "footprint":  {
+                                                              "width_m":  90.0,
+                                                              "height_m":  90.0,
+                                                              "agl_m":  90.03999999999999
+                                                          },
+                                            "simulation_time_s":  18900.0,
+                                            "observed_wall":  "2026-10-12T05:57:49.667393+00:00",
+                                            "is_fire_observation":  true,
+                                            "values":  null,
+                                            "scope":  null,
+                                            "same_visit_as":  null,
+                                            "env_apply":  {
+                                                              "result":  "ACK",
+                                                              "state_version":  26
+                                                          },
+                                            "extras":  [
+
+                                                       ],
+                                            "completion":  {
+                                                               "completion_rule":  "AREA_ALL_REQUIRED_CELLS",
+                                                               "basis":  [
+                                                                             "ARRIVED",
+                                                                             "ALL_REQUIRED_CELLS_FULLY_OBSERVED",
+                                                                             "ENV_ACK"
+                                                                         ],
+                                                               "coverage":  {
+                                                                                "required":  [
+                                                                                                 "12_99",
+                                                                                                 "13_99",
+                                                                                                 "11_99",
+                                                                                                 "11_100",
+                                                                                                 "14_99",
+                                                                                                 "15_99"
+                                                                                             ],
+                                                                                "fraction":  {
+                                                                                                 "12_99":  1.0,
+                                                                                                 "13_99":  1.0,
+                                                                                                 "11_99":  1.0,
+                                                                                                 "11_100":  1.0,
+                                                                                                 "14_99":  1.0,
+                                                                                                 "15_99":  1.0
+                                                                                             },
+                                                                                "remaining":  [
+
+                                                                                              ],
+                                                                                "geometry_missing":  [
+
+                                                                                                     ],
+                                                                                "unvisited":  [
+
+                                                                                              ],
+                                                                                "visited":  [
+                                                                                                "12_99",
+                                                                                                "13_99",
+                                                                                                "11_99",
+                                                                                                "11_100",
+                                                                                                "14_99",
+                                                                                                "15_99"
+                                                                                            ]
+                                                                            },
+                                                               "resource_released":  false,
+                                                               "evidence_level":  "SIMULATION_TEST",
+                                                               "evidence":  {
+                                                                                "observation_source":  "SIMULATED",
+                                                                                "env_source":  "TEAM_API",
+                                                                                "env_ack":  true
+                                                                            }
+                                                           }
+                                        }
+                    },
+                    {
+                        "task_id":  "TASK-36ead24b88ea",
+                        "kind":  "MONITOR",
+                        "cell_id":  "13_100",
+                        "purpose_status":  "COMPLETED",
+                        "hold_reason":  null,
+                        "resume_condition":  null,
+                        "human_risk":  null,
+                        "human_risk_sources":  null,
+                        "human_risk_basis":  null,
+                        "forecast_arrival_s":  null,
+                        "risk_score":  null,
+                        "distance_m":  null,
+                        "nearest_protected":  null,
+                        "resource_id":  "A-uav1",
+                        "observation":  {
+                                            "result":  "NOT_DETECTED",
+                                            "source":  "SIMULATED",
+                                            "sensor_status":  "TEST_ONLY",
+                                            "sensor_type":  "THERMAL",
+                                            "failure_reason":  null,
+                                            "covered_cells":  [
+                                                                  "12_102"
+                                                              ],
+                                            "partial_cells":  [
+                                                                  "11_102",
+                                                                  "13_102"
+                                                              ],
+                                            "cell_coverage":  [
+                                                                  {
+                                                                      "cell_id":  "11_102",
+                                                                      "cell_size_m":  90.0,
+                                                                      "full":  false,
+                                                                      "fraction":  0.001489,
+                                                                      "rect":  [
+                                                                                   44.864,
+                                                                                   -45.0,
+                                                                                   45.0,
+                                                                                   43.898
+                                                                               ]
+                                                                  },
+                                                                  {
+                                                                      "cell_id":  "12_102",
+                                                                      "cell_size_m":  90.0,
+                                                                      "full":  true,
+                                                                      "fraction":  1.0,
+                                                                      "rect":  [
+                                                                                   -45.0,
+                                                                                   -45.0,
+                                                                                   45.0,
+                                                                                   45.0
+                                                                               ]
+                                                                  },
+                                                                  {
+                                                                      "cell_id":  "13_102",
+                                                                      "cell_size_m":  90.0,
+                                                                      "full":  false,
+                                                                      "fraction":  0.001393,
+                                                                      "rect":  [
+                                                                                   -45.0,
+                                                                                   -43.909,
+                                                                                   -44.873,
+                                                                                   45.0
+                                                                               ]
+                                                                  }
+                                                              ],
+                                            "detections":  [
+
+                                                           ],
+                                            "received_after_purpose":  null,
+                                            "target_covered":  true,
+                                            "resource_id":  "A-uav1",
+                                            "footprint":  {
+                                                              "width_m":  90.0,
+                                                              "height_m":  90.0,
+                                                              "agl_m":  90.02000000000001
+                                                          },
+                                            "simulation_time_s":  16800.0,
+                                            "observed_wall":  "2026-10-12T05:57:33.301186+00:00",
+                                            "is_fire_observation":  true,
+                                            "values":  null,
+                                            "scope":  null,
+                                            "same_visit_as":  null,
+                                            "env_apply":  {
+                                                              "result":  "ACK",
+                                                              "state_version":  19
+                                                          },
+                                            "extras":  [
+                                                           {
+                                                               "result":  "MEASURED",
+                                                               "source":  "SIMULATED",
+                                                               "sensor_status":  "TEST_ONLY",
+                                                               "sensor_type":  "WEATHER",
+                                                               "failure_reason":  null,
+                                                               "covered_cells":  [
+                                                                                     "14_101"
+                                                                                 ],
+                                                               "partial_cells":  null,
+                                                               "cell_coverage":  null,
+                                                               "detections":  [
+
+                                                                              ],
+                                                               "received_after_purpose":  null,
+                                                               "target_covered":  true,
+                                                               "resource_id":  "A-uav2",
+                                                               "footprint":  null,
+                                                               "simulation_time_s":  16800.0,
+                                                               "observed_wall":  "2026-10-12T05:57:30.017899+00:00",
+                                                               "is_fire_observation":  true,
+                                                               "values":  {
+                                                                              "wind_ms":  3.8,
+                                                                              "wind_dir_deg":  180.0,
+                                                                              "temperature_c":  12.9,
+                                                                              "humidity_pct":  23.0
+                                                                          },
+                                                               "scope":  "GLOBAL_FIELD",
+                                                               "same_visit_as":  "MONITOR",
+                                                               "env_apply":  {
+                                                                                 "result":  "ACK",
+                                                                                 "state_version":  18
+                                                                             }
+                                                           }
+                                                       ],
+                                            "completion":  {
+                                                               "completion_rule":  "AREA_ALL_REQUIRED_CELLS",
+                                                               "basis":  [
+                                                                             "ARRIVED",
+                                                                             "ALL_REQUIRED_CELLS_FULLY_OBSERVED",
+                                                                             "ENV_ACK"
+                                                                         ],
+                                                               "coverage":  {
+                                                                                "required":  [
+                                                                                                 "13_100",
+                                                                                                 "12_100",
+                                                                                                 "14_100",
+                                                                                                 "12_101",
+                                                                                                 "14_101",
+                                                                                                 "12_102"
+                                                                                             ],
+                                                                                "fraction":  {
+                                                                                                 "13_100":  1.0,
+                                                                                                 "12_100":  1.0,
+                                                                                                 "14_100":  1.0,
+                                                                                                 "12_101":  1.0,
+                                                                                                 "14_101":  1.0,
+                                                                                                 "12_102":  1.0
+                                                                                             },
+                                                                                "remaining":  [
+
+                                                                                              ],
+                                                                                "geometry_missing":  [
+
+                                                                                                     ],
+                                                                                "unvisited":  [
+
+                                                                                              ],
+                                                                                "visited":  [
+                                                                                                "13_100",
+                                                                                                "12_100",
+                                                                                                "14_100",
+                                                                                                "12_101",
+                                                                                                "14_101",
+                                                                                                "12_102"
+                                                                                            ]
+                                                                            },
+                                                               "resource_released":  false,
+                                                               "evidence_level":  "SIMULATION_TEST",
+                                                               "evidence":  {
+                                                                                "observation_source":  "SIMULATED",
+                                                                                "env_source":  "TEAM_API",
+                                                                                "env_ack":  true
+                                                                            }
+                                                           }
+                                        }
+                    },
+                    {
+                        "task_id":  "TASK-c8c014077299",
+                        "kind":  "RECON",
+                        "cell_id":  "13_101",
+                        "purpose_status":  "COMPLETED",
+                        "hold_reason":  null,
+                        "resume_condition":  null,
+                        "human_risk":  null,
+                        "human_risk_sources":  null,
+                        "human_risk_basis":  null,
+                        "forecast_arrival_s":  null,
+                        "risk_score":  null,
+                        "distance_m":  null,
+                        "nearest_protected":  null,
+                        "resource_id":  "A-uav1",
+                        "observation":  {
+                                            "result":  "DETECTED",
+                                            "source":  "SIMULATED",
+                                            "sensor_status":  "TEST_ONLY",
+                                            "sensor_type":  "THERMAL",
+                                            "failure_reason":  null,
+                                            "covered_cells":  [
+                                                                  "13_101"
+                                                              ],
+                                            "partial_cells":  [
+                                                                  "12_101",
+                                                                  "14_101"
+                                                              ],
+                                            "cell_coverage":  [
+                                                                  {
+                                                                      "cell_id":  "13_101",
+                                                                      "cell_size_m":  90.0,
+                                                                      "full":  true,
+                                                                      "fraction":  1.0,
+                                                                      "rect":  [
+                                                                                   -45.0,
+                                                                                   -45.0,
+                                                                                   45.0,
+                                                                                   45.0
+                                                                               ]
+                                                                  },
+                                                                  {
+                                                                      "cell_id":  "12_101",
+                                                                      "cell_size_m":  90.0,
+                                                                      "full":  false,
+                                                                      "fraction":  0.0015,
+                                                                      "rect":  [
+                                                                                   44.863,
+                                                                                   -45.0,
+                                                                                   45.0,
+                                                                                   43.898
+                                                                               ]
+                                                                  },
+                                                                  {
+                                                                      "cell_id":  "14_101",
+                                                                      "cell_size_m":  90.0,
+                                                                      "full":  false,
+                                                                      "fraction":  0.001404,
+                                                                      "rect":  [
+                                                                                   -45.0,
+                                                                                   -43.909,
+                                                                                   -44.872,
+                                                                                   45.0
+                                                                               ]
+                                                                  }
+                                                              ],
+                                            "detections":  [
+                                                               {
+                                                                   "cell_id":  "13_101",
+                                                                   "fire_state":  "BURNING"
+                                                               }
+                                                           ],
+                                            "received_after_purpose":  null,
+                                            "target_covered":  true,
+                                            "resource_id":  "A-uav1",
+                                            "footprint":  {
+                                                              "width_m":  90.0,
+                                                              "height_m":  90.0,
+                                                              "agl_m":  89.97
+                                                          },
+                                            "simulation_time_s":  0.0,
+                                            "observed_wall":  "2026-10-12T05:54:25.919227+00:00",
+                                            "is_fire_observation":  true,
+                                            "values":  null,
+                                            "scope":  null,
+                                            "same_visit_as":  null,
+                                            "env_apply":  {
+                                                              "result":  "ACK",
+                                                              "state_version":  2
+                                                          },
+                                            "extras":  [
+                                                           {
+                                                               "result":  "MEASURED",
+                                                               "source":  "SIMULATED",
+                                                               "sensor_status":  "TEST_ONLY",
+                                                               "sensor_type":  "WEATHER",
+                                                               "failure_reason":  null,
+                                                               "covered_cells":  [
+                                                                                     "13_101"
+                                                                                 ],
+                                                               "partial_cells":  null,
+                                                               "cell_coverage":  null,
+                                                               "detections":  [
+
+                                                                              ],
+                                                               "received_after_purpose":  null,
+                                                               "target_covered":  true,
+                                                               "resource_id":  "A-uav1",
+                                                               "footprint":  null,
+                                                               "simulation_time_s":  0.0,
+                                                               "observed_wall":  "2026-10-12T05:54:25.919227+00:00",
+                                                               "is_fire_observation":  true,
+                                                               "values":  {
+                                                                              "wind_ms":  5.7,
+                                                                              "wind_dir_deg":  160.0,
+                                                                              "temperature_c":  15.3,
+                                                                              "humidity_pct":  27.0
+                                                                          },
+                                                               "scope":  "GLOBAL_FIELD",
+                                                               "same_visit_as":  "RECON",
+                                                               "env_apply":  {
+                                                                                 "result":  "ACK",
+                                                                                 "state_version":  3
+                                                                             }
+                                                           }
+                                                       ],
+                                            "completion":  {
+                                                               "completion_rule":  "TARGET_POINT",
+                                                               "basis":  [
+                                                                             "ARRIVED",
+                                                                             "SIMULATED_OBSERVATION_TARGET_COVERED",
+                                                                             "ENV_ACK"
+                                                                         ],
+                                                               "resource_released":  false,
+                                                               "evidence_level":  "SIMULATION_TEST",
+                                                               "evidence":  {
+                                                                                "observation_source":  "SIMULATED",
+                                                                                "env_source":  "TEAM_API",
+                                                                                "env_ack":  true
+                                                                            }
+                                                           }
+                                        }
+                    },
+                    {
+                        "task_id":  "TASK-c31cd39d37cd",
+                        "kind":  "GROUND_SUPPORT",
+                        "cell_id":  "24_116",
+                        "purpose_status":  "COMPLETED",
+                        "hold_reason":  null,
+                        "resume_condition":  null,
+                        "human_risk":  null,
+                        "human_risk_sources":  null,
+                        "human_risk_basis":  null,
+                        "forecast_arrival_s":  null,
+                        "risk_score":  null,
+                        "distance_m":  null,
+                        "nearest_protected":  null,
+                        "resource_id":  "A-fire1",
+                        "observation":  {
+                                            "result":  "ROAD_STATUS",
+                                            "source":  "UGV_PROVIDER",
+                                            "sensor_status":  null,
+                                            "sensor_type":  null,
+                                            "failure_reason":  null,
+                                            "covered_cells":  null,
+                                            "partial_cells":  null,
+                                            "cell_coverage":  null,
+                                            "detections":  null,
+                                            "received_after_purpose":  null,
+                                            "target_covered":  null,
+                                            "resource_id":  "A-fire1",
+                                            "footprint":  null,
+                                            "simulation_time_s":  null,
+                                            "observed_wall":  null,
+                                            "is_fire_observation":  false,
+                                            "values":  null,
+                                            "scope":  null,
+                                            "same_visit_as":  null,
+                                            "env_apply":  null,
+                                            "extras":  [
+
+                                                       ],
+                                            "completion":  {
+                                                               "completion_rule":  "TARGET_POINT",
+                                                               "basis":  [
+                                                                             "ARRIVED",
+                                                                             "UGV_ROAD_STATUS",
+                                                                             "NO_ENV_ACK_REQUIRED"
+                                                                         ],
+                                                               "resource_released":  false,
+                                                               "evidence_level":  "INTEGRATED",
+                                                               "evidence":  {
+                                                                                "observation_source":  "UGV_PROVIDER",
+                                                                                "env_source":  "TEAM_API",
+                                                                                "env_ack":  null
+                                                                            }
+                                                           }
+                                        }
+                    }
+                ],
+    "llm":  {
+                "model":  "gpt-5.6-luna",
+                "not_ready_reason":  "API_KEY_MISSING"
+            },
+    "forecast":  {
+                     "ref":  null,
+                     "cell_count":  0,
+                     "sim_time_s":  21000.0,
+                     "preemptive_monitor_enabled":  false,
+                     "threats":  [
+
+                                 ]
+                 },
+    "known":  {
+                  "fires":  [
+                                {
+                                    "cell_id":  "10_100",
+                                    "status":  "NOT_DETECTED_PARTIAL",
+                                    "observation_id":  "OBS-b8895e6ca67e",
+                                    "resource_id":  "A-uav2",
+                                    "coverage_fraction":  0.001415,
+                                    "sim_time_s":  18900.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  18900.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-b8895e6ca67e",
+                                                                     "resource_id":  "A-uav2",
+                                                                     "coverage_fraction":  0.001415,
+                                                                     "unobserved_fraction":  0.998585
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "10_98",
+                                    "status":  "NOT_DETECTED_PARTIAL",
+                                    "observation_id":  "OBS-fd651ec463c5",
+                                    "resource_id":  "A-uav2",
+                                    "coverage_fraction":  0.001533,
+                                    "sim_time_s":  21000.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  21000.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-fd651ec463c5",
+                                                                     "resource_id":  "A-uav2",
+                                                                     "coverage_fraction":  0.001533,
+                                                                     "unobserved_fraction":  0.998467
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "10_99",
+                                    "status":  "NOT_DETECTED_PARTIAL",
+                                    "observation_id":  "OBS-420298e6f13b",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  0.001426,
+                                    "sim_time_s":  18900.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  18900.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-420298e6f13b",
+                                                                     "resource_id":  "A-uav1",
+                                                                     "coverage_fraction":  0.001426,
+                                                                     "unobserved_fraction":  0.998574
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "11_100",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-b8895e6ca67e",
+                                    "resource_id":  "A-uav2",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  18900.0,
+                                    "source":  "SIMULATED"
+                                },
+                                {
+                                    "cell_id":  "11_101",
+                                    "status":  "NOT_DETECTED_PARTIAL",
+                                    "observation_id":  "OBS-51b6736bc2b4",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  0.001404,
+                                    "sim_time_s":  16800.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  16800.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-51b6736bc2b4",
+                                                                     "resource_id":  "A-uav1",
+                                                                     "coverage_fraction":  0.001404,
+                                                                     "unobserved_fraction":  0.998596
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "11_102",
+                                    "status":  "NOT_DETECTED_PARTIAL",
+                                    "observation_id":  "OBS-cbb91773341f",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  0.001489,
+                                    "sim_time_s":  16800.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  16800.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-cbb91773341f",
+                                                                     "resource_id":  "A-uav1",
+                                                                     "coverage_fraction":  0.001489,
+                                                                     "unobserved_fraction":  0.998511
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "11_98",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-fd651ec463c5",
+                                    "resource_id":  "A-uav2",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  21000.0,
+                                    "source":  "SIMULATED"
+                                },
+                                {
+                                    "cell_id":  "11_99",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-420298e6f13b",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  18900.0,
+                                    "source":  "SIMULATED"
+                                },
+                                {
+                                    "cell_id":  "12_100",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-a2b6a2a51b5d",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  16800.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  18900.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-b8895e6ca67e",
+                                                                     "resource_id":  "A-uav2",
+                                                                     "coverage_fraction":  0.001511,
+                                                                     "unobserved_fraction":  0.998489
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "12_101",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-51b6736bc2b4",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  16800.0,
+                                    "source":  "SIMULATED"
+                                },
+                                {
+                                    "cell_id":  "12_102",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-cbb91773341f",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  16800.0,
+                                    "source":  "SIMULATED"
+                                },
+                                {
+                                    "cell_id":  "12_98",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-117155f94605",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  21000.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  21000.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-fd651ec463c5",
+                                                                     "resource_id":  "A-uav2",
+                                                                     "coverage_fraction":  0.001437,
+                                                                     "unobserved_fraction":  0.998563
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "12_99",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-e136d6f1a018",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  18900.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  18900.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-420298e6f13b",
+                                                                     "resource_id":  "A-uav1",
+                                                                     "coverage_fraction":  0.001426,
+                                                                     "unobserved_fraction":  0.998574
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "13_100",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-62f3691a3c0a",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  16800.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  16800.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-b5730f2ca01c",
+                                                                     "resource_id":  "A-uav2",
+                                                                     "coverage_fraction":  0.001415,
+                                                                     "unobserved_fraction":  0.998585
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "13_101",
+                                    "status":  "CONFIRMED_BURNED",
+                                    "observation_id":  "OBS-e990df8f6367",
+                                    "resource_id":  "A-uav2",
+                                    "coverage_fraction":  0.001404,
+                                    "sim_time_s":  16800.0,
+                                    "source":  "SIMULATED"
+                                },
+                                {
+                                    "cell_id":  "13_102",
+                                    "status":  "NOT_DETECTED_PARTIAL",
+                                    "observation_id":  "OBS-cbb91773341f",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  0.001393,
+                                    "sim_time_s":  16800.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  16800.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-cbb91773341f",
+                                                                     "resource_id":  "A-uav1",
+                                                                     "coverage_fraction":  0.001393,
+                                                                     "unobserved_fraction":  0.998607
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "13_98",
+                                    "status":  "NOT_DETECTED_PARTIAL",
+                                    "observation_id":  "OBS-117155f94605",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  0.001437,
+                                    "sim_time_s":  21000.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  21000.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-117155f94605",
+                                                                     "resource_id":  "A-uav1",
+                                                                     "coverage_fraction":  0.001437,
+                                                                     "unobserved_fraction":  0.998563
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "13_99",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-5d18522bc6ad",
+                                    "resource_id":  "A-uav2",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  18900.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  18900.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-b45a8e58935c",
+                                                                     "resource_id":  "A-uav1",
+                                                                     "coverage_fraction":  0.001522,
+                                                                     "unobserved_fraction":  0.998478
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "14_100",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-b5730f2ca01c",
+                                    "resource_id":  "A-uav2",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  16800.0,
+                                    "source":  "SIMULATED"
+                                },
+                                {
+                                    "cell_id":  "14_101",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-e990df8f6367",
+                                    "resource_id":  "A-uav2",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  16800.0,
+                                    "source":  "SIMULATED"
+                                },
+                                {
+                                    "cell_id":  "14_99",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-b45a8e58935c",
+                                    "resource_id":  "A-uav1",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  18900.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  18900.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-85df0f1597b7",
+                                                                     "resource_id":  "A-uav2",
+                                                                     "coverage_fraction":  0.001425,
+                                                                     "unobserved_fraction":  0.998575
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "15_100",
+                                    "status":  "NOT_DETECTED_PARTIAL",
+                                    "observation_id":  "OBS-b5730f2ca01c",
+                                    "resource_id":  "A-uav2",
+                                    "coverage_fraction":  0.001511,
+                                    "sim_time_s":  16800.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  16800.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-b5730f2ca01c",
+                                                                     "resource_id":  "A-uav2",
+                                                                     "coverage_fraction":  0.001511,
+                                                                     "unobserved_fraction":  0.998489
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "15_101",
+                                    "status":  "NOT_DETECTED_PARTIAL",
+                                    "observation_id":  "OBS-e990df8f6367",
+                                    "resource_id":  "A-uav2",
+                                    "coverage_fraction":  0.001404,
+                                    "sim_time_s":  16800.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  16800.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-e990df8f6367",
+                                                                     "resource_id":  "A-uav2",
+                                                                     "coverage_fraction":  0.001404,
+                                                                     "unobserved_fraction":  0.998596
+                                                                 }
+                                },
+                                {
+                                    "cell_id":  "15_99",
+                                    "status":  "OBSERVED_CLEAR",
+                                    "observation_id":  "OBS-85df0f1597b7",
+                                    "resource_id":  "A-uav2",
+                                    "coverage_fraction":  1.0,
+                                    "sim_time_s":  18900.0,
+                                    "source":  "SIMULATED"
+                                },
+                                {
+                                    "cell_id":  "16_99",
+                                    "status":  "NOT_DETECTED_PARTIAL",
+                                    "observation_id":  "OBS-85df0f1597b7",
+                                    "resource_id":  "A-uav2",
+                                    "coverage_fraction":  0.001425,
+                                    "sim_time_s":  18900.0,
+                                    "source":  "SIMULATED",
+                                    "last_partial_observation":  {
+                                                                     "status":  "NOT_DETECTED_PARTIAL",
+                                                                     "sim_time_s":  18900.0,
+                                                                     "source":  "SIMULATED",
+                                                                     "observation_id":  "OBS-85df0f1597b7",
+                                                                     "resource_id":  "A-uav2",
+                                                                     "coverage_fraction":  0.001425,
+                                                                     "unobserved_fraction":  0.998575
+                                                                 }
+                                }
+                            ],
+                  "stations":  [
+                                   {
+                                       "kind":  "STATION",
+                                       "station_id":  "100",
+                                       "station_name":  "ëê´ë ¹",
+                                       "lat":  37.67713,
+                                       "lon":  128.71834,
+                                       "observed_kst":  "2019-04-04 20:00",
+                                       "station_coord_source":  "ê¸°ìì²­ ê´ì¸¡ì§ì ì ë³´ (https://minwon.kma.go.kr/main/obvStn.do), 2026-09-30 ì¡°í",
+                                       "provision_interval_s":  3600.0,
+                                       "received_sim_s":  18900.0,
+                                       "sim_time_s":  18900.0,
+                                       "source":  "KMA_ASOS_HOURLY",
+                                       "values":  {
+                                                      "wind_ms":  12.2,
+                                                      "wind_dir_deg":  270.0,
+                                                      "temperature_c":  7.5,
+                                                      "humidity_pct":  31.0
+                                                  },
+                                       "item_status":  {
+                                                           "wind_ms":  {
+                                                                           "status":  "VALID",
+                                                                           "observed_sim_s":  18900.0,
+                                                                           "age_s":  2100.0,
+                                                                           "max_age_s":  3600.0
+                                                                       },
+                                                           "wind_dir_deg":  {
+                                                                                "status":  "VALID",
+                                                                                "observed_sim_s":  18900.0,
+                                                                                "age_s":  2100.0,
+                                                                                "max_age_s":  3600.0
+                                                                            },
+                                                           "temperature_c":  {
+                                                                                 "status":  "VALID",
+                                                                                 "observed_sim_s":  18900.0,
+                                                                                 "age_s":  2100.0,
+                                                                                 "max_age_s":  3600.0
+                                                                             },
+                                                           "humidity_pct":  {
+                                                                                "status":  "VALID",
+                                                                                "observed_sim_s":  18900.0,
+                                                                                "age_s":  2100.0,
+                                                                                "max_age_s":  3600.0
+                                                                            }
+                                                       }
+                                   },
+                                   {
+                                       "kind":  "STATION",
+                                       "station_id":  "211",
+                                       "station_name":  "ì¸ì ",
+                                       "lat":  38.05991,
+                                       "lon":  128.1681,
+                                       "observed_kst":  "2019-04-04 20:00",
+                                       "station_coord_source":  "ê¸°ìì²­ ê´ì¸¡ì§ì ì ë³´ (https://minwon.kma.go.kr/main/obvStn.do), 2026-09-30 ì¡°í",
+                                       "provision_interval_s":  3600.0,
+                                       "received_sim_s":  18900.0,
+                                       "sim_time_s":  18900.0,
+                                       "source":  "KMA_ASOS_HOURLY",
+                                       "values":  {
+                                                      "wind_ms":  5.3,
+                                                      "wind_dir_deg":  160.0,
+                                                      "temperature_c":  11.9,
+                                                      "humidity_pct":  20.0
+                                                  },
+                                       "item_status":  {
+                                                           "wind_ms":  {
+                                                                           "status":  "VALID",
+                                                                           "observed_sim_s":  18900.0,
+                                                                           "age_s":  2100.0,
+                                                                           "max_age_s":  3600.0
+                                                                       },
+                                                           "wind_dir_deg":  {
+                                                                                "status":  "VALID",
+                                                                                "observed_sim_s":  18900.0,
+                                                                                "age_s":  2100.0,
+                                                                                "max_age_s":  3600.0
+                                                                            },
+                                                           "temperature_c":  {
+                                                                                 "status":  "VALID",
+                                                                                 "observed_sim_s":  18900.0,
+                                                                                 "age_s":  2100.0,
+                                                                                 "max_age_s":  3600.0
+                                                                             },
+                                                           "humidity_pct":  {
+                                                                                "status":  "VALID",
+                                                                                "observed_sim_s":  18900.0,
+                                                                                "age_s":  2100.0,
+                                                                                "max_age_s":  3600.0
+                                                                            }
+                                                       }
+                                   },
+                                   {
+                                       "kind":  "STATION",
+                                       "station_id":  "212",
+                                       "station_name":  "íì²",
+                                       "lat":  37.6836,
+                                       "lon":  127.88043,
+                                       "observed_kst":  "2019-04-04 20:00",
+                                       "station_coord_source":  "ê¸°ìì²­ ê´ì¸¡ì§ì ì ë³´ (https://minwon.kma.go.kr/main/obvStn.do), 2026-09-30 ì¡°í",
+                                       "provision_interval_s":  3600.0,
+                                       "received_sim_s":  18900.0,
+                                       "sim_time_s":  18900.0,
+                                       "source":  "KMA_ASOS_HOURLY",
+                                       "values":  {
+                                                      "wind_ms":  1.2,
+                                                      "wind_dir_deg":  200.0,
+                                                      "temperature_c":  12.0,
+                                                      "humidity_pct":  25.0
+                                                  },
+                                       "item_status":  {
+                                                           "wind_ms":  {
+                                                                           "status":  "VALID",
+                                                                           "observed_sim_s":  18900.0,
+                                                                           "age_s":  2100.0,
+                                                                           "max_age_s":  3600.0
+                                                                       },
+                                                           "wind_dir_deg":  {
+                                                                                "status":  "VALID",
+                                                                                "observed_sim_s":  18900.0,
+                                                                                "age_s":  2100.0,
+                                                                                "max_age_s":  3600.0
+                                                                            },
+                                                           "temperature_c":  {
+                                                                                 "status":  "VALID",
+                                                                                 "observed_sim_s":  18900.0,
+                                                                                 "age_s":  2100.0,
+                                                                                 "max_age_s":  3600.0
+                                                                             },
+                                                           "humidity_pct":  {
+                                                                                "status":  "VALID",
+                                                                                "observed_sim_s":  18900.0,
+                                                                                "age_s":  2100.0,
+                                                                                "max_age_s":  3600.0
+                                                                            }
+                                                       }
+                                   },
+                                   {
+                                       "kind":  "STATION",
+                                       "station_id":  "90",
+                                       "station_name":  "ìì´",
+                                       "lat":  38.25085,
+                                       "lon":  128.56473,
+                                       "observed_kst":  "2019-04-04 20:00",
+                                       "station_coord_source":  "ê¸°ìì²­ ê´ì¸¡ì§ì ì ë³´ (https://minwon.kma.go.kr/main/obvStn.do), 2026-09-30 ì¡°í",
+                                       "provision_interval_s":  3600.0,
+                                       "received_sim_s":  18900.0,
+                                       "sim_time_s":  18900.0,
+                                       "source":  "KMA_ASOS_HOURLY",
+                                       "values":  {
+                                                      "wind_ms":  6.6,
+                                                      "wind_dir_deg":  270.0,
+                                                      "temperature_c":  15.3,
+                                                      "humidity_pct":  17.0
+                                                  },
+                                       "item_status":  {
+                                                           "wind_ms":  {
+                                                                           "status":  "VALID",
+                                                                           "observed_sim_s":  18900.0,
+                                                                           "age_s":  2100.0,
+                                                                           "max_age_s":  3600.0
+                                                                       },
+                                                           "wind_dir_deg":  {
+                                                                                "status":  "VALID",
+                                                                                "observed_sim_s":  18900.0,
+                                                                                "age_s":  2100.0,
+                                                                                "max_age_s":  3600.0
+                                                                            },
+                                                           "temperature_c":  {
+                                                                                 "status":  "VALID",
+                                                                                 "observed_sim_s":  18900.0,
+                                                                                 "age_s":  2100.0,
+                                                                                 "max_age_s":  3600.0
+                                                                             },
+                                                           "humidity_pct":  {
+                                                                                "status":  "VALID",
+                                                                                "observed_sim_s":  18900.0,
+                                                                                "age_s":  2100.0,
+                                                                                "max_age_s":  3600.0
+                                                                            }
+                                                       }
+                                   }
+                               ],
+                  "field_weather":  [
+
+                                    ],
+                  "field_weather_excluded":  [
+                                                 {
+                                                     "cell_id":  "12_101",
+                                                     "item":  "wind_ms",
+                                                     "status":  "POLICY_NOT_SET",
+                                                     "source":  "SIMULATED",
+                                                     "observed_sim_s":  16800.0,
+                                                     "age_s":  4200.0,
+                                                     "max_age_s":  null
+                                                 },
+                                                 {
+                                                     "cell_id":  "12_101",
+                                                     "item":  "wind_dir_deg",
+                                                     "status":  "POLICY_NOT_SET",
+                                                     "source":  "SIMULATED",
+                                                     "observed_sim_s":  16800.0,
+                                                     "age_s":  4200.0,
+                                                     "max_age_s":  null
+                                                 },
+                                                 {
+                                                     "cell_id":  "12_101",
+                                                     "item":  "temperature_c",
+                                                     "status":  "POLICY_NOT_SET",
+                                                     "source":  "SIMULATED",
+                                                     "observed_sim_s":  16800.0,
+                                                     "age_s":  4200.0,
+                                                     "max_age_s":  null
+                                                 },
+                                                 {
+                                                     "cell_id":  "12_101",
+                                                     "item":  "humidity_pct",
+                                                     "status":  "POLICY_NOT_SET",
+                                                     "source":  "SIMULATED",
+                                                     "observed_sim_s":  16800.0,
+                                                     "age_s":  4200.0,
+                                                     "max_age_s":  null
+                                                 },
+                                                 {
+                                                     "cell_id":  "13_101",
+                                                     "item":  "wind_ms",
+                                                     "status":  "POLICY_NOT_SET",
+                                                     "source":  "SIMULATED",
+                                                     "observed_sim_s":  0.0,
+                                                     "age_s":  21000.0,
+                                                     "max_age_s":  null
+                                                 },
+                                                 {
+                                                     "cell_id":  "13_101",
+                                                     "item":  "wind_dir_deg",
+                                                     "status":  "POLICY_NOT_SET",
+                                                     "source":  "SIMULATED",
+                                                     "observed_sim_s":  0.0,
+                                                     "age_s":  21000.0,
+                                                     "max_age_s":  null
+                                                 },
+                                                 {
+                                                     "cell_id":  "13_101",
+                                                     "item":  "temperature_c",
+                                                     "status":  "POLICY_NOT_SET",
+                                                     "source":  "SIMULATED",
+                                                     "observed_sim_s":  0.0,
+                                                     "age_s":  21000.0,
+                                                     "max_age_s":  null
+                                                 },
+                                                 {
+                                                     "cell_id":  "13_101",
+                                                     "item":  "humidity_pct",
+                                                     "status":  "POLICY_NOT_SET",
+                                                     "source":  "SIMULATED",
+                                                     "observed_sim_s":  0.0,
+                                                     "age_s":  21000.0,
+                                                     "max_age_s":  null
+                                                 },
+                                                 {
+                                                     "cell_id":  "14_101",
+                                                     "item":  "wind_ms",
+                                                     "status":  "POLICY_NOT_SET",
+                                                     "source":  "SIMULATED",
+                                                     "observed_sim_s":  16800.0,
+                                                     "age_s":  4200.0,
+                                                     "max_age_s":  null
+                                                 },
+                                                 {
+                                                     "cell_id":  "14_101",
+                                                     "item":  "wind_dir_deg",
+                                                     "status":  "POLICY_NOT_SET",
+                                                     "source":  "SIMULATED",
+                                                     "observed_sim_s":  16800.0,
+                                                     "age_s":  4200.0,
+                                                     "max_age_s":  null
+                                                 },
+                                                 {
+                                                     "cell_id":  "14_101",
+                                                     "item":  "temperature_c",
+                                                     "status":  "POLICY_NOT_SET",
+                                                     "source":  "SIMULATED",
+                                                     "observed_sim_s":  16800.0,
+                                                     "age_s":  4200.0,
+                                                     "max_age_s":  null
+                                                 },
+                                                 {
+                                                     "cell_id":  "14_101",
+                                                     "item":  "humidity_pct",
+                                                     "status":  "POLICY_NOT_SET",
+                                                     "source":  "SIMULATED",
+                                                     "observed_sim_s":  16800.0,
+                                                     "age_s":  4200.0,
+                                                     "max_age_s":  null
+                                                 }
+                                             ],
+                  "weather_policy":  {
+                                         "clock":  "SIMULATION_OBSERVED_TIME",
+                                         "field_max_age_s":  {
+                                                                 "wind_ms":  null,
+                                                                 "wind_dir_deg":  null,
+                                                                 "temperature_c":  null,
+                                                                 "humidity_pct":  null
+                                                             },
+                                         "field_policy_unset_items":  [
+                                                                          "humidity_pct",
+                                                                          "temperature_c",
+                                                                          "wind_dir_deg",
+                                                                          "wind_ms"
+                                                                      ],
+                                         "station_max_age":  "ìë£ ì ê³µ ê°ê²© (provision_interval_s)",
+                                         "order":  "ì í¨í íì¥ ì¸¡ì  â ê°ì¥ ê°ê¹ì´ ê´ì¸¡ìì ì í¨í ê° â UNKNOWN"
+                                     },
+                  "scenario_start_kst":  "2019-04-04T14:45:00+09:00",
+                  "run_id":  "RUN-INJE-20261012T055408Z-0a40d7",
+                  "run_gate":  null,
+                  "simulation_time_s":  21000.0,
+                  "analysis_source":  "ENV_BELIEF_ANALYSIS",
+                  "env_source":  "TEAM_API"
+              },
+    "similar_delta":  0.1,
+    "decided_seq":  275,
+    "auto_order":  [
+                       {
+                           "task_id":  "TASK-ba708b429b37",
+                           "kind":  "MONITOR",
+                           "cell_id":  "12_98",
+                           "purpose_status":  "IN_EXECUTION",
+                           "hold_reason":  null,
+                           "resume_condition":  null,
+                           "human_risk":  null,
+                           "human_risk_sources":  [
+
+                                                  ],
+                           "human_risk_basis":  [
+
+                                                ],
+                           "forecast_arrival_s":  null,
+                           "risk_score":  null,
+                           "distance_m":  null,
+                           "nearest_protected":  null,
+                           "resource_id":  "A-uav1",
+                           "observation":  {
+                                               "result":  "NOT_DETECTED",
+                                               "source":  "SIMULATED",
+                                               "sensor_status":  "TEST_ONLY",
+                                               "sensor_type":  "THERMAL",
+                                               "failure_reason":  null,
+                                               "covered_cells":  [
+                                                                     "11_98"
+                                                                 ],
+                                               "partial_cells":  [
+                                                                     "10_98",
+                                                                     "12_98"
+                                                                 ],
+                                               "cell_coverage":  [
+                                                                     {
+                                                                         "cell_id":  "10_98",
+                                                                         "cell_size_m":  90.0,
+                                                                         "full":  false,
+                                                                         "fraction":  0.001533,
+                                                                         "rect":  [
+                                                                                      44.86,
+                                                                                      -45.0,
+                                                                                      45.0,
+                                                                                      43.909
+                                                                                  ]
+                                                                     },
+                                                                     {
+                                                                         "cell_id":  "11_98",
+                                                                         "cell_size_m":  90.0,
+                                                                         "full":  true,
+                                                                         "fraction":  1.0,
+                                                                         "rect":  [
+                                                                                      -45.0,
+                                                                                      -45.0,
+                                                                                      45.0,
+                                                                                      45.0
+                                                                                  ]
+                                                                     },
+                                                                     {
+                                                                         "cell_id":  "12_98",
+                                                                         "cell_size_m":  90.0,
+                                                                         "full":  false,
+                                                                         "fraction":  0.001437,
+                                                                         "rect":  [
+                                                                                      -45.0,
+                                                                                      -43.898,
+                                                                                      -44.869,
+                                                                                      45.0
+                                                                                  ]
+                                                                     }
+                                                                 ],
+                                               "detections":  [
+
+                                                              ],
+                                               "received_after_purpose":  null,
+                                               "target_covered":  true,
+                                               "resource_id":  "A-uav2",
+                                               "footprint":  {
+                                                                 "width_m":  90.0,
+                                                                 "height_m":  90.0,
+                                                                 "agl_m":  90.01999999999998
+                                                             },
+                                               "simulation_time_s":  21000.0,
+                                               "observed_wall":  "2026-10-12T05:58:01.317105+00:00",
+                                               "is_fire_observation":  true,
+                                               "values":  null,
+                                               "scope":  null,
+                                               "same_visit_as":  null,
+                                               "env_apply":  {
+                                                                 "result":  "ACK",
+                                                                 "state_version":  29
+                                                             },
+                                               "extras":  [
+
+                                                          ],
+                                               "completion":  null
+                                           }
+                       }
+                   ],
+    "groups":  [
+
+               ],
+    "criteria":  [
+
+                 ],
+    "rule":  "HUMAN_RISK_FIRST; then risk_score desc, distance asc, official rank; equal â created order; risk missing â last; groups = same human class \u0026 (risk diff \u003c= delta or crossing criteria)"
+}

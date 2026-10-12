@@ -1,0 +1,74 @@
+﻿........................................................................ [ 20%]
+........................................................................ [ 41%]
+................................................ssssssss................ [ 61%]
+........................................................................ [ 82%]
+.............................................................            [100%]
+============================== warnings summary ===============================
+..\..\..\Users\USER\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\USER\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+..\..\..\Users\USER\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\testclient.py:53
+  C:\Users\USER\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+
+orchestrator/tests/test_api.py: 2 warnings
+orchestrator/tests/test_env_sense.py: 1 warning
+orchestrator/tests/test_event_intake.py: 14 warnings
+orchestrator/tests/test_followup_7712_edges.py: 2 warnings
+orchestrator/tests/test_followup_r01_r04.py: 1 warning
+orchestrator/tests/test_info_boundary.py: 1 warning
+orchestrator/tests/test_internal_tasks.py: 3 warnings
+orchestrator/tests/test_knowledge.py: 1 warning
+orchestrator/tests/test_llm_cache_lock.py: 4 warnings
+orchestrator/tests/test_priority.py: 2 warnings
+orchestrator/tests/test_validation_fixes.py: 1 warning
+orchestrator/tests/test_weather_freshness.py: 2 warnings
+  C:\codyssey\project\Codyssey_M2-1\orchestrator\api.py:183: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+orchestrator/tests/test_api.py: 2 warnings
+orchestrator/tests/test_env_sense.py: 1 warning
+orchestrator/tests/test_event_intake.py: 14 warnings
+orchestrator/tests/test_followup_7712_edges.py: 4 warnings
+orchestrator/tests/test_followup_r01_r04.py: 1 warning
+orchestrator/tests/test_info_boundary.py: 1 warning
+orchestrator/tests/test_internal_tasks.py: 3 warnings
+orchestrator/tests/test_knowledge.py: 1 warning
+orchestrator/tests/test_llm_cache_lock.py: 4 warnings
+orchestrator/tests/test_priority.py: 2 warnings
+orchestrator/tests/test_validation_fixes.py: 1 warning
+orchestrator/tests/test_weather_freshness.py: 2 warnings
+  C:\Users\USER\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\applications.py:4681: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+orchestrator/tests/test_followup_7712_edges.py::test_background_poller_continues_during_automatic_slow_dispatch
+  C:\codyssey\project\Codyssey_M2-1\orchestrator\api.py:215: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+orchestrator/tests/test_followup_7712_edges.py::test_background_poller_continues_during_automatic_slow_dispatch
+  C:\codyssey\project\Codyssey_M2-1\orchestrator\api.py:220: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("shutdown")
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+341 passed, 8 skipped, 74 warnings in 33.48s

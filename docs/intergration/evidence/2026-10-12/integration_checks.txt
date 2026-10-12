@@ -1,0 +1,107 @@
+﻿== tests.it_cases
+[PASS] IT-01. 정상 임무 수행
+[PASS] IT-02. UAV 강풍 REJECT 후 재평가
+
+두 테스트 모두 통과했습니다.
+== tests.int01_orch_dispatch_check
+python : C:\Users\USER\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\testclient.py:1: StarletteDepreca
+tionWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+위치 줄:3 문자:192
++ ... ests.int04_05_check" | ForEach-Object { "== $_"; python -m $_ } *> "$ ...
++                                                      ~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\USER\A...ttpx2` instead.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  from starlette.testclient import TestClient as TestClient  # noqa
+[PASS] 켜짐: 총괄 /tasks 로 1회 요청  (http://127.0.0.1:8200/tasks)
+[PASS] 켜짐: UAV 서버는 직접 부르지 않음
+[PASS] 요청 내용: 정찰·UAV·열화상
+[PASS] 요청 내용: 목표 위경도·지면 해발고도·칸 번호  (고도 550.6 m)
+[PASS] 응답: 접수 결과와 보류 사유를 그대로 전달
+[PASS] 클릭마다 새 request_id
+[PASS] 총괄 없음: 실패 응답(ORCH_UNREACHABLE)
+[PASS] 총괄 없음: UAV 로 우회하지 않음
+[PASS] 꺼짐(기본): 총괄을 부르지 않고 기존처럼 UAV 직접
+
+모두 통과
+== tests.int02_extinguish_check
+python : C:\Users\USER\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\testclient.py:1: StarletteDepreca
+tionWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+위치 줄:3 문자:192
++ ... ests.int04_05_check" | ForEach-Object { "== $_"; python -m $_ } *> "$ ...
++                                                      ~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\USER\A...ttpx2` instead.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  from starlette.testclient import TestClient as TestClient  # noqa
+[PASS] 기본 설정에서 /api/extinguish 는 비활성 응답  (DEMO_EXTINGUISH_OFF)
+[PASS] 도착 처리 뒤에도 그 칸은 계속 연소 중  (칸 19,142)
+[PASS] 자동 모드 도착(/api/auto/done)도 환경을 바꾸지 않음
+[PASS] 시연 스위치를 켜면 진화 반영  (칸 19,142)
+
+모두 통과
+== tests.int03_orch_panel_check
+python : C:\Users\USER\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\testclient.py:1: StarletteDepreca
+tionWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+위치 줄:3 문자:192
++ ... ests.int04_05_check" | ForEach-Object { "== $_"; python -m $_ } *> "$ ...
++                                                      ~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\USER\A...ttpx2` instead.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  from starlette.testclient import TestClient as TestClient  # noqa
+[PASS] 총괄 서버가 없으면 connected=False
+[PASS] 총괄 응답을 받으면 connected=True
+[PASS] 환경 종류 표시 (시험용 환경 구분)
+[PASS] 임무 요약에 상태·보류 사유 포함
+[PASS] 목적 완료와 기체 복귀를 따로 표시
+[PASS] 읽기 전용 (POST 요청 없음)  (3회 GET)
+[PASS] 화면에 불명·보류를 실패로 칠하지 않는 표기 포함
+
+모두 통과
+== tests.log_coverage_check
+python : C:\Users\USER\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\testclient.py:1: StarletteDepreca
+tionWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+위치 줄:3 문자:192
++ ... ests.int04_05_check" | ForEach-Object { "== $_"; python -m $_ } *> "$ ...
++                                                      ~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\USER\A...ttpx2` instead.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  from starlette.testclient import TestClient as TestClient  # noqa
+[PASS] 폐루프: ENVIRONMENT_UPDATE·TASK_COMPLETE 에 decision_id  (6줄)
+[PASS] 폐루프: 완료 줄에 수행 자원(resource_id)  (3건)
+[PASS] 수동 출동: TASK_CREATED → LOCAL_RESPONSE → EXECUTION 기록  (TASK_CREATED → LOCAL_RESPONSE → EXECUTION)
+[PASS] 수동 출동: 판단 근거(evidence)와 decision_id
+[PASS] 수동 출동: 총괄 Safety 를 거치지 않았음을 표시
+[PASS] 도착: ARRIVAL 기록 (자원 이름·진화 미반영)
+[PASS] 자동 모드 도착도 ARRIVAL 기록
+[PASS] 총괄 경유: 접수 결과 기록 (ACCEPTED·총괄 임무 번호)
+[PASS] 총괄 경유: 총괄 없음도 기록 (FAILED·ORCH_UNREACHABLE)
+
+모두 통과
+== tests.int04_05_check
+python : C:\Users\USER\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\testclient.py:1: StarletteDepreca
+tionWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+위치 줄:3 문자:192
++ ... ests.int04_05_check" | ForEach-Object { "== $_"; python -m $_ } *> "$ ...
++                                                      ~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\USER\A...ttpx2` instead.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  from starlette.testclient import TestClient as TestClient  # noqa
+[PASS] 거점 좌표를 fire_stations.json 에서 읽음  (A 38.0613774, 128.1684755)
+[PASS] 파일이 없으면 기존 config 값으로 동작
+[PASS] 관제판이 환경 서버 스냅샷을 그대로 표시  (불 2칸, 시뮬 4200.0초)
+[PASS] 위험 칸은 위험도 높은 순
+[PASS] 관제판은 산불을 진행시키지 않음 (/advance 호출 없음, 자체 시계 그대로)
+[PASS] 관제판 자체 자동 루프 꺼짐 (자동 판단은 총괄)
+[PASS] 환경 서버 모드에서는 시연 진화도 환경을 바꾸지 않음
+[PASS] 기록 시각 = 환경 서버 시뮬레이션 시각
+[PASS] 상단 표시: 산불 시계·거점 좌표 출처
+[PASS] 환경 서버 주소가 없으면 기존 자동 루프 그대로
+[PASS] 트윈 구성: 환경 서버·시계·순찰 포함
+[PASS] 트윈 구성: /advance 는 시계만
+[PASS] 트윈 구성: 총괄은 팀 환경(team_http), 발화점·시각은 시나리오 값
+
+모두 통과
