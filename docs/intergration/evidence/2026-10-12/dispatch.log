@@ -1,0 +1,120 @@
+
+===== 2026-10-06 10:34:28 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim 32.67h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-06 10:38:24 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-06 10:45:55 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-06 11:16:19 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-06 11:24:43 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-06 11:30:02 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-06 11:32:04 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-06 11:48:27 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-06 13:48:13 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-06 14:42:54 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-07 14:10:51 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-07 14:32:11 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-07 15:33:22 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-07 15:34:58 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-07 15:45:20 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-07 15:49:14 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-07 16:04:41 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-07 16:15:36 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-12 11:07:13 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-12 13:29:16 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-12 13:36:17 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-12 13:50:56 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-12 13:53:17 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-12 13:58:10 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-12 13:59:16 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-12 14:02:20 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-12 14:08:05 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-12 14:22:17 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-12 14:47:57 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
+
+===== 2026-10-12 14:54:29 시작: C:\Users\USER\AppData\Local\Programs\Python\Python311\python.exe tools/twin_ground_dispatch.py
+지상 출동 운용자 대기: 시설 ['NAMJEON1_HALL'], 자원 ['FIRE_ENGINE'], 시점 confirmed
+sim  0.00h 불 확인 ['13_101'] → 남전1리 마을회관 방어 출동 요청 (칸 24_116, ['FIRE_ENGINE']) → HTTP 202
