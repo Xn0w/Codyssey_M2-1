@@ -1,0 +1,6899 @@
+[
+ {
+  "seq": 5,
+  "wall_time": 1791691036.483086,
+  "sim_time_s": 4200.0,
+  "event_type": "TASK_RECEIVED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "CREATED",
+  "reason": null,
+  "detail": {
+   "request_id": "OPERATOR-REJECT:20_57",
+   "completion_rule": "TARGET_POINT",
+   "required_cell_ids": [],
+   "needs_env_ack": true
+  }
+ },
+ {
+  "seq": 13,
+  "wall_time": 1791691036.5966341,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "PENDING->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 14,
+  "wall_time": 1791691036.597216,
+  "sim_time_s": 4200.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 3,
+    "simulation_time_s": 4200.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 900.0,
+    "observed_kst": "2019-04-04 15:00",
+    "items": {
+     "wind_ms": {
+      "value": 6.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 15.5,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 25.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 6.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 15,
+  "wall_time": 1791691036.598031,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-4d74de50e595",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-4d74de50e595",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 16,
+  "wall_time": 1791691036.598637,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-303fcb3f5ca6",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-303fcb3f5ca6",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 17,
+  "wall_time": 1791691036.59878,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 18,
+  "wall_time": 1791691036.598824,
+  "sim_time_s": 4200.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 20,
+  "wall_time": 1791691036.609854,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 21,
+  "wall_time": 1791691036.6104279,
+  "sim_time_s": 4200.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 3,
+    "simulation_time_s": 4200.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 900.0,
+    "observed_kst": "2019-04-04 15:00",
+    "items": {
+     "wind_ms": {
+      "value": 6.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 15.5,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 25.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 6.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 22,
+  "wall_time": 1791691036.611072,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-56fbcee3018d",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-56fbcee3018d",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 23,
+  "wall_time": 1791691036.611881,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-100e8409c59f",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-100e8409c59f",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 24,
+  "wall_time": 1791691036.612061,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 25,
+  "wall_time": 1791691036.612106,
+  "sim_time_s": 4200.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 27,
+  "wall_time": 1791691038.214666,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 28,
+  "wall_time": 1791691038.2153769,
+  "sim_time_s": 4200.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 3,
+    "simulation_time_s": 4200.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 900.0,
+    "observed_kst": "2019-04-04 15:00",
+    "items": {
+     "wind_ms": {
+      "value": 6.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 15.5,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 25.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 6.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 29,
+  "wall_time": 1791691038.21623,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-602ac696ff12",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-602ac696ff12",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 30,
+  "wall_time": 1791691038.2171142,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-2ce7987e2ce2",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-2ce7987e2ce2",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 31,
+  "wall_time": 1791691038.2173572,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 32,
+  "wall_time": 1791691038.217412,
+  "sim_time_s": 4200.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 42,
+  "wall_time": 1791691039.2685409,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 43,
+  "wall_time": 1791691039.269134,
+  "sim_time_s": 4200.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 5,
+    "simulation_time_s": 4200.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 900.0,
+    "observed_kst": "2019-04-04 15:00",
+    "items": {
+     "wind_ms": {
+      "value": 6.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 15.5,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 25.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 6.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 44,
+  "wall_time": 1791691039.269846,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-7d05d8e9c871",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-7d05d8e9c871",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 45,
+  "wall_time": 1791691039.2704792,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-22f4d648cce3",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-22f4d648cce3",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 46,
+  "wall_time": 1791691039.2706518,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 47,
+  "wall_time": 1791691039.2706969,
+  "sim_time_s": 4200.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 50,
+  "wall_time": 1791691039.849546,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 51,
+  "wall_time": 1791691039.850115,
+  "sim_time_s": 4200.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 5,
+    "simulation_time_s": 4200.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 900.0,
+    "observed_kst": "2019-04-04 15:00",
+    "items": {
+     "wind_ms": {
+      "value": 6.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 15.5,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 25.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 6.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 52,
+  "wall_time": 1791691039.850832,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-74ab3e02aac2",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-74ab3e02aac2",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 53,
+  "wall_time": 1791691039.851539,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-f549eba82208",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-f549eba82208",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 54,
+  "wall_time": 1791691039.8517241,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 55,
+  "wall_time": 1791691039.851779,
+  "sim_time_s": 4200.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 65,
+  "wall_time": 1791691040.278893,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 66,
+  "wall_time": 1791691040.2795079,
+  "sim_time_s": 4200.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 5,
+    "simulation_time_s": 4200.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 900.0,
+    "observed_kst": "2019-04-04 15:00",
+    "items": {
+     "wind_ms": {
+      "value": 6.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 15.5,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 25.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 6.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 67,
+  "wall_time": 1791691040.2801971,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-6e10297d2994",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-6e10297d2994",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 68,
+  "wall_time": 1791691040.2807848,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-f29230caa390",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-f29230caa390",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 69,
+  "wall_time": 1791691040.2809339,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 70,
+  "wall_time": 1791691040.280985,
+  "sim_time_s": 4200.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 77,
+  "wall_time": 1791691046.447315,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 78,
+  "wall_time": 1791691046.448672,
+  "sim_time_s": 4200.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 5,
+    "simulation_time_s": 4200.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 900.0,
+    "observed_kst": "2019-04-04 15:00",
+    "items": {
+     "wind_ms": {
+      "value": 6.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 15.5,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 25.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 900.0,
+      "received_sim_s": 2100.0,
+      "age_s": 3300.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 6.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 79,
+  "wall_time": 1791691046.449791,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-bb2e348e07cd",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-bb2e348e07cd",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 80,
+  "wall_time": 1791691046.4507232,
+  "sim_time_s": 4200.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-e4a38de65c89",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-e4a38de65c89",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 81,
+  "wall_time": 1791691046.4509609,
+  "sim_time_s": 4200.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 82,
+  "wall_time": 1791691046.4510431,
+  "sim_time_s": 4200.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 85,
+  "wall_time": 1791691156.539165,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 86,
+  "wall_time": 1791691156.540255,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 11,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 87,
+  "wall_time": 1791691156.540959,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-c2382200ad8e",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-c2382200ad8e",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 88,
+  "wall_time": 1791691156.541621,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-a29f1b0df9e1",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-a29f1b0df9e1",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 89,
+  "wall_time": 1791691156.541802,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 90,
+  "wall_time": 1791691156.5418549,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 100,
+  "wall_time": 1791691157.7768698,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 101,
+  "wall_time": 1791691157.7776299,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 11,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 102,
+  "wall_time": 1791691157.7785778,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-60ef7e1e0b37",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-60ef7e1e0b37",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 103,
+  "wall_time": 1791691157.779437,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-0c43de5f6bad",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-0c43de5f6bad",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 104,
+  "wall_time": 1791691157.7796412,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 105,
+  "wall_time": 1791691157.779695,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 113,
+  "wall_time": 1791691158.8170261,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 114,
+  "wall_time": 1791691158.817617,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 12,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 115,
+  "wall_time": 1791691158.81835,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-fc4c4c9a6939",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-fc4c4c9a6939",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 116,
+  "wall_time": 1791691158.819123,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-d99416b8a77b",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-d99416b8a77b",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 117,
+  "wall_time": 1791691158.819325,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 118,
+  "wall_time": 1791691158.819385,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 128,
+  "wall_time": 1791691159.8544571,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 129,
+  "wall_time": 1791691159.855154,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 12,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 130,
+  "wall_time": 1791691159.855959,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-2c00e3a11ace",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-2c00e3a11ace",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 131,
+  "wall_time": 1791691159.8567731,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-65476bfed5e9",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-65476bfed5e9",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 132,
+  "wall_time": 1791691159.8569868,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 133,
+  "wall_time": 1791691159.857056,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 142,
+  "wall_time": 1791691160.8954802,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 143,
+  "wall_time": 1791691160.8960881,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 13,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 144,
+  "wall_time": 1791691160.896789,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-16dc1ca95096",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-16dc1ca95096",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 145,
+  "wall_time": 1791691160.897451,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-debfe715d60f",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-debfe715d60f",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 146,
+  "wall_time": 1791691160.897642,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 147,
+  "wall_time": 1791691160.89771,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 158,
+  "wall_time": 1791691161.9304829,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 159,
+  "wall_time": 1791691161.931148,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 13,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 160,
+  "wall_time": 1791691161.931969,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-c1234b7aea3d",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-c1234b7aea3d",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 161,
+  "wall_time": 1791691161.9327302,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-c92e62fa0643",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-c92e62fa0643",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 162,
+  "wall_time": 1791691161.9329312,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 163,
+  "wall_time": 1791691161.932978,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 171,
+  "wall_time": 1791691162.9729438,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 172,
+  "wall_time": 1791691162.9735522,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 14,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 173,
+  "wall_time": 1791691162.974275,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-f85602b1a6d3",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-f85602b1a6d3",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 174,
+  "wall_time": 1791691162.974935,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-305e68991c70",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-305e68991c70",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 175,
+  "wall_time": 1791691162.975115,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 176,
+  "wall_time": 1791691162.975165,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 186,
+  "wall_time": 1791691164.009984,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 187,
+  "wall_time": 1791691164.010658,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 14,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 188,
+  "wall_time": 1791691164.011486,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-41ddae0eb85b",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-41ddae0eb85b",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 189,
+  "wall_time": 1791691164.012258,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-5d6fa3d4b7ff",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-5d6fa3d4b7ff",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 190,
+  "wall_time": 1791691164.0124428,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 191,
+  "wall_time": 1791691164.012494,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 202,
+  "wall_time": 1791691165.06615,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 203,
+  "wall_time": 1791691165.066768,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 16,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 204,
+  "wall_time": 1791691165.0674508,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-85e97eec87eb",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-85e97eec87eb",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 205,
+  "wall_time": 1791691165.068156,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-323a24116786",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-323a24116786",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 206,
+  "wall_time": 1791691165.068327,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 207,
+  "wall_time": 1791691165.068368,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 217,
+  "wall_time": 1791691166.105726,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 218,
+  "wall_time": 1791691166.10641,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 16,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 219,
+  "wall_time": 1791691166.107189,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-2152b07ddb3f",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-2152b07ddb3f",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 220,
+  "wall_time": 1791691166.107994,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-8c18ee17f035",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-8c18ee17f035",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 221,
+  "wall_time": 1791691166.1081972,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 222,
+  "wall_time": 1791691166.1082659,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 233,
+  "wall_time": 1791691167.173147,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 234,
+  "wall_time": 1791691167.1738849,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 18,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 235,
+  "wall_time": 1791691167.1746402,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-ca672f19743f",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-ca672f19743f",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 236,
+  "wall_time": 1791691167.176277,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-a9461bd2fb5b",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-a9461bd2fb5b",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 237,
+  "wall_time": 1791691167.176467,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 238,
+  "wall_time": 1791691167.176524,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 248,
+  "wall_time": 1791691168.203744,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 249,
+  "wall_time": 1791691168.204403,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 18,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 250,
+  "wall_time": 1791691168.2052119,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-fe3e39f053d0",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-fe3e39f053d0",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 251,
+  "wall_time": 1791691168.2059782,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-37783f8767c0",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-37783f8767c0",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 252,
+  "wall_time": 1791691168.206153,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 253,
+  "wall_time": 1791691168.206212,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 262,
+  "wall_time": 1791691169.2311978,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 263,
+  "wall_time": 1791691169.23179,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 19,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 264,
+  "wall_time": 1791691169.232484,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-4b10777aca85",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-4b10777aca85",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 265,
+  "wall_time": 1791691169.2331321,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-88bc549423cb",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-88bc549423cb",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 266,
+  "wall_time": 1791691169.2333062,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 267,
+  "wall_time": 1791691169.233366,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 270,
+  "wall_time": 1791691170.2560399,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 271,
+  "wall_time": 1791691170.256671,
+  "sim_time_s": 16800.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 19,
+    "simulation_time_s": 16800.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 15300.0,
+    "observed_kst": "2019-04-04 19:00",
+    "items": {
+     "wind_ms": {
+      "value": 3.8,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 180.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 12.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 23.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 15300.0,
+      "received_sim_s": 16800.0,
+      "age_s": 1500.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 3.8,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 272,
+  "wall_time": 1791691170.2574341,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-bc26d6dd2faa",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-bc26d6dd2faa",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 273,
+  "wall_time": 1791691170.258164,
+  "sim_time_s": 16800.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-5fca422d24f7",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-5fca422d24f7",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 274,
+  "wall_time": 1791691170.258359,
+  "sim_time_s": 16800.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 275,
+  "wall_time": 1791691170.258413,
+  "sim_time_s": 16800.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 278,
+  "wall_time": 1791691177.0227141,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 279,
+  "wall_time": 1791691177.023832,
+  "sim_time_s": 18900.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 20,
+    "simulation_time_s": 18900.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 18900.0,
+    "observed_kst": "2019-04-04 20:00",
+    "items": {
+     "wind_ms": {
+      "value": 5.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 11.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 20.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 5.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 280,
+  "wall_time": 1791691177.024516,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-4c5ee67b303c",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-4c5ee67b303c",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 281,
+  "wall_time": 1791691177.025264,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-54e831c252dd",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-54e831c252dd",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 282,
+  "wall_time": 1791691177.025462,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 283,
+  "wall_time": 1791691177.025515,
+  "sim_time_s": 18900.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 293,
+  "wall_time": 1791691178.412405,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 294,
+  "wall_time": 1791691178.413122,
+  "sim_time_s": 18900.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 20,
+    "simulation_time_s": 18900.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 18900.0,
+    "observed_kst": "2019-04-04 20:00",
+    "items": {
+     "wind_ms": {
+      "value": 5.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 11.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 20.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 5.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 295,
+  "wall_time": 1791691178.413922,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-9eb8b1dcff8d",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-9eb8b1dcff8d",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 296,
+  "wall_time": 1791691178.41457,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-d5f92411fd6c",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-d5f92411fd6c",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 297,
+  "wall_time": 1791691178.414737,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 298,
+  "wall_time": 1791691178.414782,
+  "sim_time_s": 18900.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 306,
+  "wall_time": 1791691179.464897,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 307,
+  "wall_time": 1791691179.465523,
+  "sim_time_s": 18900.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 21,
+    "simulation_time_s": 18900.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 18900.0,
+    "observed_kst": "2019-04-04 20:00",
+    "items": {
+     "wind_ms": {
+      "value": 5.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 11.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 20.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 5.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 308,
+  "wall_time": 1791691179.466269,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-46b0f31dafe7",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-46b0f31dafe7",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 309,
+  "wall_time": 1791691179.466969,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-3d033a3425cc",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-3d033a3425cc",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 310,
+  "wall_time": 1791691179.467176,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 311,
+  "wall_time": 1791691179.467231,
+  "sim_time_s": 18900.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 321,
+  "wall_time": 1791691180.4834182,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 322,
+  "wall_time": 1791691180.4840572,
+  "sim_time_s": 18900.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 21,
+    "simulation_time_s": 18900.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 18900.0,
+    "observed_kst": "2019-04-04 20:00",
+    "items": {
+     "wind_ms": {
+      "value": 5.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 11.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 20.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 5.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 323,
+  "wall_time": 1791691180.484847,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-289eb7ade4da",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-289eb7ade4da",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 324,
+  "wall_time": 1791691180.485622,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-1fce5b10301e",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-1fce5b10301e",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 325,
+  "wall_time": 1791691180.4858198,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 326,
+  "wall_time": 1791691180.485873,
+  "sim_time_s": 18900.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 334,
+  "wall_time": 1791691181.530936,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 335,
+  "wall_time": 1791691181.531581,
+  "sim_time_s": 18900.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 22,
+    "simulation_time_s": 18900.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 18900.0,
+    "observed_kst": "2019-04-04 20:00",
+    "items": {
+     "wind_ms": {
+      "value": 5.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 11.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 20.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 5.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 336,
+  "wall_time": 1791691181.5323038,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-480a4bd8685b",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-480a4bd8685b",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 337,
+  "wall_time": 1791691181.532973,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-253ccf02eab2",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-253ccf02eab2",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 338,
+  "wall_time": 1791691181.533165,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 339,
+  "wall_time": 1791691181.53322,
+  "sim_time_s": 18900.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 350,
+  "wall_time": 1791691182.5647979,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 351,
+  "wall_time": 1791691182.565488,
+  "sim_time_s": 18900.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 22,
+    "simulation_time_s": 18900.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 18900.0,
+    "observed_kst": "2019-04-04 20:00",
+    "items": {
+     "wind_ms": {
+      "value": 5.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 11.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 20.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 5.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 352,
+  "wall_time": 1791691182.5663009,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-cb2f1c04f868",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-cb2f1c04f868",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 353,
+  "wall_time": 1791691182.5670469,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-2e6b007ba7b6",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-2e6b007ba7b6",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 354,
+  "wall_time": 1791691182.567241,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 355,
+  "wall_time": 1791691182.567297,
+  "sim_time_s": 18900.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 363,
+  "wall_time": 1791691183.6032178,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 364,
+  "wall_time": 1791691183.60383,
+  "sim_time_s": 18900.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 23,
+    "simulation_time_s": 18900.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 18900.0,
+    "observed_kst": "2019-04-04 20:00",
+    "items": {
+     "wind_ms": {
+      "value": 5.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 11.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 20.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 5.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 365,
+  "wall_time": 1791691183.604576,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-29468b090983",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-29468b090983",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 366,
+  "wall_time": 1791691183.605286,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-2cb19768851a",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-2cb19768851a",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 367,
+  "wall_time": 1791691183.605485,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 368,
+  "wall_time": 1791691183.6055481,
+  "sim_time_s": 18900.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 379,
+  "wall_time": 1791691184.642147,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 380,
+  "wall_time": 1791691184.64281,
+  "sim_time_s": 18900.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 23,
+    "simulation_time_s": 18900.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 18900.0,
+    "observed_kst": "2019-04-04 20:00",
+    "items": {
+     "wind_ms": {
+      "value": 5.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 11.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 20.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 5.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 381,
+  "wall_time": 1791691184.643659,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-a3977a6a4779",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-a3977a6a4779",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 382,
+  "wall_time": 1791691184.6444402,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-0e8123cc2381",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-0e8123cc2381",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 383,
+  "wall_time": 1791691184.6446059,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 384,
+  "wall_time": 1791691184.644651,
+  "sim_time_s": 18900.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 392,
+  "wall_time": 1791691185.658956,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 393,
+  "wall_time": 1791691185.659538,
+  "sim_time_s": 18900.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 24,
+    "simulation_time_s": 18900.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 18900.0,
+    "observed_kst": "2019-04-04 20:00",
+    "items": {
+     "wind_ms": {
+      "value": 5.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 11.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 20.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 5.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 394,
+  "wall_time": 1791691185.6601942,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-87fad618656f",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-87fad618656f",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 395,
+  "wall_time": 1791691185.66089,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-c9f2d3257dad",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-c9f2d3257dad",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 396,
+  "wall_time": 1791691185.661085,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 397,
+  "wall_time": 1791691185.661132,
+  "sim_time_s": 18900.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 408,
+  "wall_time": 1791691186.6985579,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 409,
+  "wall_time": 1791691186.699287,
+  "sim_time_s": 18900.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 24,
+    "simulation_time_s": 18900.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 18900.0,
+    "observed_kst": "2019-04-04 20:00",
+    "items": {
+     "wind_ms": {
+      "value": 5.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 11.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 20.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 5.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 410,
+  "wall_time": 1791691186.7000809,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-45616275b4d1",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-45616275b4d1",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 411,
+  "wall_time": 1791691186.700893,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-0f67385afc0a",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-0f67385afc0a",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 412,
+  "wall_time": 1791691186.701077,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 413,
+  "wall_time": 1791691186.7011259,
+  "sim_time_s": 18900.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ },
+ {
+  "seq": 421,
+  "wall_time": 1791691187.7395608,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD->EVALUATING",
+  "reason": "DISPATCH_EVALUATION",
+  "detail": {
+   "hold_reason": null,
+   "resume_condition": null
+  }
+ },
+ {
+  "seq": 422,
+  "wall_time": 1791691187.7401621,
+  "sim_time_s": 18900.0,
+  "event_type": "CANDIDATES_FILTERED",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": null,
+  "reason": null,
+  "detail": {
+   "snapshot": {
+    "run_id": "RUN-INJE-20261011T035623Z-14e45f",
+    "state_version": 25,
+    "simulation_time_s": 18900.0,
+    "map_version": "INJE-2019-v1",
+    "source": "ORCHESTRATOR_VIEW",
+    "contract_complete": true
+   },
+   "wind_ref": {
+    "basis": "NEAREST_STATION",
+    "source": "KMA_ASOS_HOURLY",
+    "station_id": "211",
+    "station_name": "인제",
+    "cell_id": null,
+    "distance_m": 2585.8,
+    "sim_time_s": 18900.0,
+    "observed_kst": "2019-04-04 20:00",
+    "items": {
+     "wind_ms": {
+      "value": 5.3,
+      "unit": "m/s",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "wind_dir_deg": {
+      "value": 160.0,
+      "unit": "deg (불어오는 방향, 북 기준 시계방향)",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "temperature_c": {
+      "value": 11.9,
+      "unit": "degC",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     },
+     "humidity_pct": {
+      "value": 20.0,
+      "unit": "%",
+      "basis": "NEAREST_STATION",
+      "status": "VALID",
+      "source": "KMA_ASOS_HOURLY",
+      "observed_sim_s": 18900.0,
+      "received_sim_s": 18900.0,
+      "age_s": 0.0,
+      "max_age_s": 3600.0,
+      "station_id": "211",
+      "cell_id": null,
+      "distance_m": 2585.8,
+      "replaced": null
+     }
+    },
+    "unknown": {},
+    "remeasure": []
+   },
+   "wind_ms": 5.3,
+   "candidates": [
+    [
+     "A-ugv1",
+     2602.1
+    ],
+    [
+     "B-ugv1",
+     19141.6
+    ]
+   ],
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED"
+   },
+   "ordering": "STRAIGHT_LINE_DISTANCE_THEN_ID (정렬용, 도착시간 아님)"
+  }
+ },
+ {
+  "seq": 423,
+  "wall_time": 1791691187.7408562,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-250cbc0e0eb8",
+  "resource_id": "A-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-250cbc0e0eb8",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 424,
+  "wall_time": 1791691187.7415092,
+  "sim_time_s": 18900.0,
+  "event_type": "LOCAL_RESPONSE",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": "DEC-549aee3f0780",
+  "resource_id": "B-ugv1",
+  "result": "REJECT",
+  "reason": "TARGET_UNREACHABLE",
+  "detail": {
+   "eta_sec_duration": null,
+   "counter_offer": null,
+   "constraints": {
+    "target_node": null,
+    "path": null
+   },
+   "request": {
+    "task_id": "TASK-dc6a514a8103",
+    "decision_id": "DEC-549aee3f0780",
+    "target": {
+     "lat": 38.0629351,
+     "lon": 128.1388153
+    }
+   }
+  }
+ },
+ {
+  "seq": 425,
+  "wall_time": 1791691187.741705,
+  "sim_time_s": 18900.0,
+  "event_type": "PURPOSE_TRANSITION",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "EVALUATING->HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "hold_reason": "NO_FEASIBLE_CANDIDATE",
+   "resume_condition": "NEW_RESOURCE_OR_INPUT"
+  }
+ },
+ {
+  "seq": 426,
+  "wall_time": 1791691187.741759,
+  "sim_time_s": 18900.0,
+  "event_type": "TASK_HOLD",
+  "task_id": "TASK-dc6a514a8103",
+  "decision_id": null,
+  "resource_id": null,
+  "result": "HOLD",
+  "reason": "NO_FEASIBLE_CANDIDATE",
+  "detail": {
+   "resume_condition": "NEW_RESOURCE_OR_INPUT",
+   "excluded": {
+    "A-fire1": "TYPE_NOT_ALLOWED",
+    "B-fire1": "TYPE_NOT_ALLOWED",
+    "A-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE",
+    "B-ugv1": "LOCAL_REJECT:TARGET_UNREACHABLE"
+   }
+  }
+ }
+]

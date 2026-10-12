@@ -1,5 +1,5 @@
 # 🌲 Wildfire Multi-Agent Environmental Modeling Subsystem
-> **산불 다중 에이전트 대응 시뮬레이션 — 환경 및 산불 모델 (Environment & Wildfire Model)**
+> **산불 다중 에이전트 대응 시뮬레이션 - 환경 및 산불 모델 (Environment & Wildfire Model)**
 
 본 모듈은 **Multi-Agent Wildfire Response Simulation Environment** 프로젝트의 하위 시스템으로, 실제 지형 GIS(GeoTIFF)  raster 데이터를 불러오고, 지형·식생·기상 정보를 반영한 2D 격자(Grid)를 생성, Rothermel 표면 확산 모델 바탕의 **Cellular Automata(CA) 산불 확산 시뮬레이션**, **실시간 화재 위험도(Risk Score) 산출**, 그리고 드론(UAV)·지상로봇(UGV)의 **현장 관측 정보 동적 반영 기능**을 제공한다.
 
@@ -98,7 +98,7 @@ $$P(S \to T) = P_{\text{base}} \cdot f_{\text{fuel}}(T) \cdot f_{\text{moisture}
 
 참고) 연산 결과 P(S → T)는 max(0.0, min(1.0, P))를 통해 [0.0, 1.0] 범위 내로 보정(Clamping)됨
 
-* **기본 확산 확률 ($P_{\text{base}}$)**: `fire_ca.base_spread_probability` (기본값: $0.40$)
+* **기본 확산 확률 ($P_{\text{base}}$)**: `fire_ca.base_spread_probability` (기본값: $0.60$)
 * **연료 가중치 ($f_{\text{fuel}}$)**: Target 셀의 물리적 연료량 (`fuel_amount` $\in [0.0, 1.0]$). 연료가 $0.0$인 미연소/도로/수역 셀은 확산 확률이 $0$이 된다.
 * **습도 감쇄 인자 ($f_{\text{moisture}}$)**:
 
@@ -536,20 +536,22 @@ environment/
 │   └── environment_config.yaml      # 공간, 식생 매핑, 바람, CA 확산, Risk 수식 통합 설정
 ├── data/
 │   ├── raw/                         # 원본 unedited GIS 데이터 (DEM, 도로, 임상도 등 - Immutable)
-│   └── processed/                   # 정제 및 좌표 동기화된 래스터/벡터 데이터
+│   └── processed/                   # 정제 및 좌표 동기화된 2025/2026년 래스터/벡터 데이터
 │       ├── dem_clipped.tif          # 고도 래스터 (DEM, EPSG:5186)
 │       ├── slope_5186.tif           # 경사도 래스터
 │       ├── aspect_5186.tif          # 향(Aspect) 래스터
 │       ├── fuel_type.tif            # 토지피복/식생 피복 유형 래스터
-│       ├── roads_raster.tif         # 도로망 래스터
+│       ├── roads_raster.tif         # 도로망 래스터 (roads_clipped.gpkg도 있음)
 │       ├── buildings_inje.tif       # 건물 유형 래스터 (RESIDENTIAL, IMPORTANT, CRITICAL 등)
 │       └── hillshade.tif            # 음영기복 래스터 Overlay용
 ├── src/                             # 환경 및 산불 모델 핵심 소스 모듈
 │   ├── __init__.py
 │   ├── ahp.py                       # AHP 기반 최상위 위험도 가중치 산출 및 일관성 검증 도구
 │   ├── api.py                       # Public API Gateway Facade (EnvironmentModelAPI)
+│   ├── belief_analysis.py           # 총괄 전달 관측(belief) 기반 최단 도달 시간 및 위험도 분석 (ENV-04)
 │   ├── benchmark.py                 # 확산 모드 비교 및 N-step CA 앙상블 벤치마크 도구
 │   ├── cell.py                      # Cell 데이터 클래스 & FireState Enum 정의
+│   ├── contract_env.py              # 환경 계약 계층 래퍼 (ENV-01~06 스냅샷/관측반영/영속화)
 │   ├── evaluation.py                # 산불 시뮬레이션-참조 래스터 공간 일치도(IoU/Dice) 및 면적 평가 모듈
 │   ├── fire_model.py                # CA 엔진 & 확산 예측 (geometric / ensemble)
 │   ├── grid.py                      # Rasterio 기반 raster 데이터 읽기 및 2D 격자 생성
@@ -557,8 +559,11 @@ environment/
 │   ├── risk.py                      # Dynamic Risk Scoring WLC 다기준 집계 모듈
 │   └── weather.py                   # 시계열 ASOS 기상 데이터 공급 및 풍향/풍속 벡터 평균 모듈
 ├── evaluate_2019_inje.py            # 2019 인제 산불 재구성 정량 평가 및 CSV/GeoTIFF 출력 실행 도구
-├── images/                          # 시각화 gif 파일 저장
+├── run_ca_sensitivity.py            # CA 파라미터 민감도 분석 스크립트
+├── server.py                        # 환경 계약 FastAPI HTTP 서버 (포트 8300, 총괄/웹 연동용)
 ├── visualize_fire.py                # 6-Layer 통합 GIS 시각화 및 애니메이션 실행 도구
+├── requirements.txt                 # 환경 모델링 서브시스템 패키지 의존성 목록
+├── images/                          # 시각화 gif 파일 저장
 └── README.md                        # 본 환경 모델 시스템 통합 안내서
 ```
 * `data/inje2019/burned_area/inje_2019_burn_reference_binary.tif`: Sentinel-2 dNBR에서 추정한 2019 인제 산불 피해 reference footprint (ground truth아님)
@@ -585,8 +590,10 @@ environment/
 `visualize_fire.py` 스크립트는 래스터 지형, 음영 기복, 식생, 도로망, 119 안전센터 및 산불 확산 레이어를 한눈에 시각화하고 애니메이션 파일(.gif)로 저장할 수 있는 통합 도구이다.
 
 ### 기본 실행 명령
+
 ```bash
-python visualize_fire.py --x 120 --y 120 --steps 30
+python visualize_fire.py --x 120 --y 120 --steps 30         # 기상 관측 고정값 사용 시
+python visualize_fire_inje.py --x 120 --y 120 --steps 30    # 2019년 인제 산불 당시 기상 관측 시계열 사용 시
 ```
 
 ### CLI 주요 매개변수 옵션 (CLI Arguments)
@@ -604,21 +611,28 @@ python visualize_fire.py --x 120 --y 120 --steps 30
 
 ### 실행 예시
 
+실행 전에 `config/environment_config.yaml`에 들어가서 2019년 인제 산불을 재현하려면 `timeseries`로, 고정된 기상 관련 값으로 실행하려면 `fixed`로 변경해야 함. 그리고 2019년 인제 산불 재현은 `visualize_fire_inje.py`사용하고 아니면 `visualize_fire.py` 사용.
+
+```bash
+mode: "timeseries"    # 2019년 인제 산불 재현하는 경우
+mode: "fixed"         # 재현 아닌 경우 풍향,풍속,습도 등 고정값
+```
+
 #### 1. 특정 발화점 지정 및 30 Step 저장
 ```bash
-python visualize_fire.py --x 120 --y 120 --steps 30 --save fire_spread.gif --fps 5
+python visualize_fire_inje.py --x 120 --y 120 --steps 30 --save fire_spread.gif --fps 5
 ```
 
 #### 2. 시드값을 변경하여 재현성 비교 테스트
 ```bash
-python visualize_fire.py --seed 1004 --steps 40 --interval 100
+python visualize_fire_inje.py --seed 1004 --steps 40 --interval 100
 ```
 
 ### 실행 화면
 
 (2019/04/04 인제 산불 조건들로 실행)
 ```bash
-$ python visualize_fire.py --steps 50
+$ python visualize_fire_inje.py --steps 65
 ```
 
 ![화재 확산 시뮬레이션](./images/fire_spread_2.gif)
@@ -639,17 +653,19 @@ python evaluate_2019_inje.py --steps 50
 
 ### Cellular Automata & Fire Spread Simulation:
 
-1. Karafyllidis, I., & Thanailakis, A. (1997). *A model for predicting forest fire spreading using cellular automata*. Ecological Modelling, 99(1), 87–97. https://doi.org/10.1016/S0304-3800(96)01942-4
+1. Alexandridis, A., Vakalis, D., Siettos, C. I., & Bafas, G. V. (2008). *A cellular automata model for forest fire spread prediction: The case of the wildfire that swept through Spetses Island in 1990*. Applied Mathematics and Computation, 204(1), 191–199. https://doi.org/10.1016/j.amc.2008.06.046
 
-2. Alexandridis, A., Vakalis, D., Siettos, C. I., & Bafas, G. V. (2008). *A cellular automata model for forest fire spread prediction: The case of the wildfire that swept through Spetses Island in 1990*. Applied Mathematics and Computation, 204(1), 191–199. https://doi.org/10.1016/j.amc.2008.06.046
+2. Alexandridis, A., Russo, L., Vakalis, D., Bafas, G. V., & Siettos, C. I. (2011). Wildland fire spread modelling using cellular automata: Evolution in large-scale spatially heterogeneous environments under fire suppression tactics. *International Journal of Wildland Fire*, 20(5), 633–647. https://doi.org/10.1071/WF09119
 
 3. Clarke, K. C., Brass, J. A., & Riggan, P. J. (1994). *A cellular automaton model of wildfire propagation and extinction*. Photogrammetric Engineering & Remote Sensing, 60(11), 1355–1367.
 
-4. Trucchia, A., Meschiari, M., & Fiorucci, P. (2020). *PROPAGATOR: An operational cellular-automata based wildfire simulator*. Environmental Modelling & Software, 131, 104764. https://doi.org/10.1016/j.envsoft.2020.104764
+4. Karafyllidis, I., & Thanailakis, A. (1997). *A model for predicting forest fire spreading using cellular automata*. Ecological Modelling, 99(1), 87–97. https://doi.org/10.1016/S0304-3800(96)01942-4
 
-5. Trucchia, A., Izadpanah, Z., D'Andrea, M., & Fiorucci, P. (2022). *Influence of input data uncertainty on cellular automata-based wildfire spread simulation*. Fire, 5(6), 205. https://doi.org/10.3390/fire5060205
+5. Trucchia, A., Meschiari, M., & Fiorucci, P. (2020). *PROPAGATOR: An operational cellular-automata based wildfire simulator*. Environmental Modelling & Software, 131, 104764. https://doi.org/10.3390/fire3030026
 
-6. Bi, S., Zhang, H., & Yang, L. (2021). *Comparison of different models to simulate forest fire spread: A case study*. Forestry Studies, 74(1), 125–138. https://doi.org/10.2478/fsmu-2021-0010
+6. Trucchia, A., Izadpanah, Z., D'Andrea, M., & Fiorucci, P. (2022). *Influence of input data uncertainty on cellular automata-based wildfire spread simulation*. Fire, 5(6), 205. https://doi.org/10.3390/fire5060205
+
+7. Bi, S., Zhang, H., & Yang, L. (2021). *Comparison of different models to simulate forest fire spread: A case study*. Forestry Studies, 74(1), 125–138. https://doi.org/10.2478/fsmu-2021-0010
 
 ### Risk Score (Wildfire Risk Assessment & Multi-Criteria Evaluation):
 
@@ -687,9 +703,11 @@ python evaluate_2019_inje.py --steps 50
     * [산림청 산불통계데이터](https://www.data.go.kr/data/15121380/fileData.do?utm_source=chatgpt.com): 2022-2025
     * [KOSIS 시도별 산불발생 현황](https://kosis.kr/statHtml/statHtml.do?sso=ok&returnurl=https%3A%2F%2Fkosis.kr%3A443%2FstatHtml%2FstatHtml.do%3FtblId%3DDT_13625_A011%26orgId%3D136%26)
     * [산불발생현황](https://www.forest.go.kr/kfsweb/kfi/kfs/frfr/selectFrfrStatsArea.do?mn=AR04_01_03)
+    * [국가산불위험예보시스템](https://forestfire.nifos.go.kr/)
 7. 산불지역:
     * [Copernicus Browser](https://browser.dataspace.copernicus.eu/)
     * [NASA FIRMS(Fire Information for Resource Management System)](https://firms.modaps.eosdis.nasa.gov/)
+      * [NASA FIRMS - 2019 인제 산불](https://firms.modaps.eosdis.nasa.gov/map/#d:2019-04-02..2019-04-04;@128.326,37.935,11.043z)
     * [Copernicus Burnt Area 2019](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/clms/bio-geophysical-parameters/vegetation/burnt-area/ba_global_300m_monthly_v3.html)
 
 <br>

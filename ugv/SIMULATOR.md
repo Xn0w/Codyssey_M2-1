@@ -39,7 +39,7 @@ curl -s -X POST localhost:8100/ugv/A-ugv1/execute -H 'content-type: application/
      -d '{"task_id":"T1","decision_id":"D1","target_node":"B"}'
 watch -n2 'curl -s localhost:8100/ugv/A-ugv1/task/T1'
 ```
-200배속이면 A→B 약 2분, 도로 환경 시나리오(`ugv/scenarios/inje_girin.csv`)의 통제 때문에 `reroutes` 에 재탐색이 찍힌다.
+200배속이면 A→B 약 2분. `UGV_SCENARIO=ugv/scenarios/inje_girin.csv` 로 도로 환경 시나리오를 켜면 통제 때문에 `reroutes` 에 재탐색이 찍힌다 (기본은 시나리오 없음).
 도로·노드를 직접 막아 보려면 `POST /roads/{road_id}/block`, `POST /roads/nodes/{node_id}/block` (Swagger `/docs`).
 
 ## 2. WSL — Gazebo + PX4 3대
@@ -72,7 +72,9 @@ curl -s localhost:8100/health | python3 -m json.tool  # resources 가 모두 px4
 | `UGV_TIME_SCALE` | 서버 | sim 드라이버 차량 속도 배율, PX4 시각이 안 들어올 때 서버 시계 배율 — SPEED 와 같게 |
 | `UGV_CLOCK_SOURCE` | 서버 | `px4`(기본): PX4 차량이 있으면 서버 시계가 PX4(Gazebo) 시뮬레이션 시간을 따른다. `wall`: 예전처럼 벽시계 × TIME_SCALE |
 | `UGV_SECONDS_PER_ENV_STEP` | Mac | 환경 1스텝 = 몇 초 (잠정 60, INT-05 미정) |
-| `max_speed_mps` | `ugv/config.py` | 차량 최고속도 (UGV 2.0, 소방차 2.5 m/s) |
+| `max_speed_mps` | `ugv/config.py` | 차량 최고속도 (PX4·Gazebo 차량 기준: UGV·소방차 모두 r1_rover 2.0 m/s) |
+| `sim_speed_mps` | `ugv/config.py` | sim 드라이버로 달릴 때만 쓰는 속도(상한). 세 대 모두 60 km/h. 없으면 `max_speed_mps` |
+| `UGV_MIN_ROAD_SPEED_KMH` | 서버 | 도로 제한속도 하한 (기본 50). 차량 속도가 주어진 주행에서 이보다 느린 도로는 이 값으로 본다. 0 이면 끔 |
 
 Gazebo 배속은 상한이라 CPU 가 밀리면 흔들린다 (실측 30초 평균 3.1~4.0, 목표 4). 벽시계 × 4 로 세면 서버만 6~10% 앞서
 시나리오 사건이 일찍 발동했다. 그래서 PX4 차량이 연결돼 있으면 서버 시계의 '흐름'은 PX4 시각을 따른다 — 환경 시계를
@@ -101,7 +103,9 @@ Gazebo 배속은 상한이라 CPU 가 밀리면 흔들린다 (실측 30초 평�
   다르게 보간해서 생기는 표시 차이다. 차의 z 가 스폰 높이 근처에서 유지되고 주행하면 물리상으로는 땅 위에 있는 것이다.
   확인: `GZ_PARTITION=ugv GZ_IP=127.0.0.1 gz topic -e -t /stats -n 1` 의 real_time_factor, 서버 `/ugv/{id}/state` 위치 변화.
 
-## UGV 전용 월드 — 강원 지형 + 도로 면 (`ugv/gazebo/kangwon_ugv.sdf`)
+## UGV 전용 월드 — 강원 지형 + 도로 면 (`ugv/gazebo/kangwon_ugv2.sdf`)
+
+> 첫 버전 v1(`kangwon_ugv`)은 2026-10-08 삭제했다 (v2 가 표준이 된 뒤 아무도 쓰지 않음). 아래 v1 설명·비교는 v2 가 왜 그렇게 생겼는지의 기록이다.
 
 UAV 월드의 지형은 90 m DEM 을 56 m heightmap 으로 보간한 것이라 도로를 모른다. 원본 DEM 에서는 같은 칸(경사 0)인 곳에
 보간 때문에 62 m 에 8 m 오르는 가짜 오르막이 생겨 r1_rover 가 같은 지점에서 두 번 멈췄다 (2026-10-02).
@@ -109,7 +113,7 @@ UAV 월드의 지형은 90 m DEM 을 56 m heightmap 으로 보간한 것이라 �
 
 | 항목 | 값 |
 |---|---|
-| 도로 면 | 모든 도로를 폭 10 m 띠로, 교차로는 반지름 7 m 패드. 시각·충돌 공용 `models/kangwon_ugv/roads.obj` |
+| 도로 면 | 모든 도로를 폭 10 m 띠로, 교차로는 반지름 7 m 패드. 시각·충돌 공용 `models/kangwon_ugv2/roads.obj` |
 | 도로 높이 | 원본 DEM → 도로 따라 150 m 이동평균 → 교차로 높이 일치 → 경사 상한 8% (최대 8.4%) |
 | 지형 | 도로 면보다 0.6 m 이상 높던 곳을 깎은 heightmap 사본 (터널 구간은 100 m 넘게 깎인 곳도 있다) |
 | 스폰 | 도로 면 위 + 0.4 m. 같은 거점 두 번째 차량은 도로를 따라 8 m 앞 |
@@ -117,14 +121,14 @@ UAV 월드의 지형은 90 m DEM 을 56 m heightmap 으로 보간한 것이라 �
 다시 만들기 (도로망을 다시 만들었으면 반드시 뒤이어 실행 — `build_road_network` 가 spawn·world 를 지형 기준으로 되돌린다):
 ```bash
 python3 -m ugv.tools.build_road_network     # 도로망이 바뀐 경우만
-python3 -m ugv.tools.build_road_world       # numpy scipy pillow rasterio pyproj 필요
+python3 -m ugv.tools.build_road_world       # v2 (기본). numpy scipy pillow rasterio pyproj 필요
 ```
 UAV 월드로 돌아가려면 `road_network.json` 의 `world` 를 지우거나 `build_road_network` 만 다시 실행한다.
 
 ### v2 월드 (`kangwon_ugv2`, 기본) — 갓길 + 교차로 턱 줄임 + 산불 표시
 
 v1 과 같은 도로 높이·폭·스폰에 갓길·턱 줄임을 더했다. 2026-10-03 WSL 주행 비교 뒤 **기본 월드**다
-(`road_network.json` 의 world). v1 은 `WORLD=kangwon_ugv`. 산불(UAV 월드와 같은 자리·배치의 파티클 불꽃 8·연기 3)과
+(`road_network.json` 의 world). v1 은 삭제됨. 산불(UAV 월드와 같은 자리·배치의 파티클 불꽃 8·연기 3)과
 도로 차단 벽 위치(`models/kangwon_ugv2/road_marks.json`)도 이 빌드가 만든다.
 
 | 항목 | v1 | v2 |
@@ -169,12 +173,16 @@ GUI 는 배속을 깎으므로 측정할 때는 끈다 (`GUI=1` 은 눈으로 �
 
 ## 장비·작업 — 진압(소방차), 짐(UGV), 경광등 (`ugv/equipment.py`)
 
+> **진압(방수)은 봉인 상태다 (2026-10-08 발표 범위 결정).** 이번 발표는 진화를 다루지 않고, 소방차는 이동·환경 센서 자원으로만 쓴다.
+> 기본값으로 도착 즉시 진압이 일어나지 않고 `POST /suppress {"action":"start"}` 는 409 를 돌려준다. 물은 항상 가득 찬 상태로 남는다.
+> 코드는 남겨 두었으며 `UGV_SUPPRESSION=1` 로 켜면 아래 표의 진압 동작이 그대로 돌아온다.
+
 task 는 지금 계약 그대로 **도착하면 COMPLETED** 다. 그 뒤 작업 동안 차는 `state: "WORKING"` 이라 READY 가 아니고,
 총괄은 READY 를 확인한 뒤에만 반납하므로(`orchestrator/engine.py _maybe_release`) 점유가 유지된다. 총괄 코드는 그대로.
 
 | 무엇 | 언제 | 끝 | 보이는 곳 |
 |---|---|---|---|
-| 진압 SUPPRESSING (소방차) | 도착하면 자동 (`UGV_AUTO_SUPPRESS=1`, 거점 노드 제외) | 물이 바닥(EMPTY) · `POST /ugv/{id}/suppress {"action":"stop"}`(STOPPED) · `/stop` | task `work`, 상태 `equipment.water_l` |
+| 진압 SUPPRESSING (소방차, **봉인**) | `UGV_SUPPRESSION=1` 일 때만 — 도착하면 자동 (`UGV_AUTO_SUPPRESS=1`, 거점 노드 제외) | 물이 바닥(EMPTY) · `POST /ugv/{id}/suppress {"action":"stop"}`(STOPPED) · `/stop` | task `work`, 상태 `equipment.water_l` |
 | 짐 싣기 LOADING (UGV) | execute 에 `cargo` — `via_node` 가 있으면 거기 가서, 없으면 출발 전 | `UGV_LOAD_S` (60 시뮬레이션 초) | task `progress.phase=LOADING`, `stage` |
 | 짐 내리기 UNLOADING | 짐을 싣고 목적지 도착 | `UGV_UNLOAD_S` (60초) | task `work`, `cargo.unloaded_sim_s` |
 | 물 채우기 | 거점(home_node) 도착 | 즉시 | 보고 `UGV_REFILLED` |

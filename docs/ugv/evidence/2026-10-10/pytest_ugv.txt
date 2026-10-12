@@ -1,0 +1,5 @@
+# 2026-10-10, 커밋 7c980ec, 저장소를 새로 받은 환경, Python 3.11.15
+# python -m pytest -q tests/test_ugv_*.py
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+29 passed, 2 warnings in 76.38s (0:01:16)

@@ -34,11 +34,20 @@ class GroundFleet:
             driver = self._make_driver(cfg, node, use_px4)
             self.agents[cfg["resource_id"]] = GroundResourceAgent(
                 resource, self.graph, driver,
-                max_speed_mps=cfg.get("max_speed_mps") if time_scale is not None else None,
+                max_speed_mps=self._speed(cfg, use_px4) if time_scale is not None else None,
             )
 
+    @staticmethod
+    def _is_px4(cfg: dict, use_px4: bool) -> bool:
+        return bool(use_px4 and cfg.get("px4_port") and cfg["resource_id"] in config.PX4_RESOURCES)
+
+    def _speed(self, cfg: dict, use_px4: bool) -> float:
+        """차량 속도: PX4 는 max_speed_mps, sim 은 sim_speed_mps(있으면) — 주행과 ETA 가 같은 값을 쓴다."""
+        base = cfg.get("max_speed_mps", config.CRUISE_SPEED_MPS)
+        return base if self._is_px4(cfg, use_px4) else cfg.get("sim_speed_mps", base)
+
     def _make_driver(self, cfg: dict, node, use_px4: bool) -> MotionDriver:
-        if use_px4 and cfg.get("px4_port") and cfg["resource_id"] in config.PX4_RESOURCES:
+        if self._is_px4(cfg, use_px4):
             from .drivers.px4 import PX4Driver   # mavsdk 없으면 임포트 실패하므로 지연
             addr = f"udpin://{config.PX4_HOST}:{cfg['px4_port']}"
             return PX4Driver(
@@ -51,7 +60,7 @@ class GroundFleet:
         if self.time_scale is None:     # 시연 도로망: 순간이동에 가까운 속도
             return SimDriver(start=(node.lat, node.lon), speed_mps=config.DEMO_SPEED_MPS)
         return SimDriver(start=(node.lat, node.lon),
-                         speed_mps=cfg.get("max_speed_mps", config.CRUISE_SPEED_MPS),
+                         speed_mps=self._speed(cfg, use_px4),
                          time_scale=self.time_scale)
 
     # --- 생애주기 -------------------------------------------------------

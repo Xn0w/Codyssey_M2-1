@@ -1,0 +1,496 @@
+[
+ {
+  "simulation_time_s": 420.0,
+  "resource_id": "A-ugv1",
+  "position": {
+   "lat": 38.031947,
+   "lon": 128.130749
+  },
+  "target_point": {
+   "lat": 38.035481,
+   "lon": 128.1271136,
+   "cell_id": "9_91"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 420.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.0266476,
+   "lon": 128.1300935
+  },
+  "target_point": {
+   "lat": 38.0265143,
+   "lon": 128.1321012,
+   "cell_id": "14_102"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 600.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.0208128,
+   "lon": 128.1328279
+  },
+  "target_point": {
+   "lat": 38.0208198,
+   "lon": 128.1340634,
+   "cell_id": "16_109"
+  },
+  "result": "NOT_DETECTED",
+  "target_covered": true,
+  "detections": []
+ },
+ {
+  "simulation_time_s": 720.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.0197583,
+   "lon": 128.1249382
+  },
+  "target_point": {
+   "lat": 38.0209084,
+   "lon": 128.1248405,
+   "cell_id": "7_109"
+  },
+  "result": "NOT_DETECTED",
+  "target_covered": true,
+  "detections": []
+ },
+ {
+  "simulation_time_s": 840.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.020965,
+   "lon": 128.122131
+  },
+  "target_point": {
+   "lat": 38.0258019,
+   "lon": 128.1218404,
+   "cell_id": "4_103"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 2160.0,
+  "resource_id": "A-ugv1",
+  "position": {
+   "lat": 38.031947,
+   "lon": 128.130749
+  },
+  "target_point": {
+   "lat": 38.035481,
+   "lon": 128.1271136,
+   "cell_id": "9_91"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 2400.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.029215,
+   "lon": 128.130045
+  },
+  "target_point": {
+   "lat": 38.0282045,
+   "lon": 128.1249521,
+   "cell_id": "7_100"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 2520.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.0302354,
+   "lon": 128.1303093
+  },
+  "target_point": {
+   "lat": 38.0306365,
+   "lon": 128.1249893,
+   "cell_id": "7_97"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 2700.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.0257848,
+   "lon": 128.1300428
+  },
+  "target_point": {
+   "lat": 38.025743,
+   "lon": 128.1279894,
+   "cell_id": "10_103"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 4320.0,
+  "resource_id": "A-ugv1",
+  "position": {
+   "lat": 38.031947,
+   "lon": 128.130749
+  },
+  "target_point": {
+   "lat": 38.035481,
+   "lon": 128.1271136,
+   "cell_id": "9_91"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 4440.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.0257848,
+   "lon": 128.1300428
+  },
+  "target_point": {
+   "lat": 38.0257135,
+   "lon": 128.1310639,
+   "cell_id": "13_103"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 4560.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.0257848,
+   "lon": 128.1300428
+  },
+  "target_point": {
+   "lat": 38.025743,
+   "lon": 128.1279894,
+   "cell_id": "10_103"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 4620.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.0280281,
+   "lon": 128.1302412
+  },
+  "target_point": {
+   "lat": 38.0281751,
+   "lon": 128.1280267,
+   "cell_id": "10_100"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 6360.0,
+  "resource_id": "A-ugv1",
+  "position": {
+   "lat": 38.033748,
+   "lon": 128.133115
+  },
+  "target_point": {
+   "lat": 38.0370629,
+   "lon": 128.1312385,
+   "cell_id": "13_89"
+  },
+  "result": "NOT_DETECTED",
+  "target_covered": true,
+  "detections": []
+ },
+ {
+  "simulation_time_s": 6480.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.0257848,
+   "lon": 128.1300428
+  },
+  "target_point": {
+   "lat": 38.025743,
+   "lon": 128.1279894,
+   "cell_id": "10_103"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_100",
+    "fire_state": "BURNING"
+   },
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   },
+   {
+    "cell_id": "14_102",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 6660.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.030436,
+   "lon": 128.1303336
+  },
+  "target_point": {
+   "lat": 38.0306071,
+   "lon": 128.128064,
+   "cell_id": "10_97"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "13_100",
+    "fire_state": "BURNING"
+   },
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   },
+   {
+    "cell_id": "14_102",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 6900.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.033903,
+   "lon": 128.142078
+  },
+  "target_point": {
+   "lat": 38.0264052,
+   "lon": 128.1433745,
+   "cell_id": "25_102"
+  },
+  "result": "NOT_DETECTED",
+  "target_covered": false,
+  "detections": []
+ },
+ {
+  "simulation_time_s": 8520.0,
+  "resource_id": "A-ugv1",
+  "position": {
+   "lat": 38.033627,
+   "lon": 128.132783
+  },
+  "target_point": {
+   "lat": 38.0378835,
+   "lon": 128.1302259,
+   "cell_id": "12_88"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "12_99",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 8820.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.0280281,
+   "lon": 128.1302412
+  },
+  "target_point": {
+   "lat": 38.0281751,
+   "lon": 128.1280267,
+   "cell_id": "10_100"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "12_99",
+    "fire_state": "BURNING"
+   },
+   {
+    "cell_id": "13_100",
+    "fire_state": "BURNING"
+   },
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   },
+   {
+    "cell_id": "14_102",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 9060.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.0257848,
+   "lon": 128.1300428
+  },
+  "target_point": {
+   "lat": 38.025743,
+   "lon": 128.1279894,
+   "cell_id": "10_103"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "12_99",
+    "fire_state": "BURNING"
+   },
+   {
+    "cell_id": "13_100",
+    "fire_state": "BURNING"
+   },
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNING"
+   },
+   {
+    "cell_id": "14_102",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 10560.0,
+  "resource_id": "A-ugv1",
+  "position": {
+   "lat": 38.033627,
+   "lon": 128.132783
+  },
+  "target_point": {
+   "lat": 38.0378835,
+   "lon": 128.1302259,
+   "cell_id": "12_88"
+  },
+  "result": "DETECTED",
+  "target_covered": true,
+  "detections": [
+   {
+    "cell_id": "12_99",
+    "fire_state": "BURNING"
+   }
+  ]
+ },
+ {
+  "simulation_time_s": 10920.0,
+  "resource_id": "B-ugv1",
+  "position": {
+   "lat": 38.031337,
+   "lon": 128.13421
+  },
+  "target_point": {
+   "lat": 38.0256244,
+   "lon": 128.1402874,
+   "cell_id": "22_103"
+  },
+  "result": "DETECTED",
+  "target_covered": false,
+  "detections": [
+   {
+    "cell_id": "12_99",
+    "fire_state": "BURNING"
+   },
+   {
+    "cell_id": "13_100",
+    "fire_state": "BURNING"
+   },
+   {
+    "cell_id": "13_101",
+    "fire_state": "BURNED"
+   },
+   {
+    "cell_id": "14_102",
+    "fire_state": "BURNING"
+   }
+  ]
+ }
+]

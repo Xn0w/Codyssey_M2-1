@@ -4,15 +4,16 @@
 
 # --- Raster file paths (relative to project root) --------------------------
 raster_paths:
-  dem_path: "data/processed/dem_clipped.tif"
-  slope_path: "data/processed/slope_5186.tif"
-  aspect_path: "data/processed/aspect_5186.tif"
-  fuel_path: "../data/inje2019/fuel/fuel_type_2019.tif"
-  roads_path: "../data/inje2019/roads/roads_raster_2019.tif"
-#  fuel_path: "data/processed/fuel_type.tif"
-#  roads_path: "data/processed/roads_raster.tif"
-  buildings_path: "data/processed/buildings_inje.tif"
-  water_path: "../data/inje2019/water/inje_2019_water_mask_5186.tif"
+  dem_path: "data/processed/dem_clipped.tif"                          # 2025
+  slope_path: "data/processed/slope_5186.tif"                         # 2025
+  aspect_path: "data/processed/aspect_5186.tif"                       # 2025
+  fuel_path: "../data/inje2019/fuel/fuel_type_2019.tif"               # 2019
+  roads_path: "../data/inje2019/roads/roads_raster_2019.tif"          # 2019
+#  buildings_path: "data/inje2019/buildings/buildings_inje_2019.tif"   # 2019
+#  fuel_path: "data/processed/fuel_type.tif"                          # 2025
+#  roads_path: "data/processed/roads_raster.tif"                      # 2025
+  buildings_path: "data/processed/buildings_inje.tif"                # 2025      
+  water_path: "../data/inje2019/water/inje_2019_water_mask_5186.tif"  # 2019
 
 # --- Grid spatial settings --------------------------------------------------
 # These values are derived from the actual raster metadata (EPSG:5186, 90 m).
@@ -32,8 +33,7 @@ grid:
 #   3 = high-density vegetation / dense forest 혼효림
 #
 # The fuel_amount values below are placeholder modelling assumptions in
-# arbitrary relative units (0.0–1.0). They must be reviewed and validated
-# by the Environment Lead before any scientific conclusions are drawn.
+# arbitrary relative units (0.0–1.0).
 # Do NOT treat these as empirically measured physical constants.
 fuel_mapping:
   fuel_type_to_amount:
@@ -63,7 +63,7 @@ simulation:
   start_time: "2019-04-04T14:45:00"
   end_time: "2019-04-06T12:05:00"
   timestep_minutes: 10
-  random_seed: 43
+  random_seed: 42
 
 # --- Default environmental parameters --------------------------------------
 # SCENARIO MODELING ASSUMPTION:
@@ -94,7 +94,7 @@ ignition:
 #   - "from": wind_direction_deg represents meteorological direction wind comes FROM (default/legacy).
 #   - "toward": wind_direction_deg represents direction wind blows TOWARD.
 weather:
-  mode: "timeseries"       # supported: "fixed", "timeseries"
+  mode: "timeseries"                 # supported: "fixed", "timeseries"
   wind_direction_convention: "from"  # supported: "from", "toward"
 
   fixed:
@@ -147,10 +147,8 @@ fire_ca:
                                  # cross a road. Set false to disable this behaviour.
 
 # --- Risk Scoring Configuration -------------------------------------------
-# SCENARIO MODELING ASSUMPTION (see mission/environmental-modeling.txt L72 & L43-55):
-#   "risk_score의 계산 기준과 값의 범위는 총괄·통합 담당과 합의한다."
-#   TEMPORARY SCENARIO ASSUMPTION:
-#   Risk score combines dynamic fire spread prediction (S_spread) with static building exposure proxies.
+# SCENARIO MODELING ASSUMPTION
+# Risk score combines dynamic fire spread prediction (S_spread) with static building exposure proxies.
 risk_scoring:
   burning_risk_floor: 0.70       # Baseline risk score floor B for active BURNING cells (Risk_burning = B + (1-B)*E)
   burning_cell_risk: 1.0         # Legacy fallback key for BURNING cell risk upper ceiling

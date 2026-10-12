@@ -43,6 +43,15 @@ class EvaluateRequest(BaseModel):
     target_node: str | None = None     # 도로 노드 id 를 이미 알 때 (target 대신)
     cargo: CargoSpec | None = None     # 실을 짐 (UGV). 적재 한도를 넘으면 REJECT
     via_node: str | None = None        # 짐 싣는 곳(도로 노드). 없으면 지금 자리에서 싣고 출발
+    target_mode: Literal["node", "road_point"] | None = None   # target 을 노드로 붙일지 도로 위 점으로 붙일지. 없으면 UGV_TARGET_MODE
+
+
+class StopPoint(BaseModel):
+    road_id: str                       # 지점이 있는 도로
+    lat: float
+    lon: float
+    snap_m: float                      # 요청 좌표 ~ 지점 거리
+    along_m: float                     # 도로 node_a 에서 선형을 따라 지점까지
 
 
 class TargetNode(BaseModel):
@@ -60,8 +69,9 @@ class EvaluateResponse(BaseModel):
     eta_sec: int | None                # ACCEPT 일 때만 값이 있다. 시뮬레이션 초, 차량 최고속도·도로 제한속도·혼잡 반영
     reason: str | None                 # REJECT: BUSY / ROAD_BLOCKED / TARGET_UNREACHABLE
     detail: str | None
-    target_node: TargetNode | None     # 실제로 향할 도로 노드 (스냅 실패 시 None)
+    target_node: TargetNode | None     # 실제로 향할 도로 노드 (스냅 실패 시 None). 도로 위 지점이면 지점 도로의 들어가는 끝 노드
     path: list[str] | None             # 노드 id 목록, 출발 노드 포함
+    stop_point: StopPoint | None = None   # 도로 위 지점 방식일 때 실제로 설 곳 (target_node 를 지나 도로를 따라 간다)
 
 
 class ExecuteRequest(BaseModel):
@@ -71,6 +81,7 @@ class ExecuteRequest(BaseModel):
     target_node: str | None = None     # 도로 노드 id 를 직접 지정할 때 (target 대신)
     cargo: CargoSpec | None = None     # evaluate 와 같다
     via_node: str | None = None
+    target_mode: Literal["node", "road_point"] | None = None   # evaluate 와 같다
 
 
 class ExecuteResponse(BaseModel):
@@ -80,6 +91,7 @@ class ExecuteResponse(BaseModel):
     tracking_url: str
     target_node: TargetNode            # 실제로 향하는 도로 노드
     eta_sec: int                       # 출발 시점 도로망 기준 ETA
+    stop_point: StopPoint | None = None   # 도로 위 지점 방식이면 실제로 설 곳
     duplicate: bool = False            # 같은 실행 키·같은 내용 재요청 (새로 출발하지 않음, UGV-04)
     current_status: str | None = None  # duplicate 일 때 그 실행의 지금 상태
 
@@ -98,6 +110,7 @@ class TaskStatus(BaseModel):
     work: dict | None = None           # 도착 뒤 작업 {"activity": SUPPRESSING|UNLOADING, "status": ACTIVE|DONE|EMPTY|STOPPED, ...}
     timing: dict | None = None         # 주행 시각 요약: 시작·끝(벽시계/서버 시뮬/PX4), eta_sec, 경과, 실제 배속, 실제/ETA
     drive_log: str | None = None       # 정밀 주행 기록 CSV 경로 (ugv/drive_log.py)
+    stop_point: dict | None = None     # 도로 위 지점 방식이면 실제로 선 곳 {road_id, lat, lon, snap_m, along_m}
 
 
 class SuppressRequest(BaseModel):
