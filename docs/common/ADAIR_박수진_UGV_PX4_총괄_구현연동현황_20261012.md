@@ -264,15 +264,8 @@ LLM 관측 계획을 켜는 기존 옵션은 `--llm-planner`다. 최종 D용 프
 
 위 항목은 검증된 기능의 누락 정보가 아니라 **최종 시연의 미확정 사항**이다. 별도 확인 없이 완료로 바꾸지 않는다.
 
-참고: `INTEGRATION_README.md`에는 초기 통합 설명이 포함돼 있다. 현재 코드·증거와 차이가 있는 설명은 본 문서의 버전별 기록과 함께 구분해서 읽는다.
+![Gazebo에서 비행하는 UAV](/docs/common/image/05_50_44.png)
 
-### 저장소에서 바로 볼 참고 자료
+![Gazebo 도로 위의 UGV](</docs/common/image/스크린샷 2026-10-12 162612.png>)
 
-- [기존 PX4·Gazebo 통합시험 보고서](../intergration/04.%20PX4%20실기동%20통합%20시험%20(2026-10-11).md)
-- [UGV 기존 주행 검증 보고서](../ugv/UGV_검증보고서_2026-10-10.md)
-- [UGV 24시간 검증 보고서](../ugv/UGV_검증보고서_24h.md)
-- [최신 정지·D2 검증 기록](../ugv/UGV_단계1_2_결과_20261012.md)
-- [평탄 장거리 주행 요약 JSON](../ugv/evidence/summary_G1_long_return.json)
-- [공통 데이터 규약](ADAIR_공통데이터규약_위험우선순위_합의안.md)
-- [실기동 실행 도구](../../integration/px4_live/run_integ.py)
-- [인지 지도 평가 코드](../../orchestrator/map_evaluation.py)
+
