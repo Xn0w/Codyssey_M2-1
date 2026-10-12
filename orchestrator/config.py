@@ -167,9 +167,9 @@ GROUND_SENSOR_PROFILE_ID = os.getenv("ORCH_GROUND_SENSOR_PROFILE", "ASSUMED_GROU
 # 드론·UGV·소방차에 기상 센서가 아직 없어 총괄 쪽 모의 센서로 측정한다 (TEST_ONLY).
 # 모의 센서는 도착 위치의 환경 값을 읽을 뿐이며, 환경이 주지 않은 항목은 만들지 않는다.
 # ---------------------------------------------------------------------------
-# UGV 지상 열화상 (모의, 2026-10-05): ORCH_UGV_THERMAL=1 일 때만 UGV 에 THERMAL 을 붙인다. 기본은 꺼짐 —
+# UGV 지상 열화상 (모의, 2026-10-05): UGV 에 THERMAL 을 붙인다. 기본 켜짐 (2026-10-09 팀 합의), 끄려면 ORCH_UGV_THERMAL=0.
 # 켜면 UAV·UGV 를 함께 허용한 열화상 임무에서 직선거리가 가까운 UGV 가 먼저 평가된다.
-UGV_THERMAL_ENABLED = os.getenv("ORCH_UGV_THERMAL", "0") == "1"
+UGV_THERMAL_ENABLED = os.getenv("ORCH_UGV_THERMAL", "1") == "1"   # 사용자 결정 2026-10-07: 관측 계획 시연용으로 켬
 SIMULATED_CAPABILITIES = {"UAV": ("WEATHER",), "UGV": ("WEATHER",) + (("THERMAL",) if UGV_THERMAL_ENABLED else ()),
                           "FIRE_ENGINE": ("WEATHER",)}
 WEATHER_SENSOR_PROFILE = {
@@ -234,9 +234,9 @@ ENV_ACK_SUPPORTED_SENSORS = ("THERMAL", "WEATHER")
 # 신고 접수 시 최초 정찰 자동 생성 (사용자 결정 2026-09-30 D01)
 # ---------------------------------------------------------------------------
 AUTO_RECON_ON_REPORT = True
-# 신고 접수 시 자동 초기 정찰. ORCH_AUTO_RECON_GROUND=1 이면 UGV 도 후보 (기본은 드론만, 2026-10-05).
-# UGV 가 실제로 뽑히려면 ORCH_UGV_THERMAL=1 도 켜야 한다 (아니면 능력 부족으로 후보에서 빠진다)
-AUTO_RECON_REQUIREMENTS = {"resource_types": ["UAV", "UGV"] if os.getenv("ORCH_AUTO_RECON_GROUND", "0") == "1" else ["UAV"],
+# 신고 접수 시 자동 초기 정찰. 기본은 드론·UGV 모두 후보 (2026-10-09 팀 합의), ORCH_AUTO_RECON_GROUND=0 이면 드론만.
+# UGV 가 실제로 뽑히려면 ORCH_UGV_THERMAL 도 켜져 있어야 한다 (꺼져 있으면 능력 부족으로 후보에서 빠진다)
+AUTO_RECON_REQUIREMENTS = {"resource_types": ["UAV", "UGV"] if os.getenv("ORCH_AUTO_RECON_GROUND", "1") == "1" else ["UAV"],
                            "sensor": "THERMAL", "needs_env_ack": True}
 
 # ---------------------------------------------------------------------------

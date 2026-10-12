@@ -98,7 +98,7 @@ def server_defs(opts: dict) -> dict:
                  "env": {"UAV_ID": "A-uav2", "UAV_MODE": "mock", **uav_extra}, "desc": "UAV A-uav2 (mock)"},
         "ugv":  {"cwd": ROOT, "port": 8100, "health": "/health",
                  "cmd": uv + ["ugv.server:app", "--host", "127.0.0.1", "--port", "8100"],
-                 "env": {"UGV_DRIVER": "sim", **({"UGV_STATE_DIR": str(run / "ugv")} if tw else {}),
+                 "env": {"UGV_DRIVER": os.environ.get("UGV_DRIVER", "sim"), **({"UGV_STATE_DIR": str(run / "ugv")} if tw else {}),
                          # 트윈: 차량 배속 = 트윈 시계 배속 (밖에서 UGV_TIME_SCALE 을 주면 그 값을 쓴다)
                          **({"UGV_TIME_SCALE": os.environ.get("UGV_TIME_SCALE", speed)} if tw else {})},
                  "desc": "UGV 서버 (sim)"},

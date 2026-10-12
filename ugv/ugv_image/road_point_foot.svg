@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 380" width="760" height="380" font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif">
+  <rect width="760" height="380" fill="#ffffff"/>
+  <!-- 도로 선형 -->
+  <polyline points="60,300 230,250 470,250 700,170" fill="none" stroke="#9aa3ad" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="60,300 230,250 470,250 700,170" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="8 8"/>
+  <!-- 교차로(노드) -->
+  <circle cx="60" cy="300" r="9" fill="#ffffff" stroke="#3b4652" stroke-width="3"/>
+  <text x="44" y="333" font-size="15" fill="#3b4652">노드 N1</text>
+  <circle cx="700" cy="170" r="9" fill="#ffffff" stroke="#3b4652" stroke-width="3"/>
+  <text x="668" y="205" font-size="15" fill="#3b4652">노드 N2</text>
+  <!-- 구간 꺾임점 A, B -->
+  <circle cx="230" cy="250" r="5" fill="#3b4652"/>
+  <text x="214" y="282" font-size="15" fill="#3b4652">A</text>
+  <circle cx="470" cy="250" r="5" fill="#3b4652"/>
+  <text x="464" y="282" font-size="15" fill="#3b4652">B</text>
+  <!-- 목표 T -->
+  <circle cx="360" cy="70" r="9" fill="#d64545"/>
+  <text x="376" y="66" font-size="16" fill="#d64545" font-weight="bold">목표 T</text>
+  <!-- 수선 T→P -->
+  <line x1="360" y1="79" x2="360" y2="243" stroke="#d64545" stroke-width="2.5" stroke-dasharray="7 5"/>
+  <polyline points="360,232 371,232 371,243" fill="none" stroke="#d64545" stroke-width="2"/>
+  <text x="372" y="165" font-size="15" fill="#d64545">snap_m (수선의 길이)</text>
+  <!-- 수선의 발 P -->
+  <circle cx="360" cy="250" r="9" fill="#2f7dd1" stroke="#ffffff" stroke-width="2"/>
+  <text x="378" y="240" font-size="15" fill="#2f7dd1" font-weight="bold">P</text>
+  <text x="300" y="300" font-size="15" fill="#2f7dd1">수선의 발 = 설 자리 (road_point)</text>
+  <!-- along_m -->
+  <path d="M 60 318 L 230 268" stroke="#2f7dd1" stroke-width="0" fill="none"/>
+  <text x="70" y="362" font-size="14" fill="#5b6672">along_m = N1 → A → P 를 도로 따라 잰 거리</text>
+  <!-- node 방식 비교 -->
+  <line x1="352" y1="76" x2="66" y2="294" stroke="#8a94a0" stroke-width="1.8" stroke-dasharray="3 5"/>
+  <text x="196" y="208" font-size="14" fill="#5b6672">node 방식(기본):</text>
+  <text x="196" y="226" font-size="14" fill="#5b6672">가장 가까운 노드로</text>
+  <!-- 오른쪽 설명 -->
+  <text x="500" y="60" font-size="14" fill="#3b4652">구간 A–B 위의 P = A + t·(B − A)</text>
+  <text x="500" y="82" font-size="14" fill="#3b4652">t = (T−A)·(B−A) / |B−A|²,  0~1로 자름</text>
+  <text x="500" y="104" font-size="14" fill="#3b4652">모든 구간 중 |T−P| 가 가장 짧은 P</text>
+  <text x="500" y="126" font-size="14" fill="#d64545">|T−P| (node 방식은 |T−N|) &gt; 2 km</text>
+  <text x="500" y="146" font-size="14" fill="#d64545">→ 거절 TARGET_UNREACHABLE</text>
+</svg>

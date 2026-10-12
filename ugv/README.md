@@ -13,7 +13,7 @@ UAV가 직선거리로 이동하는 것과 달리 지상자원은 도로를 따�
 | 파일 | 설명 |
 |---|---|
 | `models.py` | Node, Road, RouteResult 자료형 |
-| `graph_data.py` | 도로망 데이터. 로직과 분리되어 교체 가능 |
+| `graph_gpkg.py` | 실제 도로망 (2019 도로 → `data/road_network.json`). 서버 기본 |
 | `graph_data_demo.py` | PX4 시연용 축소 도로망 (거리 1/100) |
 | `road_graph.py` | 경로 탐색(Dijkstra), 도로 상태 갱신 |
 | `geo.py` | 위경도 ↔ 로컬 NED 미터 변환 |
@@ -27,18 +27,16 @@ UAV가 직선거리로 이동하는 것과 달리 지상자원은 도로를 따�
 | `tools/px4-start.sh` | SITL 인스턴스 기동 |
 | `tools/px4-stop.sh` | 프로세스·파라미터 정리 |
 | `tools/check_px4.py` | 연결 진단 |
-| `demo_ugv.py` | 재할당 시나리오 시연 |
+| `server.py` | UGV 서버 (FastAPI :8100) — API 는 `API_DEFINE.md` |
 
 ## 실행
 
 ```bash
-# 판단 로직만 (PX4 불필요)
-python3 -m ugv.demo_ugv
+# 서버만 (PX4 불필요, sim 주행)
+UGV_DRIVER=sim python3 -m uvicorn ugv.server:app --port 8100
 
-# PX4 연동
-./ugv/tools/px4-start.sh 0        # 터미널 1
-./ugv/tools/px4-start.sh 1        # 터미널 2
-python3 -m ugv.demo_ugv --px4     # 터미널 3
+# PX4 연동 (Gazebo 기계에서 px4-start.sh, 서버는 UGV_DRIVER=px4) — SIMULATOR.md 참고
+./ugv/tools/px4-start.sh
 
 # 연결 진단
 python3 ugv/tools/check_px4.py
@@ -179,7 +177,7 @@ PX4 rover 지원은 공식 문서에 **experimental** 로 명시되어 있으며
 현재 Dijkstra, 이후 A* 또는 LLM 기반 대안 경로 탐색 검토.
 
 **데이터 주입** — `RoadGraph(nodes, roads)` 생성자로 받는다.
-`graph_data.py` 만 교체하면 실제 도로 데이터로 전환된다.
+도로망 모듈만 바꾸면 된다 (현재 서버는 `graph_gpkg.py` = 실제 2019 도로).
 
 **구조와 상태 분리** — 도로망 구조(노드·간선·거리)는 본 모듈이 소유하고,
 도로 상태(차단·혼잡)는 환경모듈에서 받는다.

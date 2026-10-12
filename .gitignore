@@ -26,3 +26,6 @@ docs/common/ADAIR_오퍼스_추가수정요구_R01-R04.md
 environment/.state/
 uav/uav-agent/.state/
 ugv/.state/
+
+# 문서 작업 백업
+docs/common/.*.backup.md

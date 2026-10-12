@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""UGV 지상 열화상 (모의, ORCH_UGV_THERMAL=1 일 때만). 2026-10-05.
+"""UGV 지상 열화상 (모의). 2026-10-05, 기본 켜짐 2026-10-09.
 
-- 능력: 켜면 UGV 가 THERMAL 임무 후보가 된다. 끄면(기본) 지금처럼 REQUIRED_CAPABILITY_UNAVAILABLE.
+- 능력: 켜면(운영 기본) UGV 가 THERMAL 임무 후보가 된다. 끄면(ORCH_UGV_THERMAL=0, 시험 기준) REQUIRED_CAPABILITY_UNAVAILABLE.
 - 관측: 고도 대신 차 위치 중심 고정 범위(ASSUMED_GROUND_VIEW_V1, 기본 450 m)로 환경 정답을 읽는다.
 - 범위 밖이면 탐지하지 못하고 임무는 완료되지 않는다 (지어내지 않음).
 """
@@ -40,7 +40,21 @@ def _poll(orch, n=4):
         orch.poll()
 
 
-def test_ugv_excluded_for_thermal_by_default(world):
+def test_ugv_thermal_defaults_on():
+    """운영 기본값: 환경변수를 안 주면 UGV 열화상·지상 자동 정찰이 켜져 있다 (새 프로세스에서 확인)."""
+    import os
+    import subprocess
+    import sys
+    env = {k: v for k, v in os.environ.items() if k not in ("ORCH_UGV_THERMAL", "ORCH_AUTO_RECON_GROUND")}
+    env["ORCH_SKIP_DOTENV"] = "1"
+    out = subprocess.run([sys.executable, "-c", "from orchestrator import config as c; "
+                          "print('THERMAL' in c.SIMULATED_CAPABILITIES['UGV'], c.AUTO_RECON_REQUIREMENTS['resource_types'])"],
+                         capture_output=True, text=True, env=env, check=True,
+                         cwd=str(__import__('pathlib').Path(__file__).resolve().parents[2])).stdout.strip()
+    assert out == "True ['UAV', 'UGV']", out
+
+
+def test_ugv_excluded_for_thermal_when_off(world):
     out = world["orch"].dispatch(submit(world["orch"], requirements=THERMAL_UGV).task_id)
     assert out["status"] == "HOLD"
     assert out["excluded"] == {"A-ugv1": "REQUIRED_CAPABILITY_UNAVAILABLE"}
