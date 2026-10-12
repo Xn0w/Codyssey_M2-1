@@ -104,6 +104,27 @@ c = gb.fire_cell_grid_to_gz(env_state.fire_cells[0])   # {x,y,...} → +lat,lon,
 
 ---
 
+## PX4 실기동 통합 시연 (UAV x500 + UGV, 지형 월드 tz_a33)
+
+시연 영상용 실행입니다. 검증 기록은 `docs/intergration/04. PX4 실기동 통합 시험 (2026-10-11).md` (실행 코드 38aa911).
+
+준비물 (Windows + WSL):
+- WSL `Ubuntu-24.04` 안에 PX4-Autopilot (`~/PX4-Autopilot`, 다른 곳이면 `PX4_DIR`), `make px4_sitl` 로 `build/px4_sitl_default` 빌드.
+  검증 버전 v1.18.0-beta1-446-g21fa379fb8. Gazebo(gz sim)는 PX4 빌드에 맞는 것. UGV airframe(51100·51101)은 시작 때 저장소에서 자동 복사
+- 저장소 루트 `.venv` (Windows 파이썬, `pip install -r requirements.txt`)
+
+`logs/` 는 git 에 올리지 않으므로 클론 직후 한 번 지형 타일·차량 구성을 만든다 (약 10 s, 원자료 = 저장소 안 DEM·도로망).
+만든 파일이 시연 검증 때와 같은지 sha1 으로 확인한다 (월드 4adb2fe3015b4c0f).
+```
+.venv/Scripts/python.exe integration/px4_live/prepare_demo.py
+python integration/px4_live/run_integ.py preflight
+python integration/px4_live/run_integ.py run --minutes 35          # 20 분 통합 (총괄 경유)
+python integration/px4_live/run_integ.py stop                      # 종료 (이 도구가 띄운 것만)
+```
+같은 PC 에서 다른 Gazebo·PX4 시험이 돌고 있으면 포트(8000·8100·8200·8300, MAVLink 14540·14541)가 겹치므로 먼저 끈다.
+
+---
+
 ## 웹 멀티에이전트 자동 관제판 (web/, 최종)
 
 브라우저에서 강원 지형·산불(CA)·드론·지상자원(UGV/소방차)을 실시간으로 보고, 버튼 하나로
