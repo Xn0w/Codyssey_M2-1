@@ -508,7 +508,7 @@ UGV   A-ugv1 REJECT TARGET_UNREACHABLE — 같은 사유
 
 영상: [영상 10](https://drive.google.com/file/d/1SY68U-cmPt6lgy0qlqBAr5AMy7e0-hpU/view) · 실행 결과 근거: [`2026-10-12_thermal`](../ugv/evidence/2026-10-12_thermal/)
 
-시연해야 하면 이렇게 합니다.
+직접 시연할 때는 아래를 돌리면 될 것 같습니다.
 
 ```bash
 bash ugv/tools/run_twin_ugv.sh thermal
