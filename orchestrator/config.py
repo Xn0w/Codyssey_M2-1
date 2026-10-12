@@ -125,7 +125,7 @@ SENSOR_PROFILES = {
     },
     # 지상(UGV) 열화상 — 순찰 차량 마스트의 열화상 카메라가 차 주변을 둘러본다고 가정 (2026-10-05).
     # 차 위치 중심 정사각형(기본 450 m = 90 m 칸 5×5). 수평 시야라 지형 가림은 반영하지 않는다 (가정임을 결과에 남긴다).
-    # 바꾸기: ORCH_GROUND_THERMAL_VIEW_M
+    # 바꾸기: ORCH_GROUND_THERMAL_VIEW_M. 2026-10-12부터 기본은 아래 ASSUMED_GROUND_LOS_V1 (이 정사각형은 선택용으로 남김)
     "ASSUMED_GROUND_VIEW_V1": {
         "source": "SIMULATED",
         "status": "TEST_ONLY",
@@ -139,6 +139,25 @@ SENSOR_PROFILES = {
         "footprint_height_m": float(os.getenv("ORCH_GROUND_THERMAL_VIEW_M", "450")),
         "reference_payload": "VEHICLE_MAST_THERMAL_EXAMPLE",
         "basis": "ASSUMED_GROUND_VIEW_SQUARE_AROUND_VEHICLE (지형 가림 미반영)",
+    },
+    # 지상(UGV) 열화상 — 지형 시선 (2026-10-12): 차 위치에서 반경 min_m 안 칸은 항상 보이고, min_m ~ max_m 칸은
+    # 카메라(차가 선 칸 지면 + mast_m)에서 그 칸 지면까지의 시선이 사이 지형에 막히지 않으면 보인다.
+    # max_m 은 UGV 수락 거리(ugv UGV_TARGET_SNAP_M 2 km)와 같다. 나무·건물 가림은 반영하지 않는다 (가정임을 결과에 남긴다).
+    # 바꾸기: ORCH_UGV_VIEW_MIN_M · ORCH_UGV_VIEW_MAX_M · ORCH_UGV_MAST_M. 이전 정사각형: ORCH_GROUND_SENSOR_PROFILE=ASSUMED_GROUND_VIEW_V1
+    "ASSUMED_GROUND_LOS_V1": {
+        "source": "SIMULATED",
+        "status": "TEST_ONLY",
+        "sensor_type": "THERMAL",
+        "platform": "GROUND",
+        "model": "TERRAIN_LINE_OF_SIGHT",
+        "agl_m": None,
+        "scale_with_agl": False,
+        "view_direction": "HORIZONTAL_360",
+        "min_m": float(os.getenv("ORCH_UGV_VIEW_MIN_M", "600")),
+        "max_m": float(os.getenv("ORCH_UGV_VIEW_MAX_M", "2000")),
+        "mast_m": float(os.getenv("ORCH_UGV_MAST_M", "3.0")),
+        "reference_payload": "VEHICLE_MAST_THERMAL_EXAMPLE",
+        "basis": "RADIUS_ALWAYS_THEN_TERRAIN_LINE_OF_SIGHT (카메라 높이 3 m 가정, 나무·건물 가림 미반영)",
     },
     # 임시 가정 (사용자 결정 2026-09-30): 드론이 목표에 도착해 그 칸 위를 원으로 한 바퀴 돌았다고 보고
     # 관측 범위를 90m × 90m 로 둔다. 실제 드론은 아직 제자리 비행만 한다 (원 비행은 UAV-08 계약 대기) —
@@ -160,7 +179,7 @@ SENSOR_PROFILES = {
 }
 # 원래 관측 범위(한 프레임)는 TEST_THERMAL_90M_V1 로 남겨 둔다. 되돌리기: ORCH_SENSOR_PROFILE=TEST_THERMAL_90M_V1
 DEFAULT_SENSOR_PROFILE_ID = os.getenv("ORCH_SENSOR_PROFILE", "ASSUMED_ORBIT_90M_V1")
-GROUND_SENSOR_PROFILE_ID = os.getenv("ORCH_GROUND_SENSOR_PROFILE", "ASSUMED_GROUND_VIEW_V1")   # UGV 열화상
+GROUND_SENSOR_PROFILE_ID = os.getenv("ORCH_GROUND_SENSOR_PROFILE", "ASSUMED_GROUND_LOS_V1")   # UGV 열화상
 
 # ---------------------------------------------------------------------------
 # 현장 환경 측정 (사용자 결정 2026-09-30: 2019 재현 필수 기능)

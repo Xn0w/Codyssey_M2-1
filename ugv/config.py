@@ -122,7 +122,7 @@ FAULT_CONFIRM_S = 3.0        # 차량 이상이 이 시간 이상 계속돼야 �
 #   UGV_APPROACH_FALLBACK=1: 가장 가까운 노드로 못 가면 APPROACH_MAX_M 안의 다음 노드로 접근
 TARGET_SNAP_M = float(os.getenv("UGV_TARGET_SNAP_M", "2000"))      # 가장 가까운 노드가 이보다 멀면 TARGET_UNREACHABLE (루트 config.UGV_TARGET_SNAP_M 과 같은 값)
 APPROACH_FALLBACK = os.getenv("UGV_APPROACH_FALLBACK", "0") == "1"
-# 목적지 방식 (ugv/road_point.py): road_point = 목표에서 가장 가까운 도로 위 점에 선다 (기본, 2026-10-11 — 총괄 2 km 시야와 함께 쓰기로 함) /
+# 목적지 방식 (ugv/road_point.py): road_point = 목표에서 가장 가까운 도로 위 점에 선다 (기본, 2026-10-11 — 총괄 열화상 2 km 지형 시선과 함께 씀) /
 #   node = 목표에서 가장 가까운 도로 노드(10/11 이전 기본, 10/11 이전 시험은 모두 이 방식). 요청마다 target_mode 로 바꿀 수 있다
 TARGET_MODE = os.getenv("UGV_TARGET_MODE", "road_point")
 APPROACH_MAX_M = float(os.getenv("UGV_APPROACH_MAX_M", "500"))     # fallback 접근 노드의 화재 거리 상한

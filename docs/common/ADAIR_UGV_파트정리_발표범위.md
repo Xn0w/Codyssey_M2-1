@@ -31,7 +31,7 @@
 | 10/11 | 로컬, 화면 끔, 도로를 배치한 월드 (참고) | 10 | 9.99 (주행 성공) |
 | 10/11 | 로컬, 화면 끔, 도로를 배치한 월드 (참고) | 30 | PX4 시동 점검 실패 |
 
-팀 시연은 배속 100인데 어느 환경도 10을 넘지 못했습니다. 그래서 **통합은 sim**(UGV 서버가 도로 선형을 따라 시속 60 km로 위치를 계산)으로 하고, **Gazebo는 "실제 차량 모델로도 같은 경로·ETA로 달린다"는 단독 근거**로만 씁니다. Gazebo를 통합하려면 Gazebo를 따로 느리게 돌리는 게 아니라 차량 모델 속도를 올려 시연 배속에 맞춰야 합니다 ([8-3](#8-3-다른-구현과-합칠-때-맞춰야-할-것) 9번).
+팀 시연은 배속 100인데 어느 환경도 10을 넘지 못했습니다. 그래서 **통합은 sim**(UGV 서버가 도로 선형을 따라 시속 60 km로 위치를 계산)으로 하고, **Gazebo는 "실제 차량 모델로도 같은 경로·ETA로 달린다"는 단독 근거**로만 씁니다. Gazebo를 통합하려면 Gazebo를 따로 느리게 돌리는 게 아니라 차량 모델 속도를 올려 시연 배속에 맞춰야 합니다 (발표 이후 과제, [9장](#9-가정과-한계)).
 
 ![Gazebo 1대 + 도로 상황판 직접 지시 + 3D 트윈 LIVE + QGroundControl (10/11, 배속 약 3.2)](../ugv/media/ugv_gazebo_live_1011.gif)
 
@@ -90,7 +90,7 @@ UGV 서버 하나(포트 8100)가 차량 4대(인제119·기린119에 UGV 1대, 
 **하지 않은 것 (발표 이후 과제)**
 - UGV 자체 센서 측정 (지금은 총괄 모의 센서가 대신함)
 - 배터리로 판단·복귀 — 지금은 표시용이라 배터리가 0 %가 되어도 거절하거나 멈추지 않음
-- Gazebo 차량을 시연 배속 100·시속 60 km로 (지금 차량 모델은 2 m/s, [8-3](#8-3-다른-구현과-합칠-때-맞춰야-할-것) 9번)
+- Gazebo 차량을 시연 배속 100·시속 60 km로 (지금 차량 모델은 2 m/s)
 - 사용 불능(UNAVAILABLE) 자동 해제 (지금은 수동으로 요청 — Swagger에서 `POST /ugv/{id}/stop`, 또는 도로 상황판에서 그 차에 직접 지시)
 
 ---
@@ -114,7 +114,7 @@ UGV 서버 하나(포트 8100)가 차량 4대(인제119·기린119에 UGV 1대, 
 - **road_point (기본, 10/11부터):** 수선의 발 **P(도로 중간)**에 섭니다. 노드 사이가 길 때 목표에 더 가까이 섭니다. |T−P|가 2 km를 넘으면 거절. 오케스트레이터 요청은 `target_mode`를 보내지 않으므로 기본값인 이 방식을 씁니다
 - **node:** 목표에서 가장 가까운 **노드**에 섭니다. 노드까지 2 km가 넘으면 거절. 10/11 이전 기본값이라 **이 문서의 시험 ①~⑦은 모두 이 방식**이고, ⑧만 `road_point`입니다
 
-**통합 전에 총괄 테스트 저장소 방식에 맞추자는 것이 우리 제안입니다** — 총괄의 UGV 시야를 2 km + 지형 시선으로 넓히고(8-4 ②, 총괄 쪽), UGV는 도로 위 점에 서서 목표에 더 가까이 갑니다. UGV 쪽은 기본값을 `road_point`로 바꿔 이 PR에 넣었고, 이 조합으로 통합 시험을 한 번 돌렸습니다 (5-3 ⑧: 선 자리↔목표 중앙값 505 m → 392 m, 불 탐지 54 % → 67 %. 이 브랜치 코드로 다시 돌린 ⑨: 301 m, 82 %, [8-3](#8-3-다른-구현과-합칠-때-맞춰야-할-것) 3번).
+**총괄의 UGV 열화상은 반경 600 m 상시 + 2 km 지형 시선이고(팀 main, 10/12), UGV 수락 거리 2 km와 같습니다.** UGV는 도로 위 점에 서서 목표에 더 가까이 갑니다 (기본값 `road_point`). 통합 시험 결과는 5-3 ⑧(선 자리↔목표 중앙값 505 m → 392 m, 불 탐지 54 % → 67 %)과 이 브랜치 코드로 다시 돌린 ⑨(301 m, 82 %)입니다.
 
 ![수선의 발: 목표 T에서 도로 구간에 수직으로 내린 점 P. node 방식은 가장 가까운 노드 N1·N2 중 하나](../../ugv/ugv_image/road_point_foot.svg)
 
@@ -230,7 +230,7 @@ ETA = 경로에 있는 도로 비용의 합
 |---|---|---|
 | **Gazebo** | PX4 SITL + Gazebo(r1_rover) + UGV 서버(`UGV_DRIVER=px4`). 시나리오 없이 도로 상황판에서 직접 지시 | Windows WSL |
 | **통합 시연 환경** | 아래 표 (UGV 단독 호출·자동시험도 이 코드로) | 로컬 (macOS) |
-| **팀 저장소 그대로** | 팀 main 총괄·환경 + 이 UGV 코드 (8-4 ①·② 없음). 거절 확인용 (5-3 ⑦) | 로컬 |
+| **팀 저장소 그대로** | 팀 main 총괄·환경 + 이 UGV 코드 (관측 계획 없음, 트윈 불이 첫 칸에서 꺼짐). 거절 확인용 (5-3 ⑦) | 로컬 |
 
 **통합 시연 환경의 구성** — 팀 시연 조건을 두고 총괄만 바꿨습니다.
 
@@ -239,22 +239,24 @@ ETA = 경로에 있는 도로 비용의 합
 | 실행 방식 | `run_servers.py start --twin`(⑦은 `ugv/tools/run_twin_ugv.sh final`), 2019 인제 트윈, 배속 100, 도로 통제·혼잡 없음 | 같음 |
 | 총괄 | [총괄 테스트 저장소](https://github.com/sujinpark50-gif/ADAIR) `feat/orchestrator-final` @ `221a497`(10/8): 관측 계획, 출동 전 확인(PROBE), UGV 열화상 시야 600 m~2 km(지형 시선), 불 따라가기 | main에는 관측 계획이 없음 (총괄 코드 약 4,800줄 차이) |
 | 환경 모듈·웹 | 총괄 테스트 저장소 버전 (불이 번져 UGV를 계속 부름) + 팀 main의 웹 관제판(총괄이 아는 불만 표시) | main 트윈에서는 불이 금방 잦아들어 UGV를 거의 부르지 않음 |
-| 수락 거리와 관측 범위 | UGV 수락 2 km = 총괄 시야 2 km (맞음) | 총괄 시야 450 m라 안 맞음 |
+| 수락 거리와 관측 범위 | UGV 수락 2 km = 총괄 시야 2 km | 같음 (10/12 main 반영) |
 | UGV | ⑥~⑧은 도로 AI 브랜치(`feat/ugv-road-ai`) 코드를 AI 끄고, ⑨는 이 브랜치(`feat/ugv-road-view`) 코드 (둘 다 4대) | main에 머지 전 |
-| 총괄 기본값 | UGV 열화상·지상 자동 정찰 켬 (10/9 팀 합의) | 꺼짐 |
+| 총괄 기본값 | UGV 열화상·지상 자동 정찰 켬 (10/9 팀 합의) | 같음 (`25a0183`) |
 | 총괄 AI 모델 | **로컬에서만** `claude-sonnet-4`(copa). 관측 계획 10번 중 5번 AI(응답 20~42초), 5번은 AI 응답 형식 오류로 규칙 계획 대체 | `gpt-5.5` (팀 기본) |
 
 ### 5-2. 시연 시나리오와 시험용 변형
 
 **팀 시연 시나리오 (2019 인제 트윈, `run_servers.py start --twin`)** — 2019-04-04 14:45 인제 남전리 산불을 환경 모델로 재현한 것입니다. 환경은 35분 단위(CA 한 단계)로 불을 번지게 하고, 신고 2분 뒤 총괄이 자동으로 초기 정찰을 보냅니다. 드론 2대(인제119)와 소방차가 총괄 요청으로 움직이고(UGV는 아래 `dispatch` 구성부터), 운용자 도구(사람 운용자 대신 총괄 `/tasks`에 요청을 넣는 스크립트 2개: `twin_operator.py`는 일몰 뒤 드론 순찰, `twin_ground_dispatch.py`는 불 확인 시 소방차의 마을회관 방어 출동)가 함께 뜹니다. 배속 100, 도로 통제·혼잡 없음.
 
-**세 구성** — 같은 트윈을 세 가지로 켭니다. `ugv/tools/run_twin_ugv.sh <구성>` 한 줄이며, 모두 저장소에 남깁니다.
+**네 구성** — 같은 트윈을 네 가지로 켭니다. `ugv/tools/run_twin_ugv.sh <구성>` 한 줄이며, 모두 저장소에 남깁니다.
 
 | 구성 | 무엇이 다른가 | 쓰인 곳 |
 |---|---|---|
 | `main` | 팀 main 총괄 동작 그대로: UGV 열화상·지상 자동 정찰 끔(`ORCH_UGV_THERMAL=0 ORCH_AUTO_RECON_GROUND=0`) → UGV는 출동하지 않고 드론 순찰·소방차 방어만 | 비교용 |
 | `dispatch` | 신고 때 총괄이 UGV도 출동시킴 (10/9 팀 합의, `25a0183` 기본값) | 5-3 ⑥ 통합 시험 |
+| `nodrone` | 드론 출동 불가: 드론 서버를 띄우지 않음 → 신고 때 총괄 자동 정찰이 드론에 닿지 못해(`LOCAL_UNREACHABLE`) 총괄이 스스로 UGV를 보냄. 운용자 요청 없음 | 시연 (총괄 자체 판단) |
 | `final` | `dispatch` + 거절 요청 1건 자동(시뮬레이션 40분, `ugv/tools/twin_reject_request.py --auto`) | 5-3 ⑦, 시연 |
+| `thermal` | 기존 마을회관 방어 출동을 UGV로(`TWIN_DISPATCH_ARGS="--types UGV --site NAMJEON1_HALL,INJE_REST_AREA"`, 남전1리 마을회관·인제휴게소) + UGV 전용 열화상 요청 자동(시뮬레이션 20분부터 30분마다 불타는 칸, 최대 6건, `ugv/tools/twin_thermal_request.py --auto`). 팀 main은 열화상 임무가 대부분 드론 전용이라 UGV 열화상 출동·2 km 지형 시선 관측을 보이려고 넣음 | 시연, [`2026-10-12_thermal`](../ugv/evidence/2026-10-12_thermal/) |
 
 거절 요청을 원하는 때에 손으로 넣으려면 `dispatch`로 켠 뒤 `.venv/bin/python ugv/tools/twin_reject_request.py`를 실행합니다 (발표 중 순간을 고를 때).
 
@@ -275,8 +277,8 @@ ETA = 경로에 있는 도로 비용의 합
 | 4 | 10/11 | 로컬 | Swagger 수행 가능성 평가 → 실행 (UGV 서버만, 시나리오·AI 없음, 배속 5) | ETA 344초 → 실제 348.9초 (오차 1%) | `2026-10-11_swagger/history_swagger_*`, [영상 02](https://drive.google.com/file/d/1bw5k8rbyBo672su-RLFyA5ibGpZNnINr/view) |
 | 5 | 10/11 | Gazebo (WSL, 화면 켬) | 1대 직접 지시 2회 + 3D 트윈 LIVE·QGroundControl | 모두 도착, 배속 3.26·3.23, ETA 대비 1.05, 경로 이탈 95%가 0.76 m 이하 | `2026-10-11_gazebo`, [영상 07](https://drive.google.com/file/d/1FDUeMzhDdScPLViCn4qkAXgzBJ7bsy9N/view) |
 | 6 | 10/11 | 통합 시연 환경 (4대) | 총괄 요청 출동, AI 끔 | **출동 26회 모두 도착** (A-ugv1 13, B-ugv1 12, A-fire1 1) · 열화상 26회 중 14회 불 탐지 | `2026-10-11_twin4`, [영상 01](https://drive.google.com/file/d/1Ic2o8N6mWVAHP95pXV_fdyWmRf5ojPiC/view) |
-| 7 | 10/11 | 통합 시연 환경 (4대) + 팀 main 총괄, 최종 통합 시나리오 (5-2 `final`) | 일반 주행 + 운용자 거절 요청 1건 (도로에서 2.2 km 먼 산속 칸 20_57) | A-ugv1·B-ugv1 모두 `TARGET_UNREACHABLE` (노드까지 2201 m > 허용 2000 m) → 총괄 보류 `NO_FEASIBLE_CANDIDATE` · 출동 없음. 팀 main 총괄에서도 같은 거절 (8-4 ① 없이 돌려 불이 일찍 꺼져 UGV 정찰 출동은 0회) | `2026-10-11_final`, [영상 09](https://drive.google.com/file/d/1gaAT6Zct-FrcqPuWq4ibnaslTJCdRTlK/view) |
-| 8 | 10/11 | 통합 시연 환경 (4대), `final`, **설 자리 `road_point`** (8-3 3번 제안 조합) | ⑦과 같음, UGV 기본값만 도로 위 점 | 도착 19회·실패 0 · 열화상 18회 중 불 탐지 12회(67 %, ⑥은 54 %) · 목표가 지형에 가림 3회(17 %, ⑥은 23 %) · 선 자리↔목표 중앙값 392 m(⑥은 505 m) · 거절은 ⑦과 같음 | `2026-10-11_final` ③ |
+| 7 | 10/11 | 통합 시연 환경 (4대) + 팀 main 총괄, 최종 통합 시나리오 (5-2 `final`) | 일반 주행 + 운용자 거절 요청 1건 (도로에서 2.2 km 먼 산속 칸 20_57) | A-ugv1·B-ugv1 모두 `TARGET_UNREACHABLE` (노드까지 2201 m > 허용 2000 m) → 총괄 보류 `NO_FEASIBLE_CANDIDATE` · 출동 없음. 팀 main 총괄에서도 같은 거절 (트윈 불이 일찍 꺼져 UGV 정찰 출동은 0회) | `2026-10-11_final`, [영상 09](https://drive.google.com/file/d/1gaAT6Zct-FrcqPuWq4ibnaslTJCdRTlK/view) |
+| 8 | 10/11 | 통합 시연 환경 (4대), `final`, **설 자리 `road_point`** | ⑦과 같음, UGV 기본값만 도로 위 점 | 도착 19회·실패 0 · 열화상 18회 중 불 탐지 12회(67 %, ⑥은 54 %) · 목표가 지형에 가림 3회(17 %, ⑥은 23 %) · 선 자리↔목표 중앙값 392 m(⑥은 505 m) · 거절은 ⑦과 같음 | `2026-10-11_final` ③ |
 | 9 | 10/11 | 통합 시연 환경 (4대), `final`, **이 브랜치 코드** (도로 AI 없음, `road_point`) | ⑦과 같음 | 도착 23회·실패 0 · 열화상 22회 중 불 탐지 18회(82 %) · 목표 가림 2회(9 %) · 선 자리↔목표 중앙값 301 m · 거절·보류 ⑦과 같음 | `2026-10-11_road_view` |
 
 근거 폴더: [`2026-10-10`](../ugv/evidence/2026-10-10/) · [`2026-10-11_twin4`](../ugv/evidence/2026-10-11_twin4/) · [`2026-10-11_swagger`](../ugv/evidence/2026-10-11_swagger/) · [`2026-10-11_gazebo`](../ugv/evidence/2026-10-11_gazebo/) · [`2026-10-11_gazebo_speed`](../ugv/evidence/2026-10-11_gazebo_speed/) · [`2026-10-11_final`](../ugv/evidence/2026-10-11_final/) · [`2026-10-11_road_view`](../ugv/evidence/2026-10-11_road_view/)
@@ -290,6 +292,7 @@ ETA = 경로에 있는 도로 비용의 합
 | [07 Gazebo 1대 직접지시 3D트윈·QGC](https://drive.google.com/file/d/1FDUeMzhDdScPLViCn4qkAXgzBJ7bsy9N/view) | Gazebo 1대 (5-3 ⑤) | 도로 상황판 직접 지시, 3D 화면·QGroundControl 동시 표시. UGV 2 m/s, 시뮬레이션 4배속 | 59초 | 없음 |
 | [08 Gazebo 소방차 방수표시](https://drive.google.com/file/d/1LxS15i7fFwyW3IC_bP5gZEL3C1U2dunj/view) | Gazebo 단독, 소방차 방수 표시 (시험 아님, 발표 자료용 7-3) | Swagger `/suppress`로 방수 시작 → Gazebo 물줄기. UGV 2 m/s | 33초 | 없음 |
 | [09 최종통합 거절 도로상황판](https://drive.google.com/file/d/1gaAT6Zct-FrcqPuWq4ibnaslTJCdRTlK/view) | 최종 통합 시나리오, 팀 main 총괄 (5-3 ⑦) | 운용자 거절 요청 → A-ugv1·B-ugv1 REJECT TARGET_UNREACHABLE이 기록 탭에 반복해 쌓임 | 90초 | 없음 (GIF는 30~90초 3배속) |
+| [10 도로상황판 총괄 UGV출동요청](https://drive.google.com/file/d/1SY68U-cmPt6lgy0qlqBAr5AMy7e0-hpU/view) | `thermal` 구성 (10/12) | 도로 상황판에서 인제119 A 지점에 UGV 출동 요청 → 총괄이 A-ugv1 배정 → 수행 가능성 평가 수락·경로 확정(11.3 km)·주행·도착 | 33초 | 편집 없음 |
 
 ---
 
@@ -438,7 +441,7 @@ UGV   A-ugv1 REJECT TARGET_UNREACHABLE — 같은 사유
 
 영상: [영상 09](https://drive.google.com/file/d/1gaAT6Zct-FrcqPuWq4ibnaslTJCdRTlK/view) (도로 상황판 기록 탭, 1분 30초. GIF는 30~90초 구간을 3배속)
 
-- 같은 시험을 팀 main 총괄(관측 계획 없음)에서도 돌려 같은 거절·보류가 나왔습니다 — 8-3 2번 비고(통합하면 고칠 코드 없음)의 근거입니다. 이 실행은 8-4 ① 없이 돌려 불이 일찍 꺼졌고, UGV 정찰 출동은 없었습니다.
+- 같은 시험을 팀 main 총괄(관측 계획 없음)에서도 돌려 같은 거절·보류가 나왔습니다. 팀 main 총괄은 거절 사유를 가리지 않고 다음 후보로 넘어가고, 후보가 없으면 보류합니다. 이 실행은 트윈 불이 일찍 꺼져 UGV 정찰 출동은 없었습니다.
 - 총괄은 보류한 요청을 환경 이벤트가 들어올 때마다 다시 평가합니다 (실제 138초 동안 27회, UGV는 매번 같은 거절). 출동은 일어나지 않아 동작에는 문제가 없고, 원인과 해결 방안은 [8-2](#8-2-겪은-문제)에 있습니다.
 - 도로 상황판 기록 탭에는 "수행 가능성 평가 · REJECT · TARGET_UNREACHABLE"이 차례로 쌓입니다. 다시 보기 기록: `history_final_20261011T124401.jsonl`, `history_final_main_20261011T125624.jsonl`.
 
@@ -463,7 +466,7 @@ UGV   A-ugv1 REJECT TARGET_UNREACHABLE — 같은 사유
 | 항목 | 팀 main | 이 문서 기준 | 근거 |
 |---|---|---|---|
 | 도로 통제·혼잡 시나리오 | 기본 켬 (`inje_girin.csv`) | 기본 끔 — 모든 도로 뚫림 | 10/7 결정, `580c036` |
-| UGV 모의 열화상·지상 자동 정찰 | 꺼짐 | 기본 켬 | 10/9 팀 합의, `25a0183` |
+| UGV 모의 열화상·지상 자동 정찰 | 기본 켬 (반영됨) | 기본 켬 | 10/9 팀 합의, `25a0183` |
 | sim 주행 속도 | 2 m/s (Gazebo 차량 기준) | 60 km/h, 도로 최저 50 km/h | 10/7 결정, `936dff1` |
 | 차량 수 | 3대 | 4대 (B-fire1 추가) | 10/10 결정, `8164d1c` |
 
@@ -476,176 +479,6 @@ UGV   A-ugv1 REJECT TARGET_UNREACHABLE — 같은 사유
 | 총괄이 거절된 요청을 환경 이벤트마다 다시 평가 (5-3 ⑦, 138초에 27회) | 보류 재개 조건 `NEW_RESOURCE_OR_INPUT`이 거절 사유를 구분하지 않음 — "지금 바쁨"과 "물리적으로 못 감"을 같게 다룸 (팀 main `orchestrator/api.py` 같은 코드) | 후보 전원이 물리적 사유(`TARGET_UNREACHABLE`·`ROAD_BLOCKED`)로 거절한 보류는 재개 조건을 운용자 확인으로 두어 자동 재평가에서 뺌. 총괄 테스트 저장소의 `PHYSICAL_REJECTS` 구분을 보류 재시도에도 씀 |
 
 
-### 8-3. 다른 구현과 합칠 때 맞춰야 할 것
-
-1. **역할** — UGV: 판단·주행·보고·기록 / 총괄: 배정·관측값. 명령은 총괄만
-2. **API** — 평가·주행·진행 조회의 필드와 상태값. UGV 거절 사유는 공통 목록(`interfaces/schema.py` `RejectReason`)에서 쓰며, 새 사유를 보태면 총괄과 합의가 필요함. *비고: 통합하면 사라지는 문제. 팀 main 총괄은 `state`가 `READY`가 아니거나 `current_task_id`가 있는 차를 후보에서 먼저 빼고, 그래도 거절이 오면 사유를 가리지 않고 다음 후보로 넘어가므로(`LOCAL_REJECT:<사유>`, 후보가 없으면 `NO_FEASIBLE_CANDIDATE` 보류) 고칠 코드 없음. 총괄 테스트 저장소는 출동 전 확인(PROBE)에서 `TARGET_UNREACHABLE`·`ROAD_BLOCKED`만 "물리적으로 못 감"으로 보고 계획에서 빼며(`PHYSICAL_REJECTS`), `BUSY` 등은 출동 때 다시 묻는 구조라 역시 추가 처리 없음. 시험에서 실제로 보낸 거절은 단독 재현의 `BUSY`·`ROAD_BLOCKED`·`TARGET_UNREACHABLE`·`REQUIRED_CAPABILITY_UNAVAILABLE`([5-3](#5-3-한-시험-전체) 3번)과 최종 통합 시나리오의 `TARGET_UNREACHABLE`(7번, 통합 시연 환경·팀 main 총괄 모두 같은 처리). `FAILSAFE_ACTIVE`·`COMMUNICATION_FAILURE`는 sim에 고장 주입이 없어 보낸 적 없음.*
-3. **수락 거리 vs 관측 범위 — 제안: 통합 전에 총괄 테스트 저장소 방식으로 맞춤** — UGV 수락 2 km / 총괄 시야. 팀 main은 450 m 사각형이라 안 맞음. 맞추는 방법은 두 쪽입니다: ① 총괄 UGV 시야를 600 m~2 km + 지형 시선으로(8-4 ②, 총괄 쪽 — 통합 시연 환경에서 2 km 수락과 맞는 것 확인) ② UGV는 도로 위 점(`road_point`, [3-1](#3-1-수행-가능성-평가evaluate의-순서))에 서서 목표에 더 가까이 감 — **이 PR에서 기본값으로 바꿈**. 요청마다 `target_mode`로 `node`도 쓸 수 있음. *비고: ①·② 조합을 통합 시연 환경에서 돌려 선 자리↔목표 중앙값 392 m, 열화상 불 탐지 67 %, 목표 가림 17 % (노드 방식 505 m·54 %·23 %, 5-3 ⑧. 이 브랜치 코드로 다시 돌린 ⑨는 301 m·82 %·9 %. 각 1회라 경향만).*
-4. **시간** — 모두 시뮬레이션 초, 환경 시계 기준. Gazebo를 단독으로 돌릴 때([6-1](#6-1-실행) [C]/[C'], 단독 주행 시험은 [5-3](#5-3-한-시험-전체) 5번 · [`2026-10-11_gazebo`](../ugv/evidence/2026-10-11_gazebo/))만 UGV 시계가 Gazebo 시간을 따르므로 PX4 `SPEED`(`PX4_SIM_SPEED_FACTOR`) = `UGV_TIME_SCALE`로 맞춤
-5. **속도** — ETA 계산 속도 = 실제 주행 속도 (60 km/h, 도로 최저 50 km/h)
-6. **도로 ID** — 같은 도로 원자료 번호를 써야 시나리오·기록을 재사용
-7. **도로 상황** — 통제·혼잡은 UGV 시나리오가 정함, 화재는 도로를 막지 않음 (팀 결정)
-8. **거점 좌표** — UGV 출발점과 팀 공통 거점이 A 약 50 m, B 약 130 m 다름
-9. **Gazebo 속도** — Gazebo를 따로 느리게 돌린다는 전제는 버리고, 통합할 때는 Gazebo도 시연 배속(100)에 맞춥니다. r1_rover(2 m/s)로는 안 되므로 시속 60 km를 내는 차량 모델로 바꾸거나 PX4 속도 상한을 올려야 하고, 그러면 `UGV_TIME_SCALE`과 ETA 계산은 sim과 같은 식을 씁니다 (배속 측정은 [0장 참조](#0-sim으로-결정한-이유))
-10. **설정 글자 맞춤** — `ugv/config.py`의 차량 목록·시나리오 기본값 구역과 `orchestrator/config.py`의 UGV 열화상 줄을 총괄 테스트 저장소와 같은 글자로 맞춰 머지 충돌을 줄였습니다 (동작은 같음). 그 저장소의 추가 UGV 옵션(`UGV_EXTRA`, sim 전용, 기본 비어 있음)도 같이 들어 있습니다
-
-### 8-4. 팀 저장소에서 같은 시험을 하려면 — 고칠 코드
-
-아래 변경은 [총괄 테스트 저장소](https://github.com/sujinpark50-gif/ADAIR) `feat/orchestrator-final`의 10/7~10/8 커밋(`efc9805` → `221a497`, 28개)에서 **UGV 시험에 필요한 것만** 뽑아 팀 main(`55edfd3`) 기준 diff로 옮긴 것입니다. 우리 통합 시험은 그 버전 위에 UGV 코드를 얹어 돌렸습니다.
-
-이 UGV 코드(`feat/ugv-road-view`)를 합친 팀 main에 ①·②를 적용하고 [6-1](#6-1-실행)대로 돌리면 UGV 쪽 결과(평가·경로·도착·열화상 관측·거절)는 그대로 나옵니다. 총괄이 언제 어느 칸으로 UGV를 보내는지(정찰 횟수·순서)는 관측 계획(PROBE·불 따라가기·불 머리 감시)에 달려 있는데, 이는 팀 main에 없고 총괄 테스트 저장소에 이미 구현돼 있습니다. 총괄 담당이 그 코드를 main에 합치면 되는 부분이라 UGV 쪽에서 고칠 것은 없고, 그 전까지는 배정 시점·순서만 다르게 나옵니다 (아래 "고치지 않아도 되는 것").
-
-| 순서 | 고칠 곳 | 왜 | 원래 커밋 (시점) |
-|---|---|---|---|
-| ① | 환경·트윈 설정 | 트윈에서 불이 첫 칸에서 꺼져 UGV가 불리지 않음 | `bb149aa` (10/08 14:48), `863950c` (10/07 23:07) |
-| ② | 총괄 UGV 열화상 시야 | 450 m 사각형 → 600 m~2 km + 지형 시선 | `8ad7e62` (10/08 13:30) |
-
-<details><summary>① 환경·트윈 — 불이 번지게 (3개 파일)</summary>
-
-```diff
-# web/static/inje2019/scenario.json — 트윈이 재현(whatif)과 같은 CA 설정을 쓰게
--"twin_env":{"ENV_IGNITION":"13,101","ENV_TICK_S":"2100","ENV_SEED":"9","ENV_SCENARIO_START_KST":"2019-04-04T14:45:00+09:00"}
-+"twin_env":{"ENV_IGNITION":"13,101","ENV_TICK_S":"2100","ENV_SEED":"9","ENV_SCENARIO_START_KST":"2019-04-04T14:45:00+09:00",
-+           "ENV_CONFIG":"environment/config/scenario_whatif_2019_legacy.yaml"}
-```
-
-```diff
-# environment/server.py — ENV_CONFIG 를 받아 환경 설정 파일을 바꿀 수 있게
- def build_env() -> ContractEnvironment:
-     ign = os.getenv("ENV_IGNITION", "19,142")
-     ignitions = [tuple(int(v) for v in p.split(",")) for p in ign.split(";") if p.strip()]
-+    cfg = os.getenv("ENV_CONFIG")
-+    extra = {"config_path": HERE.parent / cfg} if cfg else {}
-     return ContractEnvironment(
--        os.getenv("ENV_STATE_DIR", str(HERE / ".state")),
-+        os.getenv("ENV_STATE_DIR", str(HERE / ".state")), **extra,
-         ...
--        resume=os.getenv("ENV_RESUME", "1") != "0")
-+        resume=os.getenv("ENV_RESUME", "1") != "0",
-+        subtick_s=float(os.getenv("ENV_SUBTICK_S")) if os.getenv("ENV_SUBTICK_S") else None)
-```
-
-```diff
-# run_servers.py twin_env() — 신고 2분 뒤, 불 지도를 1분 단위로
--    env.update({"ENV_STATE_DIR": str(run / "env"), "ENV_RESUME": "0"})
-+    env.update({"ENV_STATE_DIR": str(run / "env"), "ENV_RESUME": "0",
-+                "ENV_REPORT_DELAY_S": os.environ.get("ENV_REPORT_DELAY_S", "120"),
-+                "ENV_SUBTICK_S": os.environ.get("ENV_SUBTICK_S", "60")})
-```
-
-- `subtick_s`를 받는 쪽(`environment/src/contract_env.py`, CA 35분 단계 사이 점화 시각 채우기 약 70줄)은 `863950c`를 그대로 가져옵니다: `git cherry-pick 863950c` (총괄 쪽 `engine.py` 변경 12줄은 관측 계획용이라 충돌하면 버림)
-- `environment/config/scenario_whatif_2019_legacy.yaml`은 팀 main에 이미 있습니다
-- 핵심은 첫 diff 한 줄입니다. 트윈 환경이 재현(whatif)과 다른 설정을 써서 "불이 첫 칸에서 꺼지던 문제"를 고친 것이 `bb149aa`입니다
-</details>
-
-<details><summary>② 총괄 UGV 열화상 시야 — 600 m~2 km, 지형 시선</summary>
-
-```diff
-# orchestrator/config.py — 시야 설정 추가
-+UGV_VIEW = {"sensor_profile_id": "ASSUMED_GROUND_LOS_V1", "source": "SIMULATED", "status": "TEST_ONLY",
-+            "sensor_type": "THERMAL", "min_m": 600.0, "max_m": 2000.0,
-+            "mast_m": float(os.getenv("ORCH_UGV_MAST_M", "3.0")),
-+            "basis": "RADIUS_600M_ALWAYS_TO_2KM_TERRAIN_LINE_OF_SIGHT (카메라 높이 3 m 가정, 나무·건물 가림 미반영)"}
-```
-
-```diff
-# orchestrator/engine.py (팀 main 1293행 근처) — 지상 열화상만 새 계산으로
--                obs = observation.simulate(snapshot=snap, task=task, attempt_id=aid, resource_id=rid,
--                                           position=pos, uav_raw_observation=data.get("observation"),
--                                           profile_id=config.GROUND_SENSOR_PROFILE_ID if ground else None)
-+                if ground:
-+                    obs = observation.simulate_ground_los(snapshot=snap, map_cells=self.env.map_cells(),
-+                                                          task=task, attempt_id=aid, resource_id=rid, position=pos)
-+                else:
-+                    obs = observation.simulate(snapshot=snap, task=task, attempt_id=aid, resource_id=rid,
-+                                               position=pos, uav_raw_observation=data.get("observation"))
-```
-
-```python
-# orchestrator/observation.py — 팀 main 에 없는 도우미 3개 (총괄 테스트 저장소 477dda3, 총괄 담당 작성)
-def parse_cell_key(cid):                       # '{col}_{row}' → (col, row)
-    a, _, b = cid.partition("_")
-    return int(a), int(b)
-
-def cells_near(map_cells, lat, lon, radius_m): # (lat, lon) 에서 radius_m 상자 안 칸
-    dlat = radius_m / _M_PER_DEG_LAT
-    dlon = radius_m / (_M_PER_DEG_LAT * max(0.01, math.cos(math.radians(lat))))
-    return [c for c in map_cells if abs(c["lat"] - lat) <= dlat and abs(c["lon"] - lon) <= dlon]
-
-def with_truth_state(cells, snapshot):         # 칸에 실제 불 상태를 붙임 (모의 센서 안에서만)
-    truth = {c["cell_id"]: c.get("fire_state") for c in snapshot.fire_cells + snapshot.risk_cells}
-    return [{**c, "fire_state": truth.get(c["cell_id"]) or "UNBURNED"} for c in cells]
-```
-
-```python
-# orchestrator/observation.py — 새 함수 (총괄 테스트 저장소 8ad7e62 그대로, 핵심만)
-def simulate_ground_los(*, snapshot, map_cells, task, attempt_id, resource_id, position):
-    prof = config.UGV_VIEW
-    lat0, lon0 = position["lat"], position["lon"]
-    near = [c for c in cells_near(map_cells, lat0, lon0, prof["max_m"])          # 반경 2 km 안 칸
-            if math.hypot(*_to_local_m(lat0, lon0, c["lat"], c["lon"])) <= prof["max_m"]]
-    near = with_truth_state(near, snapshot)                                      # 칸마다 실제 불 상태
-    by_cr = {parse_cell_key(c["cell_id"]): c for c in near}
-    here = min(near, key=lambda c: math.hypot(*_to_local_m(lat0, lon0, c["lat"], c["lon"])))
-    c0, r0 = parse_cell_key(here["cell_id"])
-    eye = here["ground_amsl_m"] + prof["mast_m"]                                 # 차가 선 칸 지면 + 3 m
-
-    def visible(c):
-        if math.hypot(*_to_local_m(lat0, lon0, c["lat"], c["lon"])) <= prof["min_m"]:
-            return True                                                          # 600 m 안은 항상 보임
-        tgt, (cc, rr) = c["ground_amsl_m"], parse_cell_key(c["cell_id"])
-        steps = max(abs(cc - c0), abs(rr - r0)) * 2                              # 칸 반 개 간격으로
-        for i in range(1, steps):
-            t = i / steps
-            m = by_cr.get((round(c0 + t * (cc - c0)), round(r0 + t * (rr - r0))))
-            if m and m is not c and m["ground_amsl_m"] > eye + t * (tgt - eye):
-                return False                                                     # 사이 지면이 시선보다 높다 → 가림
-        return True
-
-    seen = [c for c in near if visible(c)]
-    detections = [{"cell_id": c["cell_id"], "fire_state": c["fire_state"]} for c in seen
-                  if c["fire_state"] in ("BURNING", "BURNED")]
-    return {..., "result": "DETECTED" if detections else "NOT_DETECTED",
-            "covered_cells": [c["cell_id"] for c in seen], "detections": detections,
-            "target_covered": task.nav_target.cell_id in {c["cell_id"] for c in seen},
-            "footprint": {"shape": "RADIUS_TERRAIN_LOS", "visible_cells": len(seen),
-                          "hidden_cells": len(near) - len(seen)}}
-```
-전체 코드(예외 처리·기록 필드 포함 약 70줄)는 `8ad7e62`의 `orchestrator/observation.py`에 있습니다.
-</details>
-
-<details><summary>고치지 않아도 되는 것 — 관측 계획 전용 기능 (총괄 테스트 저장소에만 있음)</summary>
-
-통합 시연 환경에서 본 **출동 전 확인(PROBE)·불 따라가기·불 머리 감시**는 [총괄 테스트 저장소](https://github.com/sujinpark50-gif/ADAIR)(`feat/orchestrator-final`)의 관측 계획(LLM이 구역과 자원을 고르는 순환, 그 저장소 커밋 `477dda3` 10/07 18:08에서 시작) 안에서만 돕니다. 아래 커밋은 모두 **총괄 테스트 저장소의 커밋**이며 팀 저장소에는 없습니다. 팀 main 총괄은 관측 계획이 없어도 **배정할 때 UGV에 평가를 묻고 거절을 받아 처리**(`LOCAL_RESPONSE`)하므로, ①·②만으로 UGV 출동·도착·거절·지형 시선 관측을 시험할 수 있습니다. 관측 계획까지 똑같이 하려면 총괄 테스트 저장소의 `477dda3`부터 `221a497`까지 전부가 필요합니다 (총괄 코드 약 4,800줄, 총괄 담당이 팀 main에 합칠 부분).
-
-| UGV 관련 관측 계획 기능 (총괄 담당 작성) | 총괄 테스트 저장소 커밋 (시점) |
-|---|---|
-| 불 따라가기 (다 탄 곳만 보면 진행 방향으로 다시 보냄) | `0364c60` (10/07 20:49), 맴돌기 수정 `d082fc7` (10/07 20:59) |
-| 목표 칸이 시야 밖이어도 끝냄 (UGV 무한 재출동 수정) | `02c10ee` (10/08 13:19) |
-| 출동 전 확인(PROBE), UGV 불 머리 감시 | `40cc07c` (10/08 19:53) |
-</details>
-
-<details><summary>시험 실행과 결과 확인</summary>
-
-```bash
-.venv/bin/python -m pytest tests/test_ugv_*.py orchestrator/tests environment/tests -q
-bash ugv/tools/run_twin_ugv.sh final                     # 3D 트윈 http://127.0.0.1:8080/inje3d, 거절 요청 1건 자동
-```
-
-```python
-# 결과 숫자: python twin_summary.py ugv/.state/history/<실행>.jsonl
-import json, sys, collections
-ev = [json.loads(l) for l in open(sys.argv[1])]
-c = collections.Counter(e["type"] for e in ev)
-verdict = collections.Counter(e["data"].get("verdict") for e in ev if e["type"] == "UGV_EVALUATED")
-print("출발", c["UGV_TASK_STARTED"], "도착", c["UGV_ARRIVED"], "평가", dict(verdict))
-```
-- 열화상: `logs/twin/<실행>/orchestrator.sqlite3`의 `observations` 표, `sensor_type = THERMAL`
-- 기대값: 출발·도착 수가 같고, 평가는 거절 요청 건만 `REJECT TARGET_UNREACHABLE`·나머지는 `ACCEPT` (5-3의 6·7번).
-- 지금까지 돌려 본 것: 팀 main + 이 UGV 코드(①·② 없이)로 `final` — 거절·보류는 통합 시연 환경과 같았지만, 불이 첫 칸에서 꺼져 UGV 정찰 출동은 0회(소방차 1회)였습니다. ①이 필요한 이유가 실측으로 확인된 셈입니다 (근거 `2026-10-11_final`의 `history_final_main_…`)
-- ①·②까지 적용한 팀 main은 아직 돌려 보지 않았습니다. ①은 UGV가 불리는 횟수, ②는 열화상 관측 범위에만 영향을 줍니다
-</details>
-
 ---
 
 ## 9. 가정과 한계
@@ -657,7 +490,29 @@ print("출발", c["UGV_TASK_STARTED"], "도착", c["UGV_ARRIVED"], "평가", dic
 | 도로 상황 | 기본 시연에서는 통제·혼잡을 꺼서 모든 도로가 뚫려 있음 |
 | 배터리 | 표시용 (sim 1 km당 1 % 감소). 0 %가 되어도 거절·정지하지 않음 |
 | 이상 판정 | 60초 동안 10 m 미만 = 멈춤, 100 m 초과 = 경로 이탈 |
-| Gazebo | 차량 모델 r1_rover 최고 2 m/s(약 7 km/h). 통합할 때는 시속 60 km 모델로 바꿔 시연 배속에 맞춤 (8-3 9번) |
+| Gazebo | 차량 모델 r1_rover 최고 2 m/s(약 7 km/h). 시연 배속에 맞추려면 시속 60 km 모델이 필요함 |
 | 통합 시험 | 총괄 테스트 저장소 버전의 총괄과 함께 돌린 결과 (5-1). 거절은 팀 main 총괄에서도 확인 (5-3 ⑦) |
 
-**발표 이후 과제:** 배터리로 왕복 가능 여부 판단 · 수락 거리와 관측 범위 맞추기 · 환경 모듈과 연동한 소화(방수) 기능 구현 · Gazebo 차량 모델을 시속 60 km로 바꿔 시연 배속에 통합
+**발표 이후 과제:** 배터리로 왕복 가능 여부 판단 · 환경 모듈과 연동한 소화(방수) 기능 구현 · Gazebo 차량 모델을 시속 60 km로 바꿔 시연 배속에 통합
+
+---
+
+## 10. 발표 범위
+
+관측 영역은 팀 main에 잘못 올라가 있던 UGV 열화상 관측 범위(차 주변 450 m 정사각형, 지형 무시)를 반경 600 m 상시 + 2 km 지형 시선으로 고쳤습니다 (`ASSUMED_GROUND_LOS_V1`, UGV 수락 거리 2 km와 같음). 화면에서 눈에 띄는 부분은 아니고, 드론과 겹치는 부분도 있으며 Gazebo 시연도 따로 있으므로, 발표 시간 관계상 UGV는 다음 두 가지면 충분하다고 봅니다.
+
+1. **알고리즘** — 수행 가능성 평가와 Dijkstra 경로 ([3장](#3-어떻게-판단하나))
+2. **시연·영상 한 편** — 도로 상황판에서 특정 지점으로 출동을 요청하면 오케스트레이터가 알맞은 UGV를 골라 보내는 장면
+
+![도로 상황판에서 인제119 A 지점에 UGV 출동 요청 → 오케스트레이터가 A-ugv1을 골라 배정 → 경로 확정·주행·도착](../ugv/media/ugv_roadview_orch_dispatch.gif)
+
+영상: [영상 10](https://drive.google.com/file/d/1SY68U-cmPt6lgy0qlqBAr5AMy7e0-hpU/view) · 실행 결과 근거: [`2026-10-12_thermal`](../ugv/evidence/2026-10-12_thermal/)
+
+시연해야 하면 이렇게 합니다.
+
+```bash
+bash ugv/tools/run_twin_ugv.sh thermal
+```
+- 불이 확인되면 남전1리 마을회관·인제휴게소 방어 출동이 UGV로 나가고, 시뮬레이션 20분부터 불 칸으로 UGV 열화상 정찰이 나갑니다. 어느 UGV를 보낼지·갈 수 있는지·관측 판정은 오케스트레이터와 UGV가 정합니다.
+- 도로 상황판(`http://127.0.0.1:8100/view`)에서 지점을 눌러 "UGV 출동 요청"을 보내도 오케스트레이터가 차를 골라 보냅니다 (위 영상).
+- 끄기: `python run_servers.py stop`
