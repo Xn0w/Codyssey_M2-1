@@ -1,19 +1,23 @@
-"""Dynamic 2D Wildfire Simulation Integrated GIS Visualization Tool.
+"""동적 2D 산불 시뮬레이션 GIS 시각화 도구. 기본 화재 확산 전용 (전체 지역).
 
-Standalone local tool for animating wildfire spread, terrain relief, vegetation,
-road networks, 119 safety bases, and risk evolution on a 2D spatial map.
-Exclusively for local simulation visualization, analysis, and testing.
+2D 공간 지도 상에서 산불 확산, 지형 기복(terrain relief), 식생(vegetation),
+도로망(road networks), 119 안전센터를 애니메이션으로 보여주는 로컬 도구.
+로컬 환경에서의 시뮬레이션 시각화, 분석 및 테스트 전용.
 
-AUTHORITATIVE REFERENCES & EXISTING ARCHITECTURE:
-- `mission/environmental-modeling.txt`
-- `specs/environment_acceptance_criteria.md`
-- `AGENTS.md` & `CLAUDE.md`
+사용법:
+1. 대화형 GUI 창 실행 (화면에 그래프/애니메이션 표시):
 
-Reuses existing environment modules without modification:
-- EnvironmentGrid from src.grid
-- WildfireCAEngine from src.fire_model
-- EnvironmentModelAPI from src.api
-- Cell and FireState from src.cell
+    cd environment
+    python visualize_fire.py
+
+2. 애니메이션을 GIF 파일로 저장:
+
+    python visualize_fire.py --save images/fire_spread.gif
+
+3. 사용자 정의 시뮬레이션 파라미터 적용:
+
+    python visualize_fire.py --x 14 --y 101 --steps 30 --fps 5 --seed 42
+
 """
 
 from __future__ import annotations
