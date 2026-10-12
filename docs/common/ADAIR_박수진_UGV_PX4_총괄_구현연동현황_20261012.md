@@ -264,7 +264,7 @@ LLM 관측 계획을 켜는 기존 옵션은 `--llm-planner`다. 최종 D용 프
 
 위 항목은 검증된 기능의 누락 정보가 아니라 **최종 시연의 미확정 사항**이다. 별도 확인 없이 완료로 바꾸지 않는다.
 
-![비행하는 UAV](https://raw.githubusercontent.com/Xn0w/Codyssey_M2-1/main/docs/common/image/05_50_44.png)
+![비행하는 UAV](https://github.com/Xn0w/Codyssey_M2-1/blob/main/docs/common/image/05_50_44.png?raw=true)
 
-![도로 위 UGV](https://raw.githubusercontent.com/Xn0w/Codyssey_M2-1/main/docs/common/image/스크린샷%202026-10-12%20162612.png)
+![도로 위 UGV](https://github.com/Xn0w/Codyssey_M2-1/blob/main/docs/common/image/스크린샷%202026-10-12%20162612.png?raw=true)
 
