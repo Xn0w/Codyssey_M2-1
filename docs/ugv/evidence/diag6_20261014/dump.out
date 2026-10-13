@@ -1,0 +1,3 @@
+ok {'MAV_SYS_ID': 4, 'NAV_ACC_RAD': 3.0, 'RA_ACC_RAD_MAX': 3.0} missions [(42720, 68.45, None), (22902, 77.636, 83.366)] cruise [[76.334, 13.88], [77.636, 8.12], [78.75, 6.06], [87.736, -1.0]] sp0 83.358 disarm 87.734
+fin 83.366 disarm 87.734 lpos move after fin+1 0.371 v max {'max': 0.358} ∫v 0.838 resets [3.0] [3.0] gps True est_states True est_status True
+fin 83.366 inst [0] truth move 0.0 ekf move 0.3715 truth vmax 0.0 truth decel -4.01 gnss fields ['timestamp_sample', 'time_last_fuse', 'device_id', 'observation[0]', 'observation[1]', 'observation[2]', 'observation_variance[0]', 'observation_variance[1]', 'observation_variance[2]', 'innovation[0]', 'innovation[1]', 'innovation[2]']
