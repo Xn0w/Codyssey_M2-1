@@ -1,0 +1,369 @@
+{
+ "label": "d8_flat500",
+ "gzrec": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/diag7/gzrec_d8_flat500_s0547_a",
+ "sha1": {
+  "imu.csv": "778f82392bf110e35000bffa299cfcf5da0be877",
+  "pose.csv": "35cee7fed6fb9c018bfbd671f5365e36f31c3314",
+  "joint.csv": "cebc5d751cec964d275e476f7669a1c63099d9b8",
+  "cmd.csv": "c706beffc24e1db30e3eb0cffdc79fcb2bd82603"
+ },
+ "fin_s": 90.284,
+ "imu_step_s": 0.002,
+ "joint_names": [
+  "wheel_front_left_joint",
+  "wheel_front_right_joint",
+  "wheel_rear_left_joint",
+  "wheel_rear_right_joint"
+ ],
+ "joint_step_med_s": 0.002,
+ "heading_unit_ENU": [
+  -0.7144,
+  0.6997
+ ],
+ "windows": {
+  "cruise": {
+   "lo": 85.284,
+   "hi": 87.284,
+   "truth_dv": -2.3557,
+   "truth_v_lo_hi": [
+    8.039,
+    5.684
+   ],
+   "imu_dv": -2.413,
+   "E_imu": -0.0573,
+   "imu_n": 1001,
+   "joint_dv_allsteps": -2.3958,
+   "E_joint_allsteps": -0.0401,
+   "joint_n": 1001,
+   "joint_speed_lo_hi": [
+    8.076,
+    5.68
+   ],
+   "E_pred_from_joint_even_steps_x4ms": 0.1901,
+   "E_pred_from_joint_odd_steps_x4ms": -0.2703,
+   "imu_step_parity_counts": {
+    "0": 501,
+    "1": 500
+   },
+   "imu_vs_joint_step_models": {
+    "same_step": {
+     "rms": 3.295,
+     "corr": 0.802,
+     "mean_imu_minus_model": -0.009
+    },
+    "prev_step": {
+     "rms": 4.75,
+     "corr": 0.491,
+     "mean_imu_minus_model": -0.009
+    },
+    "next_step": {
+     "rms": 6.574,
+     "corr": -0.057,
+     "mean_imu_minus_model": -0.009
+    },
+    "avg_same_prev": {
+     "rms": 1.283,
+     "corr": 0.938,
+     "mean_imu_minus_model": -0.009
+    },
+    "avg_same_next": {
+     "rms": 3.461,
+     "corr": 0.54,
+     "mean_imu_minus_model": -0.009
+    },
+    "n": 1001
+   },
+   "E_imu_virtual250_even": 0.0979,
+   "E_imu_virtual250_odd": -0.2126,
+   "slot20ms_joint_acc_mean": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -5.41,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -6.56
+   ],
+   "slot20ms_imu_acc_mean": [
+    -2.62,
+    -0.25,
+    -0.11,
+    -0.11,
+    -2.54,
+    -2.6,
+    -0.26,
+    -0.11,
+    -0.11,
+    -3.34
+   ],
+   "slot20ms_imu_n": [
+    100,
+    100,
+    101,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100
+   ]
+  },
+  "W1": {
+   "lo": 87.784,
+   "hi": 90.234,
+   "truth_dv": -3.0274,
+   "truth_v_lo_hi": [
+    4.827,
+    1.799
+   ],
+   "imu_dv": -3.026,
+   "E_imu": 0.0014,
+   "imu_n": 1226,
+   "joint_dv_allsteps": -3.0256,
+   "E_joint_allsteps": 0.0018,
+   "joint_n": 1226,
+   "joint_speed_lo_hi": [
+    4.84,
+    1.815
+   ],
+   "E_pred_from_joint_even_steps_x4ms": 0.8177,
+   "E_pred_from_joint_odd_steps_x4ms": -0.8141,
+   "imu_step_parity_counts": {
+    "0": 613,
+    "1": 613
+   },
+   "imu_vs_joint_step_models": {
+    "same_step": {
+     "rms": 2.734,
+     "corr": 0.874,
+     "mean_imu_minus_model": -0.0
+    },
+    "prev_step": {
+     "rms": 5.165,
+     "corr": 0.327,
+     "mean_imu_minus_model": -0.0
+    },
+    "next_step": {
+     "rms": 6.417,
+     "corr": -0.087,
+     "mean_imu_minus_model": -0.0
+    },
+    "avg_same_prev": {
+     "rms": 1.743,
+     "corr": 0.875,
+     "mean_imu_minus_model": -0.0
+    },
+    "avg_same_next": {
+     "rms": 3.208,
+     "corr": 0.574,
+     "mean_imu_minus_model": -0.0
+    },
+    "n": 1226
+   },
+   "E_imu_virtual250_even": 0.3596,
+   "E_imu_virtual250_odd": -0.3568,
+   "slot20ms_joint_acc_mean": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -4.49,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -7.87
+   ],
+   "slot20ms_imu_acc_mean": [
+    -1.92,
+    -0.14,
+    -0.08,
+    -0.08,
+    -3.29,
+    -1.32,
+    -0.1,
+    -0.05,
+    -0.05,
+    -5.33
+   ],
+   "slot20ms_imu_n": [
+    122,
+    122,
+    123,
+    123,
+    123,
+    123,
+    123,
+    123,
+    122,
+    122
+   ]
+  },
+  "static": {
+   "lo": 91.084,
+   "hi": 92.784,
+   "truth_dv": 0.0,
+   "truth_v_lo_hi": [
+    0.0,
+    0.0
+   ],
+   "imu_dv": -0.0018,
+   "E_imu": -0.0018,
+   "imu_n": 851,
+   "joint_dv_allsteps": 0.0,
+   "E_joint_allsteps": 0.0,
+   "joint_n": 851,
+   "joint_speed_lo_hi": [
+    0.0,
+    0.0
+   ],
+   "E_pred_from_joint_even_steps_x4ms": 0.0,
+   "E_pred_from_joint_odd_steps_x4ms": 0.0,
+   "imu_step_parity_counts": {
+    "0": 426,
+    "1": 425
+   },
+   "imu_vs_joint_step_models": {
+    "same_step": {
+     "rms": 0.007,
+     "corr": NaN,
+     "mean_imu_minus_model": -0.001
+    },
+    "prev_step": {
+     "rms": 0.007,
+     "corr": NaN,
+     "mean_imu_minus_model": -0.001
+    },
+    "next_step": {
+     "rms": 0.007,
+     "corr": NaN,
+     "mean_imu_minus_model": -0.001
+    },
+    "avg_same_prev": {
+     "rms": 0.007,
+     "corr": NaN,
+     "mean_imu_minus_model": -0.001
+    },
+    "avg_same_next": {
+     "rms": 0.007,
+     "corr": NaN,
+     "mean_imu_minus_model": -0.001
+    },
+    "n": 851
+   },
+   "E_imu_virtual250_even": -0.0019,
+   "E_imu_virtual250_odd": -0.0018,
+   "slot20ms_joint_acc_mean": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "slot20ms_imu_acc_mean": [
+    -0.0,
+    -0.0,
+    -0.0,
+    -0.0,
+    -0.0,
+    -0.0,
+    -0.0,
+    -0.0,
+    -0.0,
+    -0.0
+   ],
+   "slot20ms_imu_n": [
+    85,
+    85,
+    86,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85,
+    85
+   ]
+  }
+ },
+ "impulses_W1": {
+  "threshold_dv_mps": 0.0,
+  "n": 245,
+  "gap_med_ms": 10.0,
+  "gap_hist_ms": {
+   "10": 244
+  },
+  "slot_hist": {
+   "4": 123,
+   "9": 122
+  },
+  "mean_dv_at_impulse": -0.0123,
+  "first_10": [
+   [
+    87.788,
+    -0.0037
+   ],
+   [
+    87.798,
+    -0.015
+   ],
+   [
+    87.808,
+    -0.04
+   ],
+   [
+    87.818,
+    0.025
+   ],
+   [
+    87.828,
+    -0.04
+   ],
+   [
+    87.838,
+    -0.04
+   ],
+   [
+    87.848,
+    0.025
+   ],
+   [
+    87.858,
+    -0.04
+   ],
+   [
+    87.868,
+    0.0005
+   ],
+   [
+    87.878,
+    -0.0194
+   ]
+  ]
+ },
+ "cmd_csv": {
+  "n": 4401,
+  "wall_dt_med_ms": 49.9,
+  "wall_dt_p10_p90_ms": [
+   10.0,
+   50.1
+  ],
+  "stamp_nonzero": 0,
+  "v0_changes_frac": 0.356
+ },
+ "joint_W1": {
+  "frac_steps_with_change_gt_1e-4": 0.2,
+  "frac_steps_with_change_gt_1e-2": 0.143,
+  "dv_step_median": 0.0,
+  "dv_step_p95": 0.0298
+ }
+}

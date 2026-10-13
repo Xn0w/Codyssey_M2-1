@@ -1,0 +1,52 @@
+{
+ "ulg": "/home/geumsoni/.adair-ugv/px4-3/log/2026-10-13/20_44_24.ulg",
+ "ulg_sha1": "cf4d0a183dfd756061415249f0289feff15ec012",
+ "gzrec": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/diag7/gzrec_d7_flat_s0547_b",
+ "fin": 89.292,
+ "gz_step_s": 0.003999999999990678,
+ "vehicle_imu_status_accel_rate_hz": [
+  250.0
+ ],
+ "vehicle_imu_dv_dt_us_unique": [
+  4000.0
+ ],
+ "logger_sensor_accel_dt_med_s": 0.0039999999999995595,
+ "logger_sensor_accel_parity_counts": {
+  "0": 10970,
+  "1": 10969
+ },
+ "same_basis_W1": {
+  "t_lo_eff": 86.792,
+  "t_hi_eff": 89.24,
+  "truth_dv": -3.3972,
+  "E_px4_combined_realdt": -1.1443,
+  "n_comb": 612,
+  "sum_dt_comb": 2.448,
+  "E_gz_all_2ms": -1.1566,
+  "n_gz": 613,
+  "E_gz_pair_mean_x_combdt": -1.1555,
+  "pairs_with_2": 0,
+  "pairs_other": 612,
+  "E_logger_sensor_accel_x4ms": -5.7105,
+  "n_sa": 613,
+  "px4_combined_vs_gz_pair_mean_x: rms/max": [
+   2.91035,
+   5.054
+  ],
+  "px4_combined_vs_gz_last_sample_x: rms/max": [
+   2.91035,
+   5.054
+  ]
+ },
+ "original_definitions": {
+  "E_evidence_v2_recomputed": -1.1566,
+  "n": 613,
+  "E_imu_cause_like(px4_comb, gz_truth_central)": -1.1451,
+  "boundary_note": "imu_cause 는 PX4 groundtruth vx,vy(브리지 후방 차분 18 ms) 를 truth 로, 창 끝 표본 포함 규칙이 다름; 여기서는 동일 truth(gz pose 중앙 차분) 로 재계산"
+ },
+ "truth_source_diff": {
+  "edge_lo": 0.0397,
+  "edge_hi": 0.0411,
+  "note": "PX4 groundtruth(후방 차분, 수신 시각) 속도 크기 − gz pose 중앙 차분 속도"
+ }
+}

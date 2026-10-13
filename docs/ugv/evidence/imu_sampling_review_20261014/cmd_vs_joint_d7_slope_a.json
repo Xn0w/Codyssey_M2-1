@@ -1,0 +1,68 @@
+{
+ "actuator_motors": {
+  "n_W1": 245,
+  "dt_med_ms": 10.0,
+  "ts_mod_4000us": {
+   "0": 122,
+   "2000": 123
+  },
+  "control0_first12": [
+   0.2357,
+   0.2369,
+   0.2371,
+   0.2352,
+   0.2333,
+   0.2337,
+   0.2338,
+   0.2319,
+   0.23,
+   0.2312,
+   0.2314,
+   0.2295
+  ],
+  "dcontrol0_first12": [
+   0.0012,
+   0.0003,
+   -0.0019,
+   -0.0019,
+   0.0004,
+   0.0001,
+   -0.0019,
+   -0.0019,
+   0.0012,
+   0.0002,
+   -0.0019,
+   -0.0019
+  ],
+  "dcontrol0_sign_alternation_frac": 0.494,
+  "dcontrol0_mean_pos": 0.0008,
+  "dcontrol0_mean_neg": -0.0016
+ },
+ "rover_speed_setpoint_dt_med_ms": 10.0,
+ "joint_impulses": {
+  "n": 265,
+  "gap_ms_hist": {
+   "10": 264
+  },
+  "dv_first12_mps": [
+   0.0022,
+   -0.04,
+   -0.04,
+   0.0227,
+   0.002,
+   -0.04,
+   -0.04,
+   0.025,
+   0.0025,
+   -0.04,
+   -0.04,
+   0.025
+  ],
+  "dv_sign_alternation_frac": 0.489
+ },
+ "latency_actuator_msg_to_next_joint_impulse_ms_hist": {
+  "2.0": 245
+ },
+ "corr_dcontrol_vs_joint_dv": 0.004,
+ "ratio_joint_dv_per_dcontrol": 4.087
+}
