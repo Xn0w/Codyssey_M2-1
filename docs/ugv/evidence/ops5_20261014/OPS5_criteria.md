@@ -13,3 +13,8 @@
 
 ## 판정기 확인 (물리 없음)
 훅 1 자료에 운영 판정기 적용: f7 6 회 전부 0i_ops_env False → FAIL, e4f 3 회 1_evidence·0i False → FAIL (설정 불일치 검출).
+
+## 08:1x 갱신 (Codex 0806, 도착 회차 실행 전)
+- o5_on_s3113_downabort_1: 원본 판정 FAIL 보존 (③c 관측 연속 0.918 s; b→disarm 0.947 s). 검토 결론 병기: **운영 조합 자체 정지 1초 증거 UNCONFIRMED**. 운영 S5 PASS 아님. 기존 ULog/CSV 공통 시계 재분석 (물리 재시험 없음) 으로 '차단 전 연속 저속 하한 ≥ 1.0 s' 를 보수적으로 입증할 때만 닫음.
+- 도착 회차 o5a_acc3_s1096_a 는 **독립 확인**으로 단독 실행 (chain_ops5b.sh). 판정기 e4_judge_ops.py 의 7c 를 사전 지시대로 구현: 관측 연속 ≥ 1.0 s → True, disarm 전에 다시 ≥ 0.2 → False, disarm 직전 마지막 표본까지 < 0.2 인데 park 1.0 s 로 창 < 1.0 s → **None (UNCONFIRMED, 증거 절단)**. 확인: e4f 3 회 7c True 유지, 단위 사례 (full True / censored None / broke False / b 없음 False).
+- 실제 지형 선별 주행 (chain_screen1) 은 S5 운영 완료 전 기동하지 않음.

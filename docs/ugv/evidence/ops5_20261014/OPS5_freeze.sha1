@@ -1,11 +1,12 @@
-849866f655d191e90081648a697f63f2c80c3337 *OPS5_criteria.md
+c88b710c2a6ea87d7106c8538e6e040128d852e6 *OPS5_criteria.md
 30ff122578af4143db40b1b2c15abeb42eb90388 *final_judge_ops.py
-97a4d2678129ff1869f0c2a413611e72e20659c9 *e4_judge_ops.py
+ded5299e24fad29da1bc54fdbbb244478e599dd8 *e4_judge_ops.py
 e68f1f0d33c35e36642fd62e8ecb3c9a55435d8b *imu_rate_check.py
 264dedfba7371a10cec0475c17ea017fa76ca09a *slope_ulog_dump.py
 5c58f872684ac5f2d8643347a53a472b12a9e0a3 *e4_ulog_dump_v2.py
 efb629285f9ae8e6511eea6ebb30f9ac923a5a34 *logger_topics.txt
 ddfbc8612e088e11f83a73b62028697888b768ff *../chain_ops5.sh
+87040e7ae1c34efee778e3e7ef8eb6c2aab7f5e5 *../chain_ops5b.sh
 efb6b78904a15ed27488ca71f5568fd18cd740fe *../slope_report.py
 407b5f06248bc68d7a6c5ca754561f353120c40d *../../stage4/run_sc_v10_ops.sh
 830761a0371b1662097fc3e442572c2245effc04 *../../stage4/verify_evidence.py

@@ -66,6 +66,18 @@ def align(gz, ul, t_hint):
     return round(fine[1], 3), round(fine[0], 3)
 
 
+
+def c7_ops(b, run_end, dis, gz_u):
+    """(ops, Codex 0755/0806, 도착 회차 실행 전) 7c: 7b 뒤 < 0.2 연속 ≥ 1.0 s 가 disarm 전에 끝남.
+    True = 관측 연속 ≥ 1.0 s. False = disarm 전에 다시 ≥ 0.2 (실제 끊김) 또는 b 없음.
+    None (UNCONFIRMED, 증거 절단) = disarm 직전 마지막 표본까지 < 0.2 가 이어졌는데 운영 park 1.0 s 로 창이 1.0 s 에 못 미침."""
+    if b is None or run_end is None:
+        return False
+    if run_end - b >= 1.0:
+        return True
+    broke = any(v >= 0.2 for t, v in gz_u if run_end < t < dis)
+    return False if broke else None
+
 def judge(tag):
     kind = next(v for k, v in CASES.items() if k in tag)
     rec = {"tag": tag, "kind": kind[0], "checks": {}}
@@ -180,7 +192,7 @@ def judge(tag):
         else:
             d7 = e7 = None                                         # 자료 없음 = 미확인
         e2 = {"7b": (b is not None) if ok_gap else None,
-              "7c": (b is not None and run_end is not None and run_end - b >= 1.0) if ok_gap else None,
+              "7c": c7_ops(b, run_end, dis, gz_u) if ok_gap else None,
               "7d_server_policy": d7, "7e_no_runaway_no_cutdrive": e7}
     else:
         e2 = {"7b": None, "7c": None, "7d_server_policy": None, "7e_no_runaway_no_cutdrive": None}
