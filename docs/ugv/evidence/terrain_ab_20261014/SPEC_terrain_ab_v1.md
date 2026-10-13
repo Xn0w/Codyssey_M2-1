@@ -58,3 +58,12 @@ B = UGV·소방차 공통 핵심, F = 소방차만 (임시), n = 이웃, . = 미
 3. 출발 높이를 해당 지면에서 재계산 (거점 A·B 스폰).
 4. 경로가 지나는 교량·터널 추정(FACIL_KIND 1·2)·자동차전용 제외 도로 0 확인 (부분집합 계획이라 0 이어야 함 — 확인 기록 필요).
 5. 대표 짧은 구간 실측 (접지·이음매·회전/경사·메모리·RTF·기록 갱신) 뒤에만 장거리 진입. 장거리 진입 게이트 = E4·경사/안전·S5 조합 고정 통과 (Codex 4.7).
+
+## v2 보완 (2026-10-14 03:1x, Codex 0300 6절) — 정적 준비만, Gazebo 미기동
+- 경로 좌표 파일 `route_geom_<경로>.json` 4개 (route_pts·vlim·road_ids·mission_items·arrive_toward·dest) + sha1 (`route_tile_union_v2.json`), 재계산 결정적.
+- 월드 SDF `tiles_v2/ab_route_v1.sdf` + `road_subset_ab_route_v1.json` (도로 506) — `ADAIR_TILES_OUT=tiles_v2` 명시, 타일 재생성 없음, tiles.json sha1 8d702d48 불변. 명령 `gen_cmd.txt`.
+- 검사기 v1 결함 (Codex 지적): roads_excluded 를 값 형식(list/dict)으로만 읽어 제외 집합이 비어 있었다 → v1 의 '제외 도로 0' 은 무효. v2 (`check_ab_world_v2.py`) 는 키를 제외 ID 로 (85 개): **네 경로 모두 제외 도로 0** (Codex 독립 재계산과 일치).
+- v2 연속 포함 (경계 25 m 안쪽): 선분 1 m 보간 0, 차체 모서리(UGV 4.2×1.8, 소방차 8.0×2.5 임시 + 0.5 m) 0, 끝점 앞 60 m 직선(정지·연장 여유) 0 — 4/4 경로.
+- 이음매 (선택 160 타일, 공유 가장자리 275 쌍): 최대 0.0071 m (생성 도구 static_checks 전체 1,182 쌍 최대 0.0084 m 와 일치). 처음 계산한 0.57 m 는 오퍼스 검사기가 반올림된 q_m 으로 복원한 오류 — 생성 도구와 같은 `zmin + v/65535·span` 로 고침.
+- 스폰 높이 `ab_route_v1_spawn.txt` (`spawn_height.py`, 타일 높이장 쌍선형 − world_origin_alt 172.1): 방법 검증 — 기존 s3113·s1096 스폰 z 가 지면 + 0.45 와 일치, 소방차 기존 tz_b33v2 는 + 0.65. A-ugv1 27.574 / A-fire1 27.179 / B-ugv1 120.826 / B-fire1 121.866.
+- 아직 아님: 선택 타일 한정 도로 경사·횡경사 정적 검사(생성 도구 --check 는 616 전체 — 실행 안 함), 대표 짧은 구간 Gazebo 접지·이음매·메모리·RTF, 소방차 프로필 확정 뒤 재계산.

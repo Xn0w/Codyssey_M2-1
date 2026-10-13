@@ -1,0 +1,64 @@
+{
+ "excluded_ids_count": 85,
+ "tiles_json_sha1": "8d702d4875c7092dabadd52d7a0fca2e6dabad94",
+ "subset_sha1": "50e2f7984df7a893c8dbb55ec9008d5e4cc1dab4",
+ "routes": {
+  "A-fire1-B-fire1": {
+   "roads": 76,
+   "roads_missing_from_world_subset": [],
+   "excluded_roads_on_route": [],
+   "segment_samples_outside_25m": 0,
+   "body_corner_samples_outside_25m": 0,
+   "end_tail_60m_outside": 0,
+   "examples": [],
+   "body_assumed": {
+    "half_len": 4.0,
+    "half_wid": 1.25
+   }
+  },
+  "A-ugv1-B-ugv1": {
+   "roads": 87,
+   "roads_missing_from_world_subset": [],
+   "excluded_roads_on_route": [],
+   "segment_samples_outside_25m": 0,
+   "body_corner_samples_outside_25m": 0,
+   "end_tail_60m_outside": 0,
+   "examples": [],
+   "body_assumed": {
+    "half_len": 2.1,
+    "half_wid": 0.9
+   }
+  },
+  "B-fire1-A-fire1": {
+   "roads": 91,
+   "roads_missing_from_world_subset": [],
+   "excluded_roads_on_route": [],
+   "segment_samples_outside_25m": 0,
+   "body_corner_samples_outside_25m": 0,
+   "end_tail_60m_outside": 0,
+   "examples": [],
+   "body_assumed": {
+    "half_len": 4.0,
+    "half_wid": 1.25
+   }
+  },
+  "B-ugv1-A-ugv1": {
+   "roads": 83,
+   "roads_missing_from_world_subset": [],
+   "excluded_roads_on_route": [],
+   "segment_samples_outside_25m": 0,
+   "body_corner_samples_outside_25m": 0,
+   "end_tail_60m_outside": 0,
+   "examples": [],
+   "body_assumed": {
+    "half_len": 2.1,
+    "half_wid": 0.9
+   }
+  }
+ },
+ "seams": {
+  "pairs": 275,
+  "max_step_m": 0.0071,
+  "basis": "공유 가장자리 높이 = zmin + 값/65535 × span (build_terrain_tiles Surface.grid 와 같음)"
+ }
+}
