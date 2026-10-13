@@ -1,0 +1,138 @@
+{
+ "ulg": "/home/geumsoni/.adair-ugv/px4-1/log/2026-10-13/22_58_37.ulg",
+ "groundtruth_rate_hz": 55.6,
+ "pub_minus_sample_ms_median": 0.0,
+ "finished_t": 92.91,
+ "cut_candidates": {
+  "disarm_request": 94.268,
+  "armed_false": 94.276,
+  "actuator_outputs_1_first_change_after_ref-2s": 92.28,
+  "actuator_outputs_2_first_change_after_ref-2s": 92.28
+ },
+ "cut_used": 94.268,
+ "last_ge_0.2_t": 93.288,
+ "first_lt_0.2_after_t": 93.306,
+ "slow_until_cut_lower_bound_s": 0.962,
+ "gt_gap_max_before_cut_s": 0.02,
+ "v_max_between_start_and_cut": 0.1782,
+ "v_max_30s_after_cut": 0.0,
+ "speed_samples_around": [
+  [
+   92.316,
+   2.329
+  ],
+  [
+   92.406,
+   2.268
+  ],
+  [
+   92.496,
+   2.158
+  ],
+  [
+   92.586,
+   2.064
+  ],
+  [
+   92.676,
+   2.011
+  ],
+  [
+   92.766,
+   1.932
+  ],
+  [
+   92.856,
+   1.83
+  ],
+  [
+   92.946,
+   1.604
+  ],
+  [
+   93.036,
+   1.245
+  ],
+  [
+   93.126,
+   0.886
+  ],
+  [
+   93.216,
+   0.536
+  ],
+  [
+   93.306,
+   0.178
+  ],
+  [
+   93.396,
+   0.001
+  ],
+  [
+   93.486,
+   0.0
+  ],
+  [
+   93.576,
+   0.0
+  ],
+  [
+   93.666,
+   0.0
+  ],
+  [
+   93.756,
+   0.0
+  ],
+  [
+   93.846,
+   0.0
+  ],
+  [
+   93.936,
+   0.0
+  ],
+  [
+   94.026,
+   0.0
+  ],
+  [
+   94.116,
+   0.0
+  ],
+  [
+   94.206,
+   0.0
+  ],
+  [
+   94.296,
+   0.0
+  ],
+  [
+   94.386,
+   0.0
+  ],
+  [
+   94.476,
+   0.0
+  ],
+  [
+   94.566,
+   0.0
+  ],
+  [
+   94.656,
+   0.0
+  ],
+  [
+   94.746,
+   0.0
+  ]
+ ],
+ "notes": [
+  "groundtruth 는 PX4 gz 브리지가 Gazebo odometry 를 받아 publish — timestamp_sample 은 브리지 수신 기준 (물리 생성 시각과 같은 sim 시계, 지연은 pub−sample 로만 표시)",
+  "저속 시작 = 마지막 ≥ 0.2 뒤 첫 < 0.2 표본 (보수적: 실제 교차는 더 이를 수 있음)",
+  "차단 경계 = min(disarm 요청, armed 해제); actuator_outputs 변화는 기록"
+ ]
+}
