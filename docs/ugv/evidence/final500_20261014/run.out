@@ -1,0 +1,20 @@
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"f5_on_s3113_downabort_1","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T06:46:03+09:00"}
+f5_on_s3113_downabort_1 run rc=0 rcfile={"tag":"f5_on_s3113_downabort_1","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T06:46:03+09:00"}
+FINAL500_RESULT f5_on_s3113_downabort_1 OUT_OF_RANGE 06:46:06
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"f5_on_s3113_downabort_2","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T06:50:03+09:00"}
+f5_on_s3113_downabort_2 run rc=0 rcfile={"tag":"f5_on_s3113_downabort_2","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T06:50:03+09:00"}
+FINAL500_RESULT f5_on_s3113_downabort_2 OUT_OF_RANGE 06:50:06
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"f5_on_s3113_downabort_3","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T06:54:01+09:00"}
+f5_on_s3113_downabort_3 run rc=0 rcfile={"tag":"f5_on_s3113_downabort_3","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T06:54:01+09:00"}
+FINAL500_RESULT f5_on_s3113_downabort_3 OUT_OF_RANGE 06:54:05
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"f5_on_s3113_downabort_4","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T06:58:02+09:00"}
+f5_on_s3113_downabort_4 run rc=0 rcfile={"tag":"f5_on_s3113_downabort_4","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T06:58:02+09:00"}
+FINAL500_RESULT f5_on_s3113_downabort_4 OUT_OF_RANGE 06:58:06
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"f5_on_s3113_downabort_5","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:02:01+09:00"}
+f5_on_s3113_downabort_5 run rc=0 rcfile={"tag":"f5_on_s3113_downabort_5","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:02:01+09:00"}
+FINAL500_RESULT f5_on_s3113_downabort_5 OUT_OF_RANGE 07:02:05

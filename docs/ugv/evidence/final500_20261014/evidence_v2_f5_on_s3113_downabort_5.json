@@ -1,0 +1,146 @@
+{
+ "ulg": "/home/geumsoni/.adair-ugv/px4-1/log/2026-10-13/21_58_23.ulg",
+ "ulg_sha1": "a3bf83e8abbcf78b9e4ef4732f0bcd0dc7552256",
+ "gzrec": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/diag7/gzrec_f5_on_s3113_downabort_5",
+ "fin_s": 92.57,
+ "gz_imu_step_s": 0.002,
+ "attitude_source": "gz pose/info 모델 자세 (PX4 vehicle_attitude_groundtruth 와 진단 7 에서 값 일치 확인)",
+ "sign": "E = IMU Δv − truth Δv, 음수 = 과대 감속",
+ "bridge": {
+  "gz_range": [
+   70.786,
+   220.812
+  ],
+  "px4_range": [
+   8.498,
+   96.012
+  ],
+  "overlap": {
+   "window": [
+    70.786,
+    96.012
+   ],
+   "gz_samples": 12614,
+   "px4_samples": 6307,
+   "matched": 6307,
+   "max_stamp_err_s": 1.4210854715202004e-14,
+   "max_value_err": 5.4727172855706385e-06,
+   "frac_value_err_lt_1e-4": 1.0
+  },
+  "W1": {
+   "window": [
+    90.07,
+    92.52
+   ],
+   "gz_samples": 1226,
+   "px4_samples": 613,
+   "matched": 613,
+   "max_stamp_err_s": 1.4210854715202004e-14,
+   "max_value_err": 5.384216308357281e-06,
+   "frac_value_err_lt_1e-4": 1.0
+  },
+  "static": {
+   "window": [
+    93.37,
+    95.07
+   ],
+   "gz_samples": 851,
+   "px4_samples": 425,
+   "matched": 425,
+   "max_stamp_err_s": 1.4210854715202004e-14,
+   "max_value_err": 5.4531860342876826e-06,
+   "frac_value_err_lt_1e-4": 1.0
+  },
+  "note": "중첩 밖 표본은 비교 불가 (PX4 로그가 gz 기록보다 늦게 시작·일찍 끝남) — 핵심 구간 대응만 결론에 사용"
+ },
+ "E": {
+  "static": {
+   "dv_imu": -0.0015,
+   "dv_truth": 0.0002,
+   "E": -0.0017,
+   "n": 851
+  },
+  "cruise": {
+   "dv_imu": -2.4297,
+   "dv_truth": -2.4593,
+   "E": 0.0297,
+   "n": 1001
+  },
+  "W1": {
+   "dv_imu": -3.0467,
+   "dv_truth": -3.0299,
+   "E": -0.0168,
+   "n": 1226
+  }
+ },
+ "E250_virtual": {
+  "even": {
+   "static": {
+    "dv_imu": -0.0016,
+    "dv_truth": 0.0002,
+    "E": -0.0019,
+    "n": 425
+   },
+   "cruise": {
+    "dv_imu": -2.5442,
+    "dv_truth": -2.4593,
+    "E": -0.0848,
+    "n": 500
+   },
+   "W1": {
+    "dv_imu": -3.5066,
+    "dv_truth": -3.0299,
+    "E": -0.4767,
+    "n": 613
+   }
+  },
+  "odd": {
+   "static": {
+    "dv_imu": -0.0013,
+    "dv_truth": 0.0002,
+    "E": -0.0015,
+    "n": 426
+   },
+   "cruise": {
+    "dv_imu": -2.3151,
+    "dv_truth": -2.4593,
+    "E": 0.1442,
+    "n": 501
+   },
+   "W1": {
+    "dv_imu": -2.5868,
+    "dv_truth": -3.0299,
+    "E": 0.4431,
+    "n": 613
+   }
+  }
+ },
+ "E250_virtual_note": "같은 물리 궤적에서 2 ms 격자 짝/홀 표본만 골라 4 ms 로 적분한 측정 반사실 — 250 Hz 폐루프 운행 결과 아님",
+ "phase20ms_W1": {
+  "slots": 10,
+  "mean_fwd_acc": [
+   -4.708,
+   -2.48,
+   -0.119,
+   -0.015,
+   -0.042,
+   -2.759,
+   -2.31,
+   -0.067,
+   0.05,
+   0.042
+  ],
+  "dv_contrib": [
+   -1.1582,
+   -0.6052,
+   -0.0291,
+   -0.0035,
+   -0.0103,
+   -0.6786,
+   -0.5682,
+   -0.0165,
+   0.0124,
+   0.0104
+  ]
+ }
+}
