@@ -1,0 +1,34 @@
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+2026-10-14T01:56:42+09:00 체인 중단 — Codex 0155 4.2: 합본 899bb56 전체 단위시험 선행. 진행 중 s4r_off_s3113_downabort_a 는 끝까지 (run_sc_v7 단독)
+{"tag":"s4r_off_s3113_downabort_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T01:59:06+09:00"}
+s4r_off_s3113_downabort_a run rc=0 (체인 중단 뒤 단독 완료) rcfile={"tag":"s4r_off_s3113_downabort_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T01:59:06+09:00"}
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"s4r_off_s0547_downabort_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:15:18+09:00"}
+s4r_off_s0547_downabort_a run rc=0 rcfile={"tag":"s4r_off_s0547_downabort_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:15:18+09:00"} verify=EVIDENCE_OK
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"s4r_on_s0547_downabort_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:18:25+09:00"}
+s4r_on_s0547_downabort_a run rc=0 rcfile={"tag":"s4r_on_s0547_downabort_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:18:25+09:00"} verify=EVIDENCE_OK
+SLOPE4B_FIRST UNCONFIRMED Wed Oct 14 02:18:27     2026
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"s4r_on_s0547_downabort_a2","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:22:34+09:00"}
+s4r_on_s0547_downabort_a2 run rc=0 rcfile={"tag":"s4r_on_s0547_downabort_a2","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:22:34+09:00"} verify=EVIDENCE_OK
+SLOPE4C_FIRST UNCONFIRMED Wed Oct 14 02:22:36     2026
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"s4r_on_s0547_downabort_a3","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:30:05+09:00"}
+s4r_on_s0547_downabort_a3 run rc=0 rcfile={"tag":"s4r_on_s0547_downabort_a3","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:30:05+09:00"} verify=EVIDENCE_OK
+SLOPE4D_FIRST PASS Wed Oct 14 02:30:06     2026
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"s4r_on_s0547_downabort_b","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:33:53+09:00"}
+s4r_on_s0547_downabort_b run rc=0 rcfile={"tag":"s4r_on_s0547_downabort_b","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:33:53+09:00"} verify=EVIDENCE_OK
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"s4r_on_s0547_downabort_c","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:37:37+09:00"}
+s4r_on_s0547_downabort_c run rc=0 rcfile={"tag":"s4r_on_s0547_downabort_c","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:37:37+09:00"} verify=EVIDENCE_OK
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"s4r_on_s3113_downabort_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:43:24+09:00"}
+s4r_on_s3113_downabort_a run rc=0 rcfile={"tag":"s4r_on_s3113_downabort_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:43:24+09:00"} verify=EVIDENCE_OK
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"s4r_on_s3113_downabort_b","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:49:11+09:00"}
+s4r_on_s3113_downabort_b run rc=0 rcfile={"tag":"s4r_on_s3113_downabort_b","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:49:11+09:00"} verify=EVIDENCE_OK
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"s4r_on_s3113_downabort_c","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:54:57+09:00"}
+s4r_on_s3113_downabort_c run rc=0 rcfile={"tag":"s4r_on_s3113_downabort_c","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T02:54:57+09:00"} verify=EVIDENCE_OK

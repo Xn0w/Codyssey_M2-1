@@ -1,0 +1,1 @@
+ADAIR_TILES_OUT=C:/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2 python -m ugv.tools.build_terrain_tiles --world ab_route_v1 --tiles <160>
