@@ -1,0 +1,1 @@
+tb1_segB_ugv_a FAIL {'speed_limit_applied': True, 'ground_contact': False, 'seam_crossed': True} {"env_UGV_MAX_SPEED_KMH": "20", "ready_profile_max_speed_kmh": 20.0, "gz_speed_max_mps": 5.613, "first_items_speed_max": null}

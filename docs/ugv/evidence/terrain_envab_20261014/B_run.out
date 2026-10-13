@@ -1,0 +1,4 @@
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"tb1_segB_ugv_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T08:29:14+09:00"}
+tb1_segB_ugv_a run rc=0 rcfile={"tag":"tb1_segB_ugv_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T08:29:14+09:00"}
+ENVAB_RESULT tb1_segB_ugv_a judge=PASS extra=FAIL rc=0 08:29:18
