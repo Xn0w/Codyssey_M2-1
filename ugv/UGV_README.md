@@ -445,7 +445,6 @@ python run_servers.py stop                  # 끄기
 |`main`|팀 main 총괄 동작 그대로. UGV 열화상·지상 자동 정찰을 꺼서(`ORCH_UGV_THERMAL=0 ORCH_AUTO_RECON_GROUND=0`) UGV는 출동하지 않음|
 |`dispatch`|신고 때 총괄이 UGV도 출동시킴 (10/9 팀 합의 기본값). 통합 시험 대부분이 이 구성|
 |`thermal`|기존 마을회관 방어 출동(`tools/twin_ground_dispatch.py`, 불 확인 뒤)을 소방차 대신 UGV로 보냄(`TWIN_DISPATCH_ARGS="--types UGV --site NAMJEON1_HALL,INJE_REST_AREA"`, 남전1리 마을회관·인제휴게소) + 운용자 역할 도구(`tools/twin_thermal_request.py --auto`)가 시뮬레이션 20분부터 30분마다 지금 불타는 칸(도로 1.9 km 안)으로 UGV 전용 열화상 정찰을 요청 (최대 6건). 팀 main 트윈은 열화상 임무가 대부분 드론 전용이라 UGV 열화상 출동을 보이려고 넣은 구성. 10/12 실행 결과: [`2026-10-12_thermal`](../docs/ugv/evidence/2026-10-12_thermal/)|
-|`nodrone`|드론 출동 불가 시나리오: 드론 서버를 띄우지 않음. 신고 때 총괄 자동 정찰(드론·UGV 허용)이 드론에 닿지 못해 **총괄이 스스로 UGV를 골라** 보냄 (운용자 요청 없음). 드론 전용인 야간 순찰은 보류됨|
 |`final`|`dispatch` + 운용자 거절 요청 1건 자동 ([tools/twin_reject_request.py](tools/twin_reject_request.py) `--auto`). **시연 구성**|
 
 **거절 시연 요청** — 도로·노드에서 2.2 km 넘게 떨어진 산속 칸 하나(A 거점에서 가장 가까운 것)를 골라 총괄 공식 API(`POST /tasks`)로 UGV 정찰을 요청하고, 바로 배정을 요청(`POST /tasks/{id}/dispatch`)합니다. UGV는 `TARGET_UNREACHABLE`로 거절하고 총괄은 `NO_FEASIBLE_CANDIDATE`로 보류합니다. 거절 기록이 뜰 때까지 터미널에 찍어 줍니다.
