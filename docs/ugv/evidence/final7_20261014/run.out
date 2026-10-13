@@ -7,3 +7,18 @@ FINAL7_RESULT f7_on_s3113_downabort_1 FAIL 07:13:03
 f7_on_s0547_downabort_1 run rc=0 rcfile={"tag":"f7_on_s0547_downabort_1","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:21:45+09:00"}
 FINAL7R_RESULT f7_on_s0547_downabort_1 PASS 07:21:49
 [ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"f7_on_s3113_downabort_2","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:25:50+09:00"}
+f7_on_s3113_downabort_2 run rc=0 rcfile={"tag":"f7_on_s3113_downabort_2","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:25:50+09:00"}
+FINAL7R_RESULT f7_on_s3113_downabort_2 PASS 07:25:53
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"f7_on_s0547_downabort_2","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:29:52+09:00"}
+f7_on_s0547_downabort_2 run rc=0 rcfile={"tag":"f7_on_s0547_downabort_2","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:29:52+09:00"}
+FINAL7R_RESULT f7_on_s0547_downabort_2 PASS 07:29:54
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"f7_on_s3113_downabort_3","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:33:50+09:00"}
+f7_on_s3113_downabort_3 run rc=0 rcfile={"tag":"f7_on_s3113_downabort_3","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:33:50+09:00"}
+FINAL7R_RESULT f7_on_s3113_downabort_3 PASS 07:33:53
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"f7_on_s0547_downabort_3","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:37:50+09:00"}
+f7_on_s0547_downabort_3 run rc=0 rcfile={"tag":"f7_on_s0547_downabort_3","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:37:50+09:00"}
+FINAL7R_RESULT f7_on_s0547_downabort_3 PASS 07:37:53
