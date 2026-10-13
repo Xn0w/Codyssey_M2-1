@@ -1,0 +1,29 @@
+2026-10-14T03:42:44+09:00 접근 위반 1회 (묶음 누적 1): suite_stopramp rc 139, GC 중 fire.py:34 densify ← test_stage3_drive::test_fire_spreading_onto_route_triggers_replan, 오토 모드. 새 ID 로 1회 재실행
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"s5_on_s3113_downabort_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T03:59:12+09:00"}
+s5_on_s3113_downabort_a run rc=0 rcfile={"tag":"s5_on_s3113_downabort_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T03:59:12+09:00"} verify=EVIDENCE_OK
+SLOPE5_RESULT s5_on_s3113_downabort_a UNCONFIRMED 03:59:13
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"s5_on_s3113_downabort_a2","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T04:06:00+09:00"}
+s5_on_s3113_downabort_a2 run rc=0 rcfile={"tag":"s5_on_s3113_downabort_a2","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T04:06:00+09:00"} verify=EVIDENCE_OK
+SLOPE5_RESULT s5_on_s3113_downabort_a2 PASS 04:06:01
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"s5_on_s0547_downabort_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T04:09:45+09:00"}
+s5_on_s0547_downabort_a run rc=0 rcfile={"tag":"s5_on_s0547_downabort_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T04:09:45+09:00"} verify=EVIDENCE_OK
+SLOPE5_RESULT s5_on_s0547_downabort_a PASS 04:09:47
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"s5_on_s3113_downabort_b","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T04:13:31+09:00"}
+s5_on_s3113_downabort_b run rc=0 rcfile={"tag":"s5_on_s3113_downabort_b","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T04:13:31+09:00"} verify=EVIDENCE_OK
+SLOPE5_RESULT s5_on_s3113_downabort_b PASS 04:13:33
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"s5_on_s0547_downabort_b","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T04:17:15+09:00"}
+s5_on_s0547_downabort_b run rc=0 rcfile={"tag":"s5_on_s0547_downabort_b","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T04:17:15+09:00"} verify=EVIDENCE_OK
+SLOPE5_RESULT s5_on_s0547_downabort_b PASS 04:17:17
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"s5_on_s3113_downabort_c","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T04:21:02+09:00"}
+s5_on_s3113_downabort_c run rc=0 rcfile={"tag":"s5_on_s3113_downabort_c","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T04:21:02+09:00"} verify=EVIDENCE_OK
+SLOPE5_RESULT s5_on_s3113_downabort_c PASS 04:21:04
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"s5_on_s0547_downabort_c","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T04:24:48+09:00"}
+s5_on_s0547_downabort_c run rc=0 rcfile={"tag":"s5_on_s0547_downabort_c","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T04:24:48+09:00"} verify=EVIDENCE_OK
+SLOPE5_RESULT s5_on_s0547_downabort_c FAIL 04:24:50

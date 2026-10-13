@@ -1,0 +1,1629 @@
+{
+ "off_min": {
+  "s0547": 48.9,
+  "s3113": 40.6,
+  "note": "s4r_off (899bb56) 새 OFF 1회씩 + 참고 범위로 정한 기준 재사용 (SLOPE5_criteria)"
+ },
+ "runs": [
+  {
+   "tag": "s5_on_s0547_downabort_a",
+   "case": "s0547",
+   "arm": "ON",
+   "checks": {
+    "1_f1_cap_applied": true,
+    "2_no_overspeed_decel_le_1s": true,
+    "0a_no_fault_cut_notconfirmed": true,
+    "0b_start_item_0": true,
+    "0c_cap_not_crawl": true,
+    "0d_sup_margin_ge_3s": true,
+    "3a_px4_setpoint0": true,
+    "3b": true,
+    "3c": true,
+    "3d_server_policy": true,
+    "3e_no_runaway_no_cutdrive": true,
+    "4_inside_hold_yaw": true,
+    "5_stop_distance": true
+   },
+   "validity": {
+    "rc": {
+     "tag": "s5_on_s0547_downabort_a",
+     "test_rc": 0,
+     "copy_logs_rc": 0,
+     "stop_post_rc": "0",
+     "invalid_stop": false,
+     "time": "2026-10-14T04:09:45+09:00"
+    },
+    "markers": []
+   },
+   "stop_path_event": {
+    "sim_time_s": 70.59,
+    "timestamp": "2026-10-13T19:07:32.703271+00:00",
+    "event": "STOP_PATH",
+    "resource_id": "B-ugv1",
+    "task_id": "RT1-20261014_040720",
+    "stop_items_ramp": {
+     "spacing_m": 8.0,
+     "n_items": 3,
+     "removed_near_end": 1,
+     "end_v_orig": 1.0,
+     "end_v": 6.08,
+     "first_v": 8.13,
+     "length_m": 34.2
+    },
+    "basis": "PLANNED_ROUTE",
+    "length_m": 34.2,
+    "needed_m": 34.2,
+    "short": false,
+    "speed_mps": 9.36,
+    "drivable": true,
+    "steering_violations": 0,
+    "body_violations": 0,
+    "worst_excess_m": -2.837,
+    "speed_cap_first": {
+     "v": 8.13,
+     "ok": true,
+     "ack_s": 0.0,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "timing": {
+     "t_enter": 70.563,
+     "t_upload_start": 70.563,
+     "upload_s": 0.031,
+     "start_item": 0,
+     "items_sent": [
+      [
+       17292.5,
+       -5410.31,
+       8.13
+      ],
+      [
+       17285.53,
+       -5403.52,
+       6.08
+      ],
+      [
+       17276.7,
+       -5394.92,
+       6.08
+      ]
+     ]
+    },
+    "problems": []
+   },
+   "abort": {
+    "speed_at_cmd_mps": 9.11,
+    "stopped": true,
+    "stop_time_s": 6.64,
+    "stop_distance_m": 33.0,
+    "min_forward_m": 0.0,
+    "moved_after_stop_m": 0.0,
+    "went_backward_or_uturn": false
+   },
+   "phase_split_m": {
+    "speed_at_cmd_gz_mps": 9.25,
+    "cmd_to_decel_start": 0.98,
+    "decel_to_below_1mps": 30.42,
+    "below_1mps_to_stop": 0.11,
+    "total_gz": 31.52,
+    "cmd_to_decel_s": 0.11,
+    "mean_decel_mps2": 1.31,
+    "grade_at_trigger": -0.0552,
+    "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+   },
+   "judge3": {
+    "arrived": false,
+    "inside": true,
+    "outside_max_m": -2.6,
+    "stop": "확인",
+    "final_pass": false
+   },
+   "stop_distance_m": 33.0,
+   "planned_needed_m": 34.2,
+   "f1": {
+    "cap": {
+     "v": 8.13,
+     "ok": true,
+     "ack_s": 0.0,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "first_triplet_cruise": 8.13
+   },
+   "cmd": {
+    "sim_t": 82.196,
+    "wall_match_err_s": 0.025,
+    "v_cmd_gz": 9.335626412572424,
+    "vmax_after": 9.335626412572424,
+    "cmd_to_decel_s": 0.11
+   },
+   "safety_events": [],
+   "timing": {
+    "t_enter": 70.563,
+    "t_upload_start": 70.563,
+    "upload_s": 0.031,
+    "start_item": 0
+   },
+   "stop_items_ramp": {
+    "spacing_m": 8.0,
+    "n_items": 3,
+    "removed_near_end": 1,
+    "end_v_orig": 1.0,
+    "end_v": 6.08,
+    "first_v": 8.13,
+    "length_m": 34.2
+   },
+   "sup": {
+    "begin": {
+     "t0": 70.594,
+     "t_allow_s": 12.31,
+     "allow_m": 57.9,
+     "reach_m": 34.2,
+     "v0": 9.36,
+     "lat_s": 1.0
+    },
+    "confirmed": {
+     "time_s": 9.3,
+     "travel_m": 31.8,
+     "allow_m": 57.9,
+     "cut_drive": false
+    }
+   },
+   "park_server": {
+    "mission_seq": 2,
+    "run_id": "s5_on_s0547_downabort_a",
+    "reason": "NORMAL_STILL",
+    "cond_cap": false,
+    "cond_still": true,
+    "after_s": 2.0,
+    "decide_mono": 332237.375,
+    "decide_wall": 1791918462.036,
+    "finished_first_mono": 332234.375,
+    "still_since_mono": 332235.375,
+    "still_resets": [],
+    "speed_in": 0.071,
+    "tel_age_s": 0.032,
+    "fresh": true,
+    "poll_s": 0.5,
+    "lock_mono": 332237.375,
+    "disarm_req_mono": 332237.375,
+    "disarm_call": "OK",
+    "disarm_ret_mono": 332237.375,
+    "disarmed_seen_mono": 332237.765
+   },
+   "e2_3": {
+    "3b_t": 80.023,
+    "slow_until_t": 82.83099999999999,
+    "fin": 79.598,
+    "disarm": 82.862,
+    "gap": 0.054000000000002046,
+    "align": [
+     -8.68,
+     0.139
+    ],
+    "gz_stop_to_disarm_record": 2.839
+   },
+   "run_id_match": true,
+   "stop_events": [
+    {
+     "sim_time_s": 79.94,
+     "event": "STOP_CONFIRMED",
+     "task_id": "RT1-20261014_040720",
+     "basis": "PLANNED_ROUTE",
+     "v0_mps": 9.36,
+     "travel_m": 31.8,
+     "allow_m": 57.9,
+     "time_s": 9.3,
+     "cut_drive": false,
+     "cut_attempts": 0,
+     "exceeded_allow": false
+    }
+   ],
+   "hold": {
+    "confirm_sim_t": 89.703,
+    "drift_m": 0.0,
+    "observed_s": 30.0
+   },
+   "yaw_change_hold_deg": 0.0,
+   "off_min_m": 48.9,
+   "limits": [
+    "seq 경유점 누락 미확인",
+    "Gazebo 속도 0.2 s 창",
+    "정렬 rms 는 시각 불확실성 아님"
+   ],
+   "status": "PASS"
+  },
+  {
+   "tag": "s5_on_s0547_downabort_b",
+   "case": "s0547",
+   "arm": "ON",
+   "checks": {
+    "1_f1_cap_applied": true,
+    "2_no_overspeed_decel_le_1s": true,
+    "0a_no_fault_cut_notconfirmed": true,
+    "0b_start_item_0": true,
+    "0c_cap_not_crawl": true,
+    "0d_sup_margin_ge_3s": true,
+    "3a_px4_setpoint0": true,
+    "3b": true,
+    "3c": true,
+    "3d_server_policy": true,
+    "3e_no_runaway_no_cutdrive": true,
+    "4_inside_hold_yaw": true,
+    "5_stop_distance": true
+   },
+   "validity": {
+    "rc": {
+     "tag": "s5_on_s0547_downabort_b",
+     "test_rc": 0,
+     "copy_logs_rc": 0,
+     "stop_post_rc": "0",
+     "invalid_stop": false,
+     "time": "2026-10-14T04:17:15+09:00"
+    },
+    "markers": []
+   },
+   "stop_path_event": {
+    "sim_time_s": 70.62,
+    "timestamp": "2026-10-13T19:15:04.011551+00:00",
+    "event": "STOP_PATH",
+    "resource_id": "B-ugv1",
+    "task_id": "RT1-20261014_041451",
+    "stop_items_ramp": {
+     "spacing_m": 8.0,
+     "n_items": 3,
+     "removed_near_end": 1,
+     "end_v_orig": 1.0,
+     "end_v": 6.26,
+     "first_v": 8.27,
+     "length_m": 34.9
+    },
+    "basis": "PLANNED_ROUTE",
+    "length_m": 34.9,
+    "needed_m": 34.9,
+    "short": false,
+    "speed_mps": 9.48,
+    "drivable": true,
+    "steering_violations": 0,
+    "body_violations": 0,
+    "worst_excess_m": -2.828,
+    "speed_cap_first": {
+     "v": 8.27,
+     "ok": true,
+     "ack_s": 0.0,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "timing": {
+     "t_enter": 70.593,
+     "t_upload_start": 70.593,
+     "upload_s": 0.032,
+     "start_item": 0,
+     "items_sent": [
+      [
+       17292.5,
+       -5410.31,
+       8.27
+      ],
+      [
+       17285.54,
+       -5403.53,
+       6.26
+      ],
+      [
+       17276.15,
+       -5394.38,
+       6.26
+      ]
+     ]
+    },
+    "problems": []
+   },
+   "abort": {
+    "speed_at_cmd_mps": 9.15,
+    "stopped": true,
+    "stop_time_s": 6.53,
+    "stop_distance_m": 34.2,
+    "min_forward_m": 0.0,
+    "moved_after_stop_m": 0.0,
+    "went_backward_or_uturn": false
+   },
+   "phase_split_m": {
+    "speed_at_cmd_gz_mps": 9.31,
+    "cmd_to_decel_start": 0.99,
+    "decel_to_below_1mps": 31.62,
+    "below_1mps_to_stop": 0.1,
+    "total_gz": 32.71,
+    "cmd_to_decel_s": 0.11,
+    "mean_decel_mps2": 1.35,
+    "grade_at_trigger": -0.0552,
+    "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+   },
+   "judge3": {
+    "arrived": false,
+    "inside": true,
+    "outside_max_m": -2.58,
+    "stop": "확인",
+    "final_pass": false
+   },
+   "stop_distance_m": 34.2,
+   "planned_needed_m": 34.9,
+   "f1": {
+    "cap": {
+     "v": 8.27,
+     "ok": true,
+     "ack_s": 0.0,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "first_triplet_cruise": 8.27
+   },
+   "cmd": {
+    "sim_t": 82.236,
+    "wall_match_err_s": 0.024,
+    "v_cmd_gz": 9.278427279046298,
+    "vmax_after": 9.278427279046298,
+    "cmd_to_decel_s": 0.11
+   },
+   "safety_events": [],
+   "timing": {
+    "t_enter": 70.593,
+    "t_upload_start": 70.593,
+    "upload_s": 0.032,
+    "start_item": 0
+   },
+   "stop_items_ramp": {
+    "spacing_m": 8.0,
+    "n_items": 3,
+    "removed_near_end": 1,
+    "end_v_orig": 1.0,
+    "end_v": 6.26,
+    "first_v": 8.27,
+    "length_m": 34.9
+   },
+   "sup": {
+    "begin": {
+     "t0": 70.625,
+     "t_allow_s": 12.373,
+     "allow_m": 58.9,
+     "reach_m": 34.9,
+     "v0": 9.48,
+     "lat_s": 1.0
+    },
+    "confirmed": {
+     "time_s": 8.3,
+     "travel_m": 32.7,
+     "allow_m": 58.9,
+     "cut_drive": false
+    }
+   },
+   "park_server": {
+    "mission_seq": 2,
+    "run_id": "s5_on_s0547_downabort_b",
+    "reason": "NORMAL_STILL",
+    "cond_cap": false,
+    "cond_still": true,
+    "after_s": 2.0,
+    "decide_mono": 332688.625,
+    "decide_wall": 1791918913.313,
+    "finished_first_mono": 332685.625,
+    "still_since_mono": 332686.625,
+    "still_resets": [
+     {
+      "t": 332686.125,
+      "speed": 0.311,
+      "fresh": true
+     }
+    ],
+    "speed_in": 0.283,
+    "tel_age_s": 0.016,
+    "fresh": true,
+    "poll_s": 0.5,
+    "lock_mono": 332688.625,
+    "disarm_req_mono": 332688.625,
+    "disarm_call": "OK",
+    "disarm_ret_mono": 332688.64,
+    "disarmed_seen_mono": 332689.078
+   },
+   "e2_3": {
+    "3b_t": 80.051,
+    "slow_until_t": 83.021,
+    "fin": 79.556,
+    "disarm": 83.04,
+    "gap": 0.054000000000002046,
+    "align": [
+     -8.476,
+     0.278
+    ],
+    "gz_stop_to_disarm_record": 2.989
+   },
+   "run_id_match": true,
+   "stop_events": [
+    {
+     "sim_time_s": 78.92,
+     "event": "STOP_CONFIRMED",
+     "task_id": "RT1-20261014_041451",
+     "basis": "PLANNED_ROUTE",
+     "v0_mps": 9.48,
+     "travel_m": 32.7,
+     "allow_m": 58.9,
+     "time_s": 8.3,
+     "cut_drive": false,
+     "cut_attempts": 0,
+     "exceeded_allow": false
+    }
+   ],
+   "hold": {
+    "confirm_sim_t": 89.527,
+    "drift_m": 0.0,
+    "observed_s": 30.0
+   },
+   "yaw_change_hold_deg": 0.0,
+   "off_min_m": 48.9,
+   "limits": [
+    "seq 경유점 누락 미확인",
+    "Gazebo 속도 0.2 s 창",
+    "정렬 rms 는 시각 불확실성 아님"
+   ],
+   "status": "PASS"
+  },
+  {
+   "tag": "s5_on_s0547_downabort_c",
+   "case": "s0547",
+   "arm": "ON",
+   "checks": {
+    "1_f1_cap_applied": true,
+    "2_no_overspeed_decel_le_1s": true,
+    "0a_no_fault_cut_notconfirmed": true,
+    "0b_start_item_0": true,
+    "0c_cap_not_crawl": true,
+    "0d_sup_margin_ge_3s": false,
+    "3a_px4_setpoint0": true,
+    "3b": true,
+    "3c": true,
+    "3d_server_policy": false,
+    "3e_no_runaway_no_cutdrive": false,
+    "4_inside_hold_yaw": true,
+    "5_stop_distance": true
+   },
+   "validity": {
+    "rc": {
+     "tag": "s5_on_s0547_downabort_c",
+     "test_rc": 0,
+     "copy_logs_rc": 0,
+     "stop_post_rc": "0",
+     "invalid_stop": false,
+     "time": "2026-10-14T04:24:48+09:00"
+    },
+    "markers": []
+   },
+   "stop_path_event": {
+    "sim_time_s": 71.12,
+    "timestamp": "2026-10-13T19:22:35.877281+00:00",
+    "event": "STOP_PATH",
+    "resource_id": "B-ugv1",
+    "task_id": "RT1-20261014_042222",
+    "stop_items_ramp": {
+     "spacing_m": 8.0,
+     "n_items": 3,
+     "removed_near_end": 1,
+     "end_v_orig": 1.0,
+     "end_v": 6.33,
+     "first_v": 8.32,
+     "length_m": 35.2
+    },
+    "basis": "PLANNED_ROUTE",
+    "length_m": 35.2,
+    "needed_m": 35.2,
+    "short": false,
+    "speed_mps": 9.51,
+    "drivable": true,
+    "steering_violations": 0,
+    "body_violations": 0,
+    "worst_excess_m": -2.824,
+    "speed_cap_first": {
+     "v": 8.32,
+     "ok": true,
+     "ack_s": 0.016,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "timing": {
+     "t_enter": 71.078,
+     "t_upload_start": 71.094,
+     "upload_s": 0.031,
+     "start_item": 0,
+     "items_sent": [
+      [
+       17292.49,
+       -5410.3,
+       8.32
+      ],
+      [
+       17285.52,
+       -5403.51,
+       6.33
+      ],
+      [
+       17275.94,
+       -5394.17,
+       6.33
+      ]
+     ]
+    },
+    "problems": []
+   },
+   "abort": {
+    "speed_at_cmd_mps": 9.13,
+    "stopped": true,
+    "stop_time_s": 6.48,
+    "stop_distance_m": 34.6,
+    "min_forward_m": 0.0,
+    "moved_after_stop_m": 0.0,
+    "went_backward_or_uturn": false
+   },
+   "phase_split_m": {
+    "speed_at_cmd_gz_mps": 9.24,
+    "cmd_to_decel_start": 0.98,
+    "decel_to_below_1mps": 32.05,
+    "below_1mps_to_stop": 0.09,
+    "total_gz": 33.11,
+    "cmd_to_decel_s": 0.11,
+    "mean_decel_mps2": 1.34,
+    "grade_at_trigger": -0.0552,
+    "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+   },
+   "judge3": {
+    "arrived": false,
+    "inside": true,
+    "outside_max_m": -2.61,
+    "stop": "확인",
+    "final_pass": false
+   },
+   "stop_distance_m": 34.6,
+   "planned_needed_m": 35.2,
+   "f1": {
+    "cap": {
+     "v": 8.32,
+     "ok": true,
+     "ack_s": 0.016,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "first_triplet_cruise": 8.32
+   },
+   "cmd": {
+    "sim_t": 82.7,
+    "wall_match_err_s": 0.019,
+    "v_cmd_gz": 9.330454619258795,
+    "vmax_after": 9.330454619258795,
+    "cmd_to_decel_s": 0.11
+   },
+   "safety_events": [],
+   "timing": {
+    "t_enter": 71.078,
+    "t_upload_start": 71.094,
+    "upload_s": 0.031,
+    "start_item": 0
+   },
+   "stop_items_ramp": {
+    "spacing_m": 8.0,
+    "n_items": 3,
+    "removed_near_end": 1,
+    "end_v_orig": 1.0,
+    "end_v": 6.33,
+    "first_v": 8.32,
+    "length_m": 35.2
+   },
+   "sup": {
+    "begin": {
+     "t0": 71.125,
+     "t_allow_s": 12.402,
+     "allow_m": 59.2,
+     "reach_m": 35.2,
+     "v0": 9.51,
+     "lat_s": 1.0
+    },
+    "confirmed": {
+     "time_s": 13.8,
+     "travel_m": 33.4,
+     "allow_m": 59.2,
+     "cut_drive": false
+    }
+   },
+   "park_server": {
+    "mission_seq": 2,
+    "run_id": "s5_on_s0547_downabort_c",
+    "reason": "RUNAWAY_CAP",
+    "cond_cap": true,
+    "cond_still": false,
+    "after_s": 2.0,
+    "decide_mono": 333141.515,
+    "decide_wall": 1791919366.207,
+    "finished_first_mono": 333137.515,
+    "still_since_mono": null,
+    "still_resets": [
+     {
+      "t": 333139.515,
+      "speed": 0.311,
+      "fresh": true
+     }
+    ],
+    "speed_in": 0.404,
+    "tel_age_s": 0.031,
+    "fresh": true,
+    "poll_s": 0.5,
+    "lock_mono": 333141.515,
+    "disarm_req_mono": 333141.515,
+    "disarm_call": "OK",
+    "disarm_ret_mono": 333141.515,
+    "disarmed_seen_mono": 333142.406
+   },
+   "e2_3": {
+    "3b_t": 80.361,
+    "slow_until_t": 84.357,
+    "fin": 79.856,
+    "disarm": 84.374,
+    "gap": 0.054000000000002046,
+    "align": [
+     -8.684,
+     0.326
+    ],
+    "gz_stop_to_disarm_record": 4.013
+   },
+   "run_id_match": true,
+   "stop_events": [
+    {
+     "sim_time_s": 84.95,
+     "event": "STOP_CONFIRMED",
+     "task_id": "RT1-20261014_042222",
+     "basis": "PLANNED_ROUTE",
+     "v0_mps": 9.51,
+     "travel_m": 33.4,
+     "allow_m": 59.2,
+     "time_s": 13.8,
+     "cut_drive": false,
+     "cut_attempts": 0,
+     "exceeded_allow": false
+    }
+   ],
+   "hold": {
+    "confirm_sim_t": 90.045,
+    "drift_m": 0.0,
+    "observed_s": 30.0
+   },
+   "yaw_change_hold_deg": 0.0,
+   "off_min_m": 48.9,
+   "limits": [
+    "seq 경유점 누락 미확인",
+    "Gazebo 속도 0.2 s 창",
+    "정렬 rms 는 시각 불확실성 아님"
+   ],
+   "status": "FAIL"
+  },
+  {
+   "tag": "s5_on_s3113_downabort_a",
+   "case": "s3113",
+   "arm": "ON",
+   "checks": {
+    "1_f1_cap_applied": true,
+    "2_no_overspeed_decel_le_1s": true,
+    "0a_no_fault_cut_notconfirmed": true,
+    "0b_start_item_0": null,
+    "0c_cap_not_crawl": true,
+    "0d_sup_margin_ge_3s": true,
+    "3a_px4_setpoint0": true,
+    "3b": true,
+    "3c": true,
+    "3d_server_policy": true,
+    "3e_no_runaway_no_cutdrive": true,
+    "4_inside_hold_yaw": true,
+    "5_stop_distance": true
+   },
+   "validity": {
+    "rc": {
+     "tag": "s5_on_s3113_downabort_a",
+     "test_rc": 0,
+     "copy_logs_rc": 0,
+     "stop_post_rc": "0",
+     "invalid_stop": false,
+     "time": "2026-10-14T03:59:12+09:00"
+    },
+    "markers": []
+   },
+   "stop_path_event": {
+    "sim_time_s": 70.78,
+    "timestamp": "2026-10-13T18:56:59.042589+00:00",
+    "event": "STOP_PATH",
+    "resource_id": "A-ugv1",
+    "task_id": "RT1-20261014_035646",
+    "stop_items_ramp": {
+     "spacing_m": 8.0,
+     "n_items": 4,
+     "removed_near_end": 0,
+     "end_v_orig": 1.3,
+     "end_v": 4.05,
+     "first_v": 8.69,
+     "length_m": 33.4
+    },
+    "basis": "PLANNED_ROUTE",
+    "length_m": 33.4,
+    "needed_m": 33.4,
+    "short": false,
+    "speed_mps": 9.23,
+    "drivable": true,
+    "steering_violations": 0,
+    "body_violations": 0,
+    "worst_excess_m": -2.816,
+    "speed_cap_first": {
+     "v": 8.69,
+     "ok": true,
+     "ack_s": 0.0,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "timing": {
+     "t_enter": 70.75,
+     "t_upload_start": 70.75,
+     "upload_s": 0.031,
+     "start_item": null,
+     "items_sent": [
+      [
+       3699.47,
+       5741.56,
+       8.69
+      ],
+      [
+       3707.01,
+       5747.9,
+       6.78
+      ],
+      [
+       3714.56,
+       5754.23,
+       4.05
+      ],
+      [
+       3718.76,
+       5757.76,
+       4.05
+      ]
+     ]
+    },
+    "problems": []
+   },
+   "abort": {
+    "speed_at_cmd_mps": 9.02,
+    "stopped": true,
+    "stop_time_s": 6.64,
+    "stop_distance_m": 32.3,
+    "min_forward_m": 0.0,
+    "moved_after_stop_m": 0.0,
+    "went_backward_or_uturn": false
+   },
+   "phase_split_m": {
+    "speed_at_cmd_gz_mps": 9.12,
+    "cmd_to_decel_start": 0.97,
+    "decel_to_below_1mps": 29.74,
+    "below_1mps_to_stop": 0.12,
+    "total_gz": 30.82,
+    "cmd_to_decel_s": 0.11,
+    "mean_decel_mps2": 1.28,
+    "grade_at_trigger": -0.0405,
+    "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+   },
+   "judge3": {
+    "arrived": false,
+    "inside": true,
+    "outside_max_m": -2.76,
+    "stop": "확인",
+    "final_pass": false
+   },
+   "stop_distance_m": 32.3,
+   "planned_needed_m": 33.4,
+   "f1": {
+    "cap": {
+     "v": 8.69,
+     "ok": true,
+     "ack_s": 0.0,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "first_triplet_cruise": 8.69
+   },
+   "cmd": {
+    "sim_t": 82.506,
+    "wall_match_err_s": 0.006,
+    "v_cmd_gz": 9.214248829759127,
+    "vmax_after": 9.214248829759127,
+    "cmd_to_decel_s": 0.11
+   },
+   "safety_events": [],
+   "timing": {
+    "t_enter": 70.75,
+    "t_upload_start": 70.75,
+    "upload_s": 0.031,
+    "start_item": null
+   },
+   "stop_items_ramp": {
+    "spacing_m": 8.0,
+    "n_items": 4,
+    "removed_near_end": 0,
+    "end_v_orig": 1.3,
+    "end_v": 4.05,
+    "first_v": 8.69,
+    "length_m": 33.4
+   },
+   "sup": {
+    "begin": {
+     "t0": 70.781,
+     "t_allow_s": 12.239,
+     "allow_m": 56.9,
+     "reach_m": 33.4,
+     "v0": 9.23,
+     "lat_s": 1.0
+    },
+    "confirmed": {
+     "time_s": 8.5,
+     "travel_m": 31.1,
+     "allow_m": 56.9,
+     "cut_drive": false
+    }
+   },
+   "park_server": {
+    "mission_seq": 2,
+    "run_id": "s5_on_s3113_downabort_a",
+    "reason": "NORMAL_STILL",
+    "cond_cap": false,
+    "cond_still": true,
+    "after_s": 2.0,
+    "decide_mono": 331602.843,
+    "decide_wall": 1791917827.485,
+    "finished_first_mono": 331600.843,
+    "still_since_mono": 331600.843,
+    "still_resets": [],
+    "speed_in": 0.2,
+    "tel_age_s": 0.031,
+    "fresh": true,
+    "poll_s": 0.5,
+    "lock_mono": 331602.843,
+    "disarm_req_mono": 331602.843,
+    "disarm_call": "OK",
+    "disarm_ret_mono": 331602.843,
+    "disarmed_seen_mono": 331603.765
+   },
+   "e2_3": {
+    "3b_t": 80.549,
+    "slow_until_t": 82.493,
+    "fin": 80.044,
+    "disarm": 82.508,
+    "gap": 0.054000000000002046,
+    "align": [
+     -8.464,
+     0.256
+    ],
+    "gz_stop_to_disarm_record": 1.959
+   },
+   "run_id_match": true,
+   "stop_events": [
+    {
+     "sim_time_s": 79.23,
+     "event": "STOP_CONFIRMED",
+     "task_id": "RT1-20261014_035646",
+     "basis": "PLANNED_ROUTE",
+     "v0_mps": 9.23,
+     "travel_m": 31.1,
+     "allow_m": 56.9,
+     "time_s": 8.5,
+     "cut_drive": false,
+     "cut_attempts": 0,
+     "exceeded_allow": false
+    }
+   ],
+   "hold": {
+    "confirm_sim_t": 90.013,
+    "drift_m": 0.0,
+    "observed_s": 30.0
+   },
+   "yaw_change_hold_deg": 0.0,
+   "off_min_m": 40.6,
+   "limits": [
+    "seq 경유점 누락 미확인",
+    "Gazebo 속도 0.2 s 창",
+    "정렬 rms 는 시각 불확실성 아님"
+   ],
+   "status": "UNCONFIRMED"
+  },
+  {
+   "tag": "s5_on_s3113_downabort_a2",
+   "case": "s3113",
+   "arm": "ON",
+   "checks": {
+    "1_f1_cap_applied": true,
+    "2_no_overspeed_decel_le_1s": true,
+    "0a_no_fault_cut_notconfirmed": true,
+    "0b_start_item_0": true,
+    "0c_cap_not_crawl": true,
+    "0d_sup_margin_ge_3s": true,
+    "3a_px4_setpoint0": true,
+    "3b": true,
+    "3c": true,
+    "3d_server_policy": true,
+    "3e_no_runaway_no_cutdrive": true,
+    "4_inside_hold_yaw": true,
+    "5_stop_distance": true
+   },
+   "validity": {
+    "rc": {
+     "tag": "s5_on_s3113_downabort_a2",
+     "test_rc": 0,
+     "copy_logs_rc": 0,
+     "stop_post_rc": "0",
+     "invalid_stop": false,
+     "time": "2026-10-14T04:06:00+09:00"
+    },
+    "markers": []
+   },
+   "stop_path_event": {
+    "sim_time_s": 70.58,
+    "timestamp": "2026-10-13T19:03:46.120414+00:00",
+    "event": "STOP_PATH",
+    "resource_id": "A-ugv1",
+    "task_id": "RT1-20261014_040333",
+    "stop_items_ramp": {
+     "spacing_m": 8.0,
+     "n_items": 4,
+     "removed_near_end": 0,
+     "end_v_orig": 1.0,
+     "end_v": 3.96,
+     "first_v": 8.65,
+     "length_m": 33.1
+    },
+    "basis": "PLANNED_ROUTE",
+    "length_m": 33.1,
+    "needed_m": 33.1,
+    "short": false,
+    "speed_mps": 9.18,
+    "drivable": true,
+    "steering_violations": 0,
+    "body_violations": 0,
+    "worst_excess_m": -2.807,
+    "speed_cap_first": {
+     "v": 8.65,
+     "ok": true,
+     "ack_s": 0.016,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "timing": {
+     "t_enter": 70.531,
+     "t_upload_start": 70.547,
+     "upload_s": 0.031,
+     "start_item": 0,
+     "items_sent": [
+      [
+       3699.46,
+       5741.55,
+       8.65
+      ],
+      [
+       3707.0,
+       5747.89,
+       6.72
+      ],
+      [
+       3714.55,
+       5754.23,
+       3.96
+      ],
+      [
+       3718.56,
+       5757.6,
+       3.96
+      ]
+     ]
+    },
+    "problems": []
+   },
+   "abort": {
+    "speed_at_cmd_mps": 8.93,
+    "stopped": true,
+    "stop_time_s": 6.75,
+    "stop_distance_m": 32.4,
+    "min_forward_m": 0.0,
+    "moved_after_stop_m": 0.0,
+    "went_backward_or_uturn": false
+   },
+   "phase_split_m": {
+    "speed_at_cmd_gz_mps": 9.13,
+    "cmd_to_decel_start": 1.44,
+    "decel_to_below_1mps": 29.42,
+    "below_1mps_to_stop": 0.08,
+    "total_gz": 30.94,
+    "cmd_to_decel_s": 0.16,
+    "mean_decel_mps2": 1.27,
+    "grade_at_trigger": -0.0405,
+    "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+   },
+   "judge3": {
+    "arrived": false,
+    "inside": true,
+    "outside_max_m": -2.82,
+    "stop": "확인",
+    "final_pass": false
+   },
+   "stop_distance_m": 32.4,
+   "planned_needed_m": 33.1,
+   "f1": {
+    "cap": {
+     "v": 8.65,
+     "ok": true,
+     "ack_s": 0.016,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "first_triplet_cruise": 8.65
+   },
+   "cmd": {
+    "sim_t": 82.214,
+    "wall_match_err_s": 0.023,
+    "v_cmd_gz": 9.197239410413117,
+    "vmax_after": 9.197239410413117,
+    "cmd_to_decel_s": 0.16
+   },
+   "safety_events": [],
+   "timing": {
+    "t_enter": 70.531,
+    "t_upload_start": 70.547,
+    "upload_s": 0.031,
+    "start_item": 0
+   },
+   "stop_items_ramp": {
+    "spacing_m": 8.0,
+    "n_items": 4,
+    "removed_near_end": 0,
+    "end_v_orig": 1.0,
+    "end_v": 3.96,
+    "first_v": 8.65,
+    "length_m": 33.1
+   },
+   "sup": {
+    "begin": {
+     "t0": 70.578,
+     "t_allow_s": 12.212,
+     "allow_m": 56.5,
+     "reach_m": 33.1,
+     "v0": 9.18,
+     "lat_s": 1.0
+    },
+    "confirmed": {
+     "time_s": 8.8,
+     "travel_m": 30.8,
+     "allow_m": 56.5,
+     "cut_drive": false
+    }
+   },
+   "park_server": {
+    "mission_seq": 2,
+    "run_id": "s5_on_s3113_downabort_a2",
+    "reason": "NORMAL_STILL",
+    "cond_cap": false,
+    "cond_still": true,
+    "after_s": 2.0,
+    "decide_mono": 332011.265,
+    "decide_wall": 1791918235.921,
+    "finished_first_mono": 332007.765,
+    "still_since_mono": 332009.265,
+    "still_resets": [],
+    "speed_in": 0.213,
+    "tel_age_s": 0.031,
+    "fresh": true,
+    "poll_s": 0.5,
+    "lock_mono": 332011.265,
+    "disarm_req_mono": 332011.265,
+    "disarm_call": "OK",
+    "disarm_ret_mono": 332011.265,
+    "disarmed_seen_mono": 332012.187
+   },
+   "e2_3": {
+    "3b_t": 80.12700000000001,
+    "slow_until_t": 83.313,
+    "fin": 79.618,
+    "disarm": 83.344,
+    "gap": 0.054000000000002046,
+    "align": [
+     -8.702,
+     0.254
+    ],
+    "gz_stop_to_disarm_record": 3.217
+   },
+   "run_id_match": true,
+   "stop_events": [
+    {
+     "sim_time_s": 79.38,
+     "event": "STOP_CONFIRMED",
+     "task_id": "RT1-20261014_040333",
+     "basis": "PLANNED_ROUTE",
+     "v0_mps": 9.18,
+     "travel_m": 30.8,
+     "allow_m": 56.5,
+     "time_s": 8.8,
+     "cut_drive": false,
+     "cut_attempts": 0,
+     "exceeded_allow": false
+    }
+   ],
+   "hold": {
+    "confirm_sim_t": 89.829,
+    "drift_m": 0.0,
+    "observed_s": 30.0
+   },
+   "yaw_change_hold_deg": 0.0,
+   "off_min_m": 40.6,
+   "limits": [
+    "seq 경유점 누락 미확인",
+    "Gazebo 속도 0.2 s 창",
+    "정렬 rms 는 시각 불확실성 아님"
+   ],
+   "status": "PASS"
+  },
+  {
+   "tag": "s5_on_s3113_downabort_b",
+   "case": "s3113",
+   "arm": "ON",
+   "checks": {
+    "1_f1_cap_applied": true,
+    "2_no_overspeed_decel_le_1s": true,
+    "0a_no_fault_cut_notconfirmed": true,
+    "0b_start_item_0": true,
+    "0c_cap_not_crawl": true,
+    "0d_sup_margin_ge_3s": true,
+    "3a_px4_setpoint0": true,
+    "3b": true,
+    "3c": true,
+    "3d_server_policy": true,
+    "3e_no_runaway_no_cutdrive": true,
+    "4_inside_hold_yaw": true,
+    "5_stop_distance": true
+   },
+   "validity": {
+    "rc": {
+     "tag": "s5_on_s3113_downabort_b",
+     "test_rc": 0,
+     "copy_logs_rc": 0,
+     "stop_post_rc": "0",
+     "invalid_stop": false,
+     "time": "2026-10-14T04:13:31+09:00"
+    },
+    "markers": []
+   },
+   "stop_path_event": {
+    "sim_time_s": 70.61,
+    "timestamp": "2026-10-13T19:11:18.039008+00:00",
+    "event": "STOP_PATH",
+    "resource_id": "A-ugv1",
+    "task_id": "RT1-20261014_041105",
+    "stop_items_ramp": {
+     "spacing_m": 8.0,
+     "n_items": 4,
+     "removed_near_end": 0,
+     "end_v_orig": 1.54,
+     "end_v": 4.14,
+     "first_v": 8.73,
+     "length_m": 33.5
+    },
+    "basis": "PLANNED_ROUTE",
+    "length_m": 33.5,
+    "needed_m": 33.5,
+    "short": false,
+    "speed_mps": 9.25,
+    "drivable": true,
+    "steering_violations": 0,
+    "body_violations": 0,
+    "worst_excess_m": -2.844,
+    "speed_cap_first": {
+     "v": 8.73,
+     "ok": true,
+     "ack_s": 0.0,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "timing": {
+     "t_enter": 70.578,
+     "t_upload_start": 70.578,
+     "upload_s": 0.031,
+     "start_item": 0,
+     "items_sent": [
+      [
+       3699.46,
+       5741.56,
+       8.73
+      ],
+      [
+       3707.01,
+       5747.89,
+       6.83
+      ],
+      [
+       3714.55,
+       5754.23,
+       4.14
+      ],
+      [
+       3718.94,
+       5757.91,
+       4.14
+      ]
+     ]
+    },
+    "problems": []
+   },
+   "abort": {
+    "speed_at_cmd_mps": 8.91,
+    "stopped": true,
+    "stop_time_s": 6.7,
+    "stop_distance_m": 32.7,
+    "min_forward_m": 0.0,
+    "moved_after_stop_m": 0.0,
+    "went_backward_or_uturn": false
+   },
+   "phase_split_m": {
+    "speed_at_cmd_gz_mps": 9.02,
+    "cmd_to_decel_start": 1.42,
+    "decel_to_below_1mps": 29.71,
+    "below_1mps_to_stop": 0.12,
+    "total_gz": 31.25,
+    "cmd_to_decel_s": 0.16,
+    "mean_decel_mps2": 1.26,
+    "grade_at_trigger": -0.0405,
+    "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+   },
+   "judge3": {
+    "arrived": false,
+    "inside": true,
+    "outside_max_m": -2.8,
+    "stop": "확인",
+    "final_pass": false
+   },
+   "stop_distance_m": 32.7,
+   "planned_needed_m": 33.5,
+   "f1": {
+    "cap": {
+     "v": 8.73,
+     "ok": true,
+     "ack_s": 0.0,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "first_triplet_cruise": 8.73
+   },
+   "cmd": {
+    "sim_t": 82.216,
+    "wall_match_err_s": 0.015,
+    "v_cmd_gz": 9.1091296065363,
+    "vmax_after": 9.1091296065363,
+    "cmd_to_decel_s": 0.16
+   },
+   "safety_events": [],
+   "timing": {
+    "t_enter": 70.578,
+    "t_upload_start": 70.578,
+    "upload_s": 0.031,
+    "start_item": 0
+   },
+   "stop_items_ramp": {
+    "spacing_m": 8.0,
+    "n_items": 4,
+    "removed_near_end": 0,
+    "end_v_orig": 1.54,
+    "end_v": 4.14,
+    "first_v": 8.73,
+    "length_m": 33.5
+   },
+   "sup": {
+    "begin": {
+     "t0": 70.609,
+     "t_allow_s": 12.25,
+     "allow_m": 57.1,
+     "reach_m": 33.5,
+     "v0": 9.25,
+     "lat_s": 1.0
+    },
+    "confirmed": {
+     "time_s": 8.3,
+     "travel_m": 31.2,
+     "allow_m": 57.1,
+     "cut_drive": false
+    }
+   },
+   "park_server": {
+    "mission_seq": 2,
+    "run_id": "s5_on_s3113_downabort_b",
+    "reason": "NORMAL_STILL",
+    "cond_cap": false,
+    "cond_still": true,
+    "after_s": 2.0,
+    "decide_mono": 332462.656,
+    "decide_wall": 1791918687.326,
+    "finished_first_mono": 332459.656,
+    "still_since_mono": 332460.656,
+    "still_resets": [],
+    "speed_in": 0.27,
+    "tel_age_s": 0.031,
+    "fresh": true,
+    "poll_s": 0.5,
+    "lock_mono": 332462.656,
+    "disarm_req_mono": 332462.656,
+    "disarm_call": "OK",
+    "disarm_ret_mono": 332462.656,
+    "disarmed_seen_mono": 332463.078
+   },
+   "e2_3": {
+    "3b_t": 80.113,
+    "slow_until_t": 82.813,
+    "fin": 79.57,
+    "disarm": 82.83,
+    "gap": 0.054000000000002046,
+    "align": [
+     -8.664,
+     0.29
+    ],
+    "gz_stop_to_disarm_record": 2.717
+   },
+   "run_id_match": true,
+   "stop_events": [
+    {
+     "sim_time_s": 78.91,
+     "event": "STOP_CONFIRMED",
+     "task_id": "RT1-20261014_041105",
+     "basis": "PLANNED_ROUTE",
+     "v0_mps": 9.25,
+     "travel_m": 31.2,
+     "allow_m": 57.1,
+     "time_s": 8.3,
+     "cut_drive": false,
+     "cut_attempts": 0,
+     "exceeded_allow": false
+    }
+   ],
+   "hold": {
+    "confirm_sim_t": 89.777,
+    "drift_m": 0.0,
+    "observed_s": 30.0
+   },
+   "yaw_change_hold_deg": 0.0,
+   "off_min_m": 40.6,
+   "limits": [
+    "seq 경유점 누락 미확인",
+    "Gazebo 속도 0.2 s 창",
+    "정렬 rms 는 시각 불확실성 아님"
+   ],
+   "status": "PASS"
+  },
+  {
+   "tag": "s5_on_s3113_downabort_c",
+   "case": "s3113",
+   "arm": "ON",
+   "checks": {
+    "1_f1_cap_applied": true,
+    "2_no_overspeed_decel_le_1s": true,
+    "0a_no_fault_cut_notconfirmed": true,
+    "0b_start_item_0": true,
+    "0c_cap_not_crawl": true,
+    "0d_sup_margin_ge_3s": true,
+    "3a_px4_setpoint0": true,
+    "3b": true,
+    "3c": true,
+    "3d_server_policy": true,
+    "3e_no_runaway_no_cutdrive": true,
+    "4_inside_hold_yaw": true,
+    "5_stop_distance": true
+   },
+   "validity": {
+    "rc": {
+     "tag": "s5_on_s3113_downabort_c",
+     "test_rc": 0,
+     "copy_logs_rc": 0,
+     "stop_post_rc": "0",
+     "invalid_stop": false,
+     "time": "2026-10-14T04:21:02+09:00"
+    },
+    "markers": []
+   },
+   "stop_path_event": {
+    "sim_time_s": 70.52,
+    "timestamp": "2026-10-13T19:18:48.678383+00:00",
+    "event": "STOP_PATH",
+    "resource_id": "A-ugv1",
+    "task_id": "RT1-20261014_041836",
+    "stop_items_ramp": {
+     "spacing_m": 8.0,
+     "n_items": 4,
+     "removed_near_end": 0,
+     "end_v_orig": 1.08,
+     "end_v": 3.99,
+     "first_v": 8.66,
+     "length_m": 33.3
+    },
+    "basis": "PLANNED_ROUTE",
+    "length_m": 33.3,
+    "needed_m": 33.3,
+    "short": false,
+    "speed_mps": 9.21,
+    "drivable": true,
+    "steering_violations": 0,
+    "body_violations": 0,
+    "worst_excess_m": -2.844,
+    "speed_cap_first": {
+     "v": 8.66,
+     "ok": true,
+     "ack_s": 0.0,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "timing": {
+     "t_enter": 70.485,
+     "t_upload_start": 70.485,
+     "upload_s": 0.031,
+     "start_item": 0,
+     "items_sent": [
+      [
+       3699.46,
+       5741.55,
+       8.66
+      ],
+      [
+       3707.0,
+       5747.89,
+       6.74
+      ],
+      [
+       3714.55,
+       5754.23,
+       3.99
+      ],
+      [
+       3718.63,
+       5757.65,
+       3.99
+      ]
+     ]
+    },
+    "problems": []
+   },
+   "abort": {
+    "speed_at_cmd_mps": 9.0,
+    "stopped": true,
+    "stop_time_s": 6.7,
+    "stop_distance_m": 32.3,
+    "min_forward_m": 0.0,
+    "moved_after_stop_m": 0.0,
+    "went_backward_or_uturn": false
+   },
+   "phase_split_m": {
+    "speed_at_cmd_gz_mps": 9.1,
+    "cmd_to_decel_start": 0.96,
+    "decel_to_below_1mps": 29.74,
+    "below_1mps_to_stop": 0.1,
+    "total_gz": 30.81,
+    "cmd_to_decel_s": 0.11,
+    "mean_decel_mps2": 1.28,
+    "grade_at_trigger": -0.0405,
+    "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+   },
+   "judge3": {
+    "arrived": false,
+    "inside": true,
+    "outside_max_m": -2.8,
+    "stop": "확인",
+    "final_pass": false
+   },
+   "stop_distance_m": 32.3,
+   "planned_needed_m": 33.3,
+   "f1": {
+    "cap": {
+     "v": 8.66,
+     "ok": true,
+     "ack_s": 0.0,
+     "basis": "업로드 전 min(지금 속도, 첫 구간 계획 속도) — Fable R1/F1"
+    },
+    "first_triplet_cruise": 8.66
+   },
+   "cmd": {
+    "sim_t": 82.084,
+    "wall_match_err_s": 0.003,
+    "v_cmd_gz": 9.194073693618584,
+    "vmax_after": 9.194073693618584,
+    "cmd_to_decel_s": 0.11
+   },
+   "safety_events": [],
+   "timing": {
+    "t_enter": 70.485,
+    "t_upload_start": 70.485,
+    "upload_s": 0.031,
+    "start_item": 0
+   },
+   "stop_items_ramp": {
+    "spacing_m": 8.0,
+    "n_items": 4,
+    "removed_near_end": 0,
+    "end_v_orig": 1.08,
+    "end_v": 3.99,
+    "first_v": 8.66,
+    "length_m": 33.3
+   },
+   "sup": {
+    "begin": {
+     "t0": 70.516,
+     "t_allow_s": 12.23,
+     "allow_m": 56.7,
+     "reach_m": 33.3,
+     "v0": 9.21,
+     "lat_s": 1.0
+    },
+    "confirmed": {
+     "time_s": 8.4,
+     "travel_m": 31.0,
+     "allow_m": 56.7,
+     "cut_drive": false
+    }
+   },
+   "park_server": {
+    "mission_seq": 2,
+    "run_id": "s5_on_s3113_downabort_c",
+    "reason": "NORMAL_STILL",
+    "cond_cap": false,
+    "cond_still": true,
+    "after_s": 2.0,
+    "decide_mono": 332913.375,
+    "decide_wall": 1791919138.061,
+    "finished_first_mono": 332910.39,
+    "still_since_mono": 332911.375,
+    "still_resets": [
+     {
+      "t": 332910.875,
+      "speed": 0.419,
+      "fresh": true
+     }
+    ],
+    "speed_in": 0.27,
+    "tel_age_s": 0.016,
+    "fresh": true,
+    "poll_s": 0.5,
+    "lock_mono": 332913.375,
+    "disarm_req_mono": 332913.375,
+    "disarm_call": "OK",
+    "disarm_ret_mono": 332913.375,
+    "disarmed_seen_mono": 332913.812
+   },
+   "e2_3": {
+    "3b_t": 80.087,
+    "slow_until_t": 82.949,
+    "fin": 79.63,
+    "disarm": 82.986,
+    "gap": 0.054000000000002046,
+    "align": [
+     -8.504,
+     0.269
+    ],
+    "gz_stop_to_disarm_record": 2.899
+   },
+   "run_id_match": true,
+   "stop_events": [
+    {
+     "sim_time_s": 78.91,
+     "event": "STOP_CONFIRMED",
+     "task_id": "RT1-20261014_041836",
+     "basis": "PLANNED_ROUTE",
+     "v0_mps": 9.21,
+     "travel_m": 31.0,
+     "allow_m": 56.7,
+     "time_s": 8.4,
+     "cut_drive": false,
+     "cut_attempts": 0,
+     "exceeded_allow": false
+    }
+   ],
+   "hold": {
+    "confirm_sim_t": 89.591,
+    "drift_m": 0.0,
+    "observed_s": 30.0
+   },
+   "yaw_change_hold_deg": 0.0,
+   "off_min_m": 40.6,
+   "limits": [
+    "seq 경유점 누락 미확인",
+    "Gazebo 속도 0.2 s 창",
+    "정렬 rms 는 시각 불확실성 아님"
+   ],
+   "status": "PASS"
+  }
+ ]
+}

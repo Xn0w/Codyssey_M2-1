@@ -1,0 +1,373 @@
+[
+ {
+  "tag": "s5_on_s0547_downabort_a",
+  "judge3": {
+   "arrived": false,
+   "inside": true,
+   "outside_max_m": -2.6,
+   "stop": "확인",
+   "final_pass": false
+  },
+  "abort": {
+   "speed_at_cmd_mps": 9.11,
+   "stopped": true,
+   "stop_time_s": 6.64,
+   "stop_distance_m": 33.0,
+   "min_forward_m": 0.0,
+   "moved_after_stop_m": 0.0,
+   "went_backward_or_uturn": false
+  },
+  "stop_path": {
+   "basis": "PLANNED_ROUTE",
+   "needed_m": 34.2,
+   "length_m": 34.2,
+   "speed_mps": 9.36,
+   "drivable": true
+  },
+  "downhill_trigger": {
+   "grade": -0.0552,
+   "speed_mps": 9.05,
+   "window_m": 43.8,
+   "z0": 288.26,
+   "z1": 285.85
+  },
+  "flat_ref_ratio": 0.981,
+  "downhill_ratio": 0.965,
+  "phase_split_m": {
+   "speed_at_cmd_gz_mps": 9.25,
+   "cmd_to_decel_start": 0.98,
+   "decel_to_below_1mps": 30.42,
+   "below_1mps_to_stop": 0.11,
+   "total_gz": 31.52,
+   "cmd_to_decel_s": 0.11,
+   "mean_decel_mps2": 1.31,
+   "grade_at_trigger": -0.0552,
+   "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+  },
+  "checks": {
+   "downhill_brake_le_flat_x1.3": true,
+   "inside": true,
+   "stopped_no_remotion": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ },
+ {
+  "tag": "s5_on_s0547_downabort_b",
+  "judge3": {
+   "arrived": false,
+   "inside": true,
+   "outside_max_m": -2.58,
+   "stop": "확인",
+   "final_pass": false
+  },
+  "abort": {
+   "speed_at_cmd_mps": 9.15,
+   "stopped": true,
+   "stop_time_s": 6.53,
+   "stop_distance_m": 34.2,
+   "min_forward_m": 0.0,
+   "moved_after_stop_m": 0.0,
+   "went_backward_or_uturn": false
+  },
+  "stop_path": {
+   "basis": "PLANNED_ROUTE",
+   "needed_m": 34.9,
+   "length_m": 34.9,
+   "speed_mps": 9.48,
+   "drivable": true
+  },
+  "downhill_trigger": {
+   "grade": -0.0552,
+   "speed_mps": 9.22,
+   "window_m": 43.8,
+   "z0": 288.26,
+   "z1": 285.85
+  },
+  "flat_ref_ratio": 0.981,
+  "downhill_ratio": 0.98,
+  "phase_split_m": {
+   "speed_at_cmd_gz_mps": 9.31,
+   "cmd_to_decel_start": 0.99,
+   "decel_to_below_1mps": 31.62,
+   "below_1mps_to_stop": 0.1,
+   "total_gz": 32.71,
+   "cmd_to_decel_s": 0.11,
+   "mean_decel_mps2": 1.35,
+   "grade_at_trigger": -0.0552,
+   "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+  },
+  "checks": {
+   "downhill_brake_le_flat_x1.3": true,
+   "inside": true,
+   "stopped_no_remotion": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ },
+ {
+  "tag": "s5_on_s0547_downabort_c",
+  "judge3": {
+   "arrived": false,
+   "inside": true,
+   "outside_max_m": -2.61,
+   "stop": "확인",
+   "final_pass": false
+  },
+  "abort": {
+   "speed_at_cmd_mps": 9.13,
+   "stopped": true,
+   "stop_time_s": 6.48,
+   "stop_distance_m": 34.6,
+   "min_forward_m": 0.0,
+   "moved_after_stop_m": 0.0,
+   "went_backward_or_uturn": false
+  },
+  "stop_path": {
+   "basis": "PLANNED_ROUTE",
+   "needed_m": 35.2,
+   "length_m": 35.2,
+   "speed_mps": 9.51,
+   "drivable": true
+  },
+  "downhill_trigger": {
+   "grade": -0.0552,
+   "speed_mps": 9.19,
+   "window_m": 43.8,
+   "z0": 288.26,
+   "z1": 285.85
+  },
+  "flat_ref_ratio": 0.981,
+  "downhill_ratio": 0.983,
+  "phase_split_m": {
+   "speed_at_cmd_gz_mps": 9.24,
+   "cmd_to_decel_start": 0.98,
+   "decel_to_below_1mps": 32.05,
+   "below_1mps_to_stop": 0.09,
+   "total_gz": 33.11,
+   "cmd_to_decel_s": 0.11,
+   "mean_decel_mps2": 1.34,
+   "grade_at_trigger": -0.0552,
+   "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+  },
+  "checks": {
+   "downhill_brake_le_flat_x1.3": true,
+   "inside": true,
+   "stopped_no_remotion": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ },
+ {
+  "tag": "s5_on_s3113_downabort_a",
+  "judge3": {
+   "arrived": false,
+   "inside": true,
+   "outside_max_m": -2.76,
+   "stop": "확인",
+   "final_pass": false
+  },
+  "abort": {
+   "speed_at_cmd_mps": 9.02,
+   "stopped": true,
+   "stop_time_s": 6.64,
+   "stop_distance_m": 32.3,
+   "min_forward_m": 0.0,
+   "moved_after_stop_m": 0.0,
+   "went_backward_or_uturn": false
+  },
+  "stop_path": {
+   "basis": "PLANNED_ROUTE",
+   "needed_m": 33.4,
+   "length_m": 33.4,
+   "speed_mps": 9.23,
+   "drivable": true
+  },
+  "downhill_trigger": {
+   "grade": -0.0405,
+   "speed_mps": 8.97,
+   "window_m": 44.3,
+   "z0": 204.39,
+   "z1": 202.6
+  },
+  "flat_ref_ratio": 0.981,
+  "downhill_ratio": 0.967,
+  "phase_split_m": {
+   "speed_at_cmd_gz_mps": 9.12,
+   "cmd_to_decel_start": 0.97,
+   "decel_to_below_1mps": 29.74,
+   "below_1mps_to_stop": 0.12,
+   "total_gz": 30.82,
+   "cmd_to_decel_s": 0.11,
+   "mean_decel_mps2": 1.28,
+   "grade_at_trigger": -0.0405,
+   "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+  },
+  "checks": {
+   "downhill_brake_le_flat_x1.3": true,
+   "inside": true,
+   "stopped_no_remotion": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ },
+ {
+  "tag": "s5_on_s3113_downabort_a2",
+  "judge3": {
+   "arrived": false,
+   "inside": true,
+   "outside_max_m": -2.82,
+   "stop": "확인",
+   "final_pass": false
+  },
+  "abort": {
+   "speed_at_cmd_mps": 8.93,
+   "stopped": true,
+   "stop_time_s": 6.75,
+   "stop_distance_m": 32.4,
+   "min_forward_m": 0.0,
+   "moved_after_stop_m": 0.0,
+   "went_backward_or_uturn": false
+  },
+  "stop_path": {
+   "basis": "PLANNED_ROUTE",
+   "needed_m": 33.1,
+   "length_m": 33.1,
+   "speed_mps": 9.18,
+   "drivable": true
+  },
+  "downhill_trigger": {
+   "grade": -0.0405,
+   "speed_mps": 8.91,
+   "window_m": 44.3,
+   "z0": 204.39,
+   "z1": 202.6
+  },
+  "flat_ref_ratio": 0.981,
+  "downhill_ratio": 0.979,
+  "phase_split_m": {
+   "speed_at_cmd_gz_mps": 9.13,
+   "cmd_to_decel_start": 1.44,
+   "decel_to_below_1mps": 29.42,
+   "below_1mps_to_stop": 0.08,
+   "total_gz": 30.94,
+   "cmd_to_decel_s": 0.16,
+   "mean_decel_mps2": 1.27,
+   "grade_at_trigger": -0.0405,
+   "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+  },
+  "checks": {
+   "downhill_brake_le_flat_x1.3": true,
+   "inside": true,
+   "stopped_no_remotion": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ },
+ {
+  "tag": "s5_on_s3113_downabort_b",
+  "judge3": {
+   "arrived": false,
+   "inside": true,
+   "outside_max_m": -2.8,
+   "stop": "확인",
+   "final_pass": false
+  },
+  "abort": {
+   "speed_at_cmd_mps": 8.91,
+   "stopped": true,
+   "stop_time_s": 6.7,
+   "stop_distance_m": 32.7,
+   "min_forward_m": 0.0,
+   "moved_after_stop_m": 0.0,
+   "went_backward_or_uturn": false
+  },
+  "stop_path": {
+   "basis": "PLANNED_ROUTE",
+   "needed_m": 33.5,
+   "length_m": 33.5,
+   "speed_mps": 9.25,
+   "drivable": true
+  },
+  "downhill_trigger": {
+   "grade": -0.0405,
+   "speed_mps": 9.03,
+   "window_m": 44.3,
+   "z0": 204.39,
+   "z1": 202.6
+  },
+  "flat_ref_ratio": 0.981,
+  "downhill_ratio": 0.976,
+  "phase_split_m": {
+   "speed_at_cmd_gz_mps": 9.02,
+   "cmd_to_decel_start": 1.42,
+   "decel_to_below_1mps": 29.71,
+   "below_1mps_to_stop": 0.12,
+   "total_gz": 31.25,
+   "cmd_to_decel_s": 0.16,
+   "mean_decel_mps2": 1.26,
+   "grade_at_trigger": -0.0405,
+   "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+  },
+  "checks": {
+   "downhill_brake_le_flat_x1.3": true,
+   "inside": true,
+   "stopped_no_remotion": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ },
+ {
+  "tag": "s5_on_s3113_downabort_c",
+  "judge3": {
+   "arrived": false,
+   "inside": true,
+   "outside_max_m": -2.8,
+   "stop": "확인",
+   "final_pass": false
+  },
+  "abort": {
+   "speed_at_cmd_mps": 9.0,
+   "stopped": true,
+   "stop_time_s": 6.7,
+   "stop_distance_m": 32.3,
+   "min_forward_m": 0.0,
+   "moved_after_stop_m": 0.0,
+   "went_backward_or_uturn": false
+  },
+  "stop_path": {
+   "basis": "PLANNED_ROUTE",
+   "needed_m": 33.3,
+   "length_m": 33.3,
+   "speed_mps": 9.21,
+   "drivable": true
+  },
+  "downhill_trigger": {
+   "grade": -0.0405,
+   "speed_mps": 8.97,
+   "window_m": 44.3,
+   "z0": 204.39,
+   "z1": 202.6
+  },
+  "flat_ref_ratio": 0.981,
+  "downhill_ratio": 0.97,
+  "phase_split_m": {
+   "speed_at_cmd_gz_mps": 9.1,
+   "cmd_to_decel_start": 0.96,
+   "decel_to_below_1mps": 29.74,
+   "below_1mps_to_stop": 0.1,
+   "total_gz": 30.81,
+   "cmd_to_decel_s": 0.11,
+   "mean_decel_mps2": 1.28,
+   "grade_at_trigger": -0.0405,
+   "basis": "STOP_PATH 이벤트 wall ↔ CSV wall_t, Gazebo 속도(0.2 s 창). 마지막 구간은 PX4 미션 끝 뒤 진행 포함(근사)"
+  },
+  "checks": {
+   "downhill_brake_le_flat_x1.3": true,
+   "inside": true,
+   "stopped_no_remotion": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ }
+]
