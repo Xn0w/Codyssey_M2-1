@@ -1,0 +1,93 @@
+{
+ "ulg": "/home/geumsoni/.adair-ugv/px4-3/log/2026-10-13/20_51_35.ulg",
+ "ulg_sha1": "caaa8976ed833e19d40296797c097a6481d30160",
+ "gzrec": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/diag7/gzrec_d7_slope_s0547_a",
+ "fin_s": 91.772,
+ "gz_imu_step_s": 0.004,
+ "attitude_source": "gz pose/info 모델 자세 (PX4 vehicle_attitude_groundtruth 와 진단 7 에서 값 일치 확인)",
+ "sign": "E = IMU Δv − truth Δv, 음수 = 과대 감속",
+ "bridge": {
+  "gz_range": [
+   69.656,
+   218.18
+  ],
+  "px4_range": [
+   8.776,
+   95.544
+  ],
+  "overlap": {
+   "window": [
+    69.656,
+    95.544
+   ],
+   "gz_samples": 6473,
+   "px4_samples": 6472,
+   "matched": 6472,
+   "max_stamp_err_s": 1.4210854715202004e-14,
+   "max_value_err": 5.446777343820486e-06,
+   "frac_value_err_lt_1e-4": 1.0
+  },
+  "W1": {
+   "window": [
+    89.272,
+    91.722
+   ],
+   "gz_samples": 613,
+   "px4_samples": 613,
+   "matched": 613,
+   "max_stamp_err_s": 1.4210854715202004e-14,
+   "max_value_err": 5.406799315821331e-06,
+   "frac_value_err_lt_1e-4": 1.0
+  },
+  "static": {
+   "window": [
+    92.572,
+    94.272
+   ],
+   "gz_samples": 425,
+   "px4_samples": 426,
+   "matched": 426,
+   "max_stamp_err_s": 1.4210854715202004e-14,
+   "max_value_err": 5.334167481052532e-06,
+   "frac_value_err_lt_1e-4": 1.0
+  },
+  "note": "중첩 밖 표본은 비교 불가 (PX4 로그가 gz 기록보다 늦게 시작·일찍 끝남) — 핵심 구간 대응만 결론에 사용"
+ },
+ "E": {
+  "static": {
+   "dv_imu": -0.0024,
+   "dv_truth": 0.0002,
+   "E": -0.0026,
+   "n": 425
+  },
+  "cruise": {
+   "dv_imu": -2.1914,
+   "dv_truth": -2.3781,
+   "E": 0.1867,
+   "n": 500
+  },
+  "W1": {
+   "dv_imu": -3.1,
+   "dv_truth": -3.2191,
+   "E": 0.1191,
+   "n": 613
+  }
+ },
+ "phase20ms_W1": {
+  "slots": 5,
+  "mean_fwd_acc": [
+   -2.678,
+   -0.051,
+   -0.046,
+   -3.471,
+   -0.055
+  ],
+  "dv_contrib": [
+   -1.3176,
+   -0.025,
+   -0.0224,
+   -1.7077,
+   -0.0273
+  ]
+ }
+}

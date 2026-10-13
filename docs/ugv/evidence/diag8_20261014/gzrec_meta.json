@@ -1,0 +1,23 @@
+{
+ "topics": {
+  "imu": "/world/kangwon_flat/model/adair_ugv_3/link/base_link/sensor/imu_sensor/imu",
+  "pose": "/world/kangwon_flat/pose/info",
+  "joint": "/world/kangwon_flat/model/adair_ugv_3/joint_state",
+  "cmd": "/model/adair_ugv_3/command/motor_speed"
+ },
+ "subscribed": {
+  "imu": true,
+  "pose": true,
+  "joint": true,
+  "cmd": true
+ },
+ "count": {
+  "imu": 74014,
+  "pose": 8224,
+  "joint": 74015,
+  "cmd": 4401
+ },
+ "start_wall": 1791925563.289435,
+ "end_wall": 1791925711.3307393,
+ "partition": "adair_ugv"
+}

@@ -1,0 +1,4 @@
+c706beffc24e1db30e3eb0cffdc79fcb2bd82603 *gzrec_d8_flat500_s0547_a/cmd.csv
+778f82392bf110e35000bffa299cfcf5da0be877 *gzrec_d8_flat500_s0547_a/imu.csv
+cebc5d751cec964d275e476f7669a1c63099d9b8 *gzrec_d8_flat500_s0547_a/joint.csv
+35cee7fed6fb9c018bfbd671f5365e36f31c3314 *gzrec_d8_flat500_s0547_a/pose.csv
