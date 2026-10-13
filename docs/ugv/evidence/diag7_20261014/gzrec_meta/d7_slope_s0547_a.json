@@ -1,0 +1,23 @@
+{
+ "topics": {
+  "imu": "/world/wj495731_0574_0583/model/adair_ugv_3/link/base_link/sensor/imu_sensor/imu",
+  "pose": "/world/wj495731_0574_0583/pose/info",
+  "joint": "/world/wj495731_0574_0583/model/adair_ugv_3/joint_state",
+  "cmd": "/model/adair_ugv_3/command/motor_speed"
+ },
+ "subscribed": {
+  "imu": true,
+  "pose": true,
+  "joint": true,
+  "cmd": true
+ },
+ "count": {
+  "imu": 37132,
+  "pose": 8251,
+  "joint": 74264,
+  "cmd": 4442
+ },
+ "start_wall": 1791924756.9271998,
+ "end_wall": 1791924905.4692566,
+ "partition": "adair_ugv"
+}

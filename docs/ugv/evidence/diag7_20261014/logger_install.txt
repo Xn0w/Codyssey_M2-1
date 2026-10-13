@@ -1,0 +1,2 @@
+efb629285f9ae8e6511eea6ebb30f9ac923a5a34  /home/geumsoni/PX4-Autopilot/build/px4_sitl_default/etc/logging/logger_topics.txt
+ls: cannot access '/home/geumsoni/PX4-Autopilot/build/px4_sitl_default/etc/logging': No such file or directory

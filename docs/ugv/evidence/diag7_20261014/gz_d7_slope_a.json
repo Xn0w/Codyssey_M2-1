@@ -1,0 +1,63 @@
+{
+ "ulg": "/home/geumsoni/.adair-ugv/px4-3/log/2026-10-13/20_51_35.ulg",
+ "gzrec": "/mnt/c/Users/\uc218\ub2e4\uc7c1\uc774\uace0\uc591\uc774\ub4e4/Documents/GitHub/ADAIR/logs/ugv/stage6/diag7/gzrec_d7_slope_s0547_a",
+ "rates": {
+  "gz_imu": {
+   "median_ms": 4.0,
+   "max_ms": 4.0,
+   "n": 37132,
+   "monotonic": true
+  },
+  "gz_pose": {
+   "median_ms": 18.0,
+   "max_ms": 18.0,
+   "n": 8251,
+   "monotonic": true
+  },
+  "gz_joint_msgs": {
+   "median_ms": 2.0,
+   "max_ms": 2.0,
+   "n": 74263,
+   "monotonic": true
+  },
+  "gz_cmd_wall": {
+   "median_ms": 49.826,
+   "max_ms": 108.638,
+   "n": 4442,
+   "monotonic": true
+  },
+  "px4_sensor_accel": {
+   "median_ms": 4.0,
+   "max_ms": 4.0,
+   "n": 21693,
+   "monotonic": true
+  }
+ },
+ "cmd_stamp_zero_frac": 1.0,
+ "bridge": {
+  "offset_hrt_minus_sim_s": 0.0,
+  "matched_px4_frac": 0.2984,
+  "abs_err_x_max": 5.388793946181636e-06,
+  "abs_err_y_max": 5.000209808314615e-06,
+  "abs_err_z_max": 5.446777343820486e-06,
+  "frac_exact_xyz_1e-4": 1.0,
+  "frame_assumed": "PX4 FRD x = gz x, y = \u2212gz y, z = \u2212gz z",
+  "method": "4 ms \uaca9\uc790 \ud0a4 \uc815\ud655 \uc77c\uce58"
+ },
+ "fin_hrt_s": 91.772,
+ "fin_sim_s": 91.772,
+ "gz_W1": {
+  "window_sim": [
+   89.272,
+   91.722
+  ],
+  "dv_imu_world_fwd": 2.2374,
+  "dv_pose_diff_fwd": -3.2191,
+  "E_gz_imu_minus_gz_pose": 5.4565,
+  "n_imu": 613,
+  "pose_rate_note": "pose \u2248 55 Hz \ucc28\ubd84 \u2014 \ub204\uc801 \u0394v \ube44\uad50\ub9cc",
+  "imu_q_source": "gz IMU orientation \ud544\ub4dc (\uc13c\uc11c \uae30\uc900 \uc790\uc138)"
+ },
+ "gz_static_fwd_acc_mean": 0.0006,
+ "wheel_vel_W1_mean": 9.253
+}
