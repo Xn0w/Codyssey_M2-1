@@ -1,0 +1,15 @@
+run_id auto_hook_suite
+start 2026-10-14T00:48:59+09:00
+tree /c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR_wt_hook HEAD 17a7305e8b5a7c9a7d362f1b19cbd99d48e8668d dirty_ugv 0
+python C:\Users\�������̰����̵�\Documents\GitHub\ADAIR\.venv\Scripts\python.exe 3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]
+venv_cfg
+home = C:\Users\수다쟁이고양이들\.cache\codex-runtimes\codex-primary-runtime\dependencies\python
+include-system-site-packages = false
+version = 3.12.14
+executable = C:\Users\수다쟁이고양이들\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe
+command = C:\Users\수다쟁이고양이들\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m venv C:\Users\수다쟁이고양이들\Documents\GitHub\ADAIR\.venv
+extra_env 
+cmd env  ../ADAIR/.venv/Scripts/python.exe -X faulthandler -m pytest -q ugv/tests
+end 2026-10-14T01:06:17+09:00
+elapsed_s 1037
+rc 0

@@ -1,0 +1,181 @@
+[
+ {
+  "tag": "e3acc_s1096_down_a",
+  "kind": "acc3",
+  "checks": {
+   "1_evidence": false,
+   "8_arrived_to_dest_le_1m": false,
+   "2_service_dest_le_1m": false,
+   "4_judge3": false,
+   "5_hold_le_0.1m_30s": false,
+   "3_seq_complete_monotonic": true,
+   "6_px4_self_stop": true,
+   "7b": true,
+   "7c": false,
+   "7d": false,
+   "7e_no_runaway": true
+  },
+  "wrapper_rc": null,
+  "end_extension": null,
+  "driver_evidence": {},
+  "arrived_to_dest_m": 2.9,
+  "final_stop_to_service_dest_m": 2.755,
+  "judge3": {},
+  "hold": {},
+  "ulog": {
+   "params": {
+    "MAV_SYS_ID": 4,
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0
+   },
+   "seq_total": 30,
+   "seq_reached": [
+    -1,
+    1,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    15,
+    17,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29
+   ],
+   "finished_t": 60.096,
+   "speed_sp_zero_after_finished_t": 60.086,
+   "disarm_t": 61.314,
+   "cmd400_t": [
+    61.308
+   ],
+   "acceptance_radius_values": [
+    3.0
+   ]
+  },
+  "seq_missing": [
+   2,
+   4,
+   6,
+   8,
+   10,
+   12,
+   14,
+   16,
+   18,
+   20,
+   22,
+   24,
+   26,
+   28
+  ],
+  "align": {
+   "offset_s": -8.534,
+   "rms_mps": 0.208
+  },
+  "e2_3": {
+   "3b_t": 60.416999999999994,
+   "slow_run_until_t": 61.281,
+   "disarm_t": 61.314,
+   "after_s": 1.0,
+   "disarm_minus_3b": 0.897,
+   "disarm_minus_finished": 1.218,
+   "gz_speed_at_disarm": 0.0,
+   "runaway": false
+  },
+  "status": "FAIL"
+ },
+ {
+  "tag": "e3base_s1096_down_a",
+  "kind": "raoff",
+  "checks": {
+   "1_evidence": false,
+   "8_arrived_to_dest_le_1m": true,
+   "2_service_dest_le_1m": true,
+   "4_judge3": false,
+   "5_hold_le_0.1m_30s": false,
+   "3_seq_complete_monotonic": true
+  },
+  "wrapper_rc": null,
+  "end_extension": null,
+  "driver_evidence": {},
+  "arrived_to_dest_m": 0.2,
+  "final_stop_to_service_dest_m": 0.029,
+  "judge3": {},
+  "hold": {},
+  "ulog": {
+   "params": {
+    "MAV_SYS_ID": 4,
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": -1.0
+   },
+   "seq_total": 30,
+   "seq_reached": [
+    -1,
+    1,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    15,
+    17,
+    18,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29
+   ],
+   "finished_t": 60.52,
+   "speed_sp_zero_after_finished_t": null,
+   "disarm_t": 64.528,
+   "cmd400_t": [
+    64.524
+   ],
+   "acceptance_radius_values": null
+  },
+  "seq_missing": [
+   2,
+   4,
+   6,
+   8,
+   10,
+   12,
+   14,
+   16,
+   20,
+   22,
+   24,
+   26,
+   28
+  ],
+  "align": {
+   "offset_s": -8.39,
+   "rms_mps": 0.15
+  },
+  "e2_3": {
+   "3b_t": null,
+   "slow_run_until_t": null,
+   "disarm_t": 64.528,
+   "after_s": 1.0,
+   "disarm_minus_3b": null,
+   "disarm_minus_finished": 4.008,
+   "gz_speed_at_disarm": 0.14987166181273356,
+   "runaway": false
+  },
+  "e2_3_record_only": {
+   "7b": false,
+   "7c": false,
+   "7d": false,
+   "7e_no_runaway": true
+  },
+  "status": "FAIL"
+ }
+]
