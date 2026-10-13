@@ -1,0 +1,36 @@
+s0547_a  brake[-2.5,-0.05]  IMU(true att) dv= -2.83  truth dv= -3.16  excess=  0.33 m/s over 2.5s (=  0.14 m/s2); pitch_truth  -3.26 deg, dpitch start/end  0.44/ 0.51, mean gnss_innov  0.017, mean err lpos -0.110, states err  0.070
+s0547_a  cruise[-4,-2.6]    IMU(true att) dv= -1.29  truth dv= -1.25  excess= -0.04 m/s over 1.4s (= -0.03 m/s2); pitch_truth  -3.24 deg, dpitch start/end  0.39/ 0.44, mean gnss_innov  0.050, mean err lpos -0.042, states err  0.087
+s0547_a  shock[0,0.6]       IMU(true att) dv= -1.74  truth dv= -1.64  excess= -0.10 m/s over 0.6s (= -0.16 m/s2); pitch_truth  -3.37 deg, dpitch start/end  0.51/ 0.56, mean gnss_innov  0.095, mean err lpos -0.230, states err  0.205
+   truth v at fin 1.61, ekf lpos 1.44, states 1.68, dpitch 0.51
+   best shift states~truth(t-0.05) rss 0.176; lpos~truth(t+0.10) rss 0.223  [+ = EKF ahead]
+   post: v(0.7)=-0.322, min -0.324@0.8, max -0.083@3.2, dpitch@max -0.00 -> g*sin=0.000 m/s2, eq(tau1.8)=0.00, innov@max -0.111, ab_x@max 0.0129, zc [0.35]
+   decay: v(1.5)=-0.261 -> tau=3.81 s
+   decay: v(2.5)=-0.142 -> tau=2.20 s
+   decay: v(3.0)=-0.098 -> tau=1.93 s
+s0547_b  brake[-2.5,-0.05]  IMU(true att) dv= -4.16  truth dv= -3.23  excess= -0.94 m/s over 2.5s (= -0.38 m/s2); pitch_truth  -3.27 deg, dpitch start/end  0.46/-0.59, mean gnss_innov -0.351, mean err lpos -0.615, states err -0.305
+s0547_b  cruise[-4,-2.6]    IMU(true att) dv= -0.96  truth dv= -0.93  excess= -0.02 m/s over 1.4s (= -0.02 m/s2); pitch_truth  -3.22 deg, dpitch start/end  0.57/ 0.45, mean gnss_innov -0.056, mean err lpos -0.156, states err -0.033
+s0547_b  shock[0,0.6]       IMU(true att) dv= -2.18  truth dv= -2.12  excess= -0.06 m/s over 0.6s (= -0.10 m/s2); pitch_truth  -3.43 deg, dpitch start/end -0.63/-0.82, mean gnss_innov -0.176, mean err lpos -0.572, states err -0.047
+   truth v at fin 2.14, ekf lpos 1.42, states 1.73, dpitch -0.63
+   best shift states~truth(t+0.20) rss 0.715; lpos~truth(t+0.40) rss 1.825  [+ = EKF ahead]
+   post: v(0.7)=-0.425, min -0.425@0.7, max 0.285@3.4, dpitch@max -0.98 -> g*sin=0.168 m/s2, eq(tau1.8)=0.30, innov@max 0.205, ab_x@max -0.0402, zc [0.4, 1.75]
+s0547_c  brake[-2.5,-0.05]  IMU(true att) dv= -4.57  truth dv= -3.34  excess= -1.24 m/s over 2.5s (= -0.50 m/s2); pitch_truth  -3.27 deg, dpitch start/end  0.38/-0.99, mean gnss_innov -0.453, mean err lpos -0.741, states err -0.397
+s0547_c  cruise[-4,-2.6]    IMU(true att) dv= -1.06  truth dv= -0.84  excess= -0.21 m/s over 1.4s (= -0.15 m/s2); pitch_truth  -3.22 deg, dpitch start/end  0.55/ 0.39, mean gnss_innov -0.104, mean err lpos -0.210, states err -0.075
+s0547_c  shock[0,0.6]       IMU(true att) dv= -2.22  truth dv= -2.15  excess= -0.07 m/s over 0.6s (= -0.11 m/s2); pitch_truth  -3.44 deg, dpitch start/end -1.02/-1.25, mean gnss_innov -0.241, mean err lpos -0.632, states err -0.094
+   truth v at fin 2.12, ekf lpos 1.31, states 1.70, dpitch -1.02
+   best shift states~truth(t+0.25) rss 1.026; lpos~truth(t+0.40) rss 3.157  [+ = EKF ahead]
+   post: v(0.7)=-0.443, min -0.443@0.7, max 0.432@3.75, dpitch@max -1.25 -> g*sin=0.214 m/s2, eq(tau1.8)=0.38, innov@max 0.313, ab_x@max -0.0518, zc [0.4, 1.55]
+s3113_b  brake[-2.5,-0.05]  IMU(true att) dv= -3.18  truth dv= -2.15  excess= -1.03 m/s over 2.5s (= -0.42 m/s2); pitch_truth  -2.25 deg, dpitch start/end  0.42/-0.50, mean gnss_innov -0.306, mean err lpos -0.507, states err -0.275
+s3113_b  cruise[-4,-2.6]    IMU(true att) dv= -2.40  truth dv= -2.40  excess=  0.00 m/s over 1.4s (=  0.00 m/s2); pitch_truth  -2.50 deg, dpitch start/end  0.37/ 0.45, mean gnss_innov  0.015, mean err lpos -0.214, states err  0.064
+s3113_b  shock[0,0.6]       IMU(true att) dv= -2.16  truth dv= -2.15  excess= -0.01 m/s over 0.6s (= -0.02 m/s2); pitch_truth  -2.34 deg, dpitch start/end -0.53/-0.74, mean gnss_innov -0.215, mean err lpos -0.625, states err -0.091
+   truth v at fin 2.12, ekf lpos 1.36, states 1.71, dpitch -0.53
+   best shift states~truth(t+0.25) rss 1.245; lpos~truth(t+0.40) rss 2.759  [+ = EKF ahead]
+   post: v(0.7)=-0.442, min -0.442@0.7, max 0.276@3.2, dpitch@max -1.04 -> g*sin=0.178 m/s2, eq(tau1.8)=0.32, innov@max 0.181, ab_x@max -0.0386, zc [0.4, 1.75]
+e4_acc3  brake[-2.5,-0.05]  IMU(true att) dv= -2.36  truth dv= -2.41  excess=  0.04 m/s over 2.5s (=  0.02 m/s2); pitch_truth  -0.47 deg, dpitch start/end  0.09/ 0.13, mean gnss_innov  0.009, mean err lpos -0.126, states err  0.027
+e4_acc3  cruise[-4,-2.6]    IMU(true att) dv= -2.22  truth dv= -1.98  excess= -0.24 m/s over 1.4s (= -0.17 m/s2); pitch_truth  -0.39 deg, dpitch start/end -0.18/ 0.11, mean gnss_innov  0.127, mean err lpos -0.003, states err  0.183
+e4_acc3  shock[0,0.6]       IMU(true att) dv= -1.79  truth dv= -1.71  excess= -0.09 m/s over 0.6s (= -0.15 m/s2); pitch_truth  -0.66 deg, dpitch start/end  0.13/ 0.26, mean gnss_innov  0.134, mean err lpos -0.180, states err  0.251
+   truth v at fin 1.72, ekf lpos 1.63, states 1.75, dpitch 0.13
+   best shift states~truth(t-0.10) rss 0.430; lpos~truth(t+0.05) rss 0.583  [+ = EKF ahead]
+   post: v(0.7)=-0.263, min -0.265@0.75, max -0.093@2.65, dpitch@max -0.10 -> g*sin=0.017 m/s2, eq(tau1.8)=0.03, innov@max -0.076, ab_x@max 0.0258, zc [0.4]
+   decay: v(1.5)=-0.205 -> tau=3.21 s
+   decay: v(2.5)=-0.107 -> tau=2.00 s
+   decay: v(3.0)=-0.093 -> tau=2.21 s

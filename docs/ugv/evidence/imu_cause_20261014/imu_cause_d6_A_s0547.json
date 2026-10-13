@@ -1,0 +1,730 @@
+{
+ "label": "d6_A_s0547",
+ "ulg": "/home/geumsoni/.adair-ugv/px4-3/log/2026-10-13/20_00_44.ulg",
+ "sha1": "3d8df7dad86318d718fa4876df1fc70e5f2a05e0",
+ "ver_sw": "21fa379fb87b60b644b035aa5d38f683819be4ad",
+ "mode": "acc3",
+ "t_mis": 77.636,
+ "lead_reached": 78.75,
+ "fin": 83.366,
+ "disarm": 87.734,
+ "t_dec": 80.376,
+ "heading_unit_NE": [
+  0.6984,
+  -0.7157
+ ],
+ "params": {
+  "IMU_INTEG_RATE": 250,
+  "IMU_GYRO_RATEMAX": 400,
+  "IMU_ACCEL_CUTOFF": 30.0,
+  "SENS_IMU_MODE": 1,
+  "EKF2_PREDICT_US": 10000,
+  "EKF2_GPS_V_NOISE": 0.30000001192092896,
+  "EKF2_GPS_P_NOISE": 0.5,
+  "EKF2_ACC_NOISE": 0.3499999940395355,
+  "EKF2_ACC_B_NOISE": 0.003000000026077032,
+  "EKF2_ABL_LIM": 0.4000000059604645,
+  "EKF2_ABL_TAU": 0.5,
+  "EKF2_GYR_NOISE": 0.014999999664723873,
+  "EKF2_IMU_POS_X": 0.0,
+  "EKF2_IMU_POS_Y": 0.0,
+  "EKF2_IMU_POS_Z": 0.0,
+  "EKF2_GPS_CTRL": 7,
+  "EKF2_IMU_CTRL": 7,
+  "RA_ACC_RAD_MAX": 3.0,
+  "NAV_ACC_RAD": 3.0,
+  "SYS_AUTOSTART": 51100,
+  "CAL_ACC0_XOFF": 0.0,
+  "CAL_ACC0_XSCALE": 1.0,
+  "CAL_ACC0_PRIO": -1,
+  "SDLOG_PROFILE": 131
+ },
+ "instances": {
+  "estimator_states": [
+   0
+  ],
+  "sensor_accel": [
+   0
+  ],
+  "vehicle_imu": [
+   0
+  ],
+  "sensor_combined": [
+   0
+  ],
+  "vehicle_attitude_groundtruth": [
+   0
+  ]
+ },
+ "rates": {
+  "sensor_accel": {
+   "n": 88,
+   "dt_med_ms": 1000.0,
+   "dt_p99_ms": 1000.0,
+   "dt_max_ms": 1000.0,
+   "ts_minus_sample_med_s": 0.0
+  },
+  "vehicle_imu": {
+   "n": 177,
+   "dt_med_ms": 500.0,
+   "dt_p99_ms": 500.0,
+   "dt_max_ms": 500.0,
+   "ts_minus_sample_med_s": 0.0,
+   "dv_dt_med_us": 4000.0,
+   "dv_dt_min_us": 4000.0,
+   "dv_dt_max_us": 4000.0,
+   "clip_any": 0
+  },
+  "sensor_combined": {
+   "n": 22184,
+   "dt_med_ms": 4.0,
+   "dt_p99_ms": 4.0,
+   "dt_max_ms": 12.0,
+   "integ_dt_med_us": 4000.0,
+   "clip_any": 0
+  },
+  "vehicle_local_position_groundtruth": {
+   "n": 4438,
+   "dt_med_ms": 18.0,
+   "dt_p99_ms": 36.0,
+   "dt_max_ms": 36.0,
+   "ts_minus_sample_med_s": 0.0
+  },
+  "vehicle_attitude_groundtruth": {
+   "n": 4932,
+   "dt_med_ms": 18.0,
+   "dt_p99_ms": 18.0,
+   "dt_max_ms": 18.0,
+   "ts_minus_sample_med_s": 0.0
+  },
+  "vehicle_local_position": {
+   "n": 11092,
+   "dt_med_ms": 8.0,
+   "dt_p99_ms": 8.0,
+   "dt_max_ms": 8.0,
+   "ts_minus_sample_med_s": 0.0
+  },
+  "estimator_states": {
+   "n": 8874,
+   "dt_med_ms": 8.0,
+   "dt_p99_ms": 16.0,
+   "dt_max_ms": 16.0,
+   "ts_minus_sample_med_s": 0.152
+  },
+  "estimator_aid_src_gnss_vel": {
+   "n": 2690,
+   "dt_med_ms": 32.0,
+   "dt_p99_ms": 40.0,
+   "dt_max_ms": 40.0,
+   "ts_minus_sample_med_s": 0.156
+  },
+  "vehicle_gps_position": {
+   "n": 2690,
+   "dt_med_ms": 32.0,
+   "dt_p99_ms": 34.0,
+   "dt_max_ms": 34.0,
+   "ts_minus_sample_med_s": 0.11
+  }
+ },
+ "windows": {
+  "W0_cruise": {
+   "lo_rel_fin": -5.0,
+   "hi_rel_fin": -3.0,
+   "dur_s": 2.0,
+   "truth_dv_fwd": -1.98,
+   "truth_dv_lat": 0.025,
+   "truth_dv_down": -0.106,
+   "valid_const_speed_ref": false,
+   "truth_acc_mean": -0.99,
+   "truth_v_lo_hi": [
+    8.073,
+    6.093
+   ],
+   "sensor_accel": {
+    "dv_fwd": 0.0,
+    "excess_fwd": 1.98,
+    "excess_rate_mps2": 0.99,
+    "dv_lat": 0.0,
+    "dv_down(+g corr)": 0.0,
+    "n": 0,
+    "n_expected": 2.0,
+    "sum_dt": 0,
+    "dt_max_ms": null
+   },
+   "vehicle_imu": {
+    "dv_fwd": -0.0,
+    "excess_fwd": 1.98,
+    "excess_rate_mps2": 0.99,
+    "dv_lat": -0.001,
+    "dv_down(+g corr)": -0.0,
+    "n": 4,
+    "n_expected": 4.0,
+    "sum_dt": 0.016,
+    "dt_max_ms": 4.0
+   },
+   "sensor_combined": {
+    "dv_fwd": -1.824,
+    "excess_fwd": 0.156,
+    "excess_rate_mps2": 0.078,
+    "dv_lat": 0.034,
+    "dv_down(+g corr)": -0.114,
+    "n": 501,
+    "n_expected": 500.0,
+    "sum_dt": 2.004,
+    "dt_max_ms": 4.0
+   },
+   "raw_x_stats": {
+    "n": 501,
+    "dt_med_ms": 4.0,
+    "mean": -1.467,
+    "sd": 3.305,
+    "min": -6.98,
+    "max": 4.95,
+    "frac_lt_m4": 0.35,
+    "frac_gt_m1": 0.58,
+    "bimodal_low_mean_frac": [
+     -5.32,
+     0.36
+    ],
+    "bimodal_high_mean_frac": [
+     0.67,
+     0.64
+    ],
+    "z_mean_sd": [
+     -9.787,
+     0.099
+    ],
+    "gyro_y_integrated_deg": -0.021,
+    "top_peaks_amp_hz": [
+     [
+      2.59,
+      25.0
+     ],
+     [
+      1.81,
+      0.5
+     ],
+     [
+      1.32,
+      1.0
+     ],
+     [
+      1.19,
+      74.9
+     ]
+    ],
+    "clip_samples": 0,
+    "sparse_sensor_accel_minus_combined": [
+     -4.4417,
+     0.3388
+    ]
+   },
+   "pitch_ekf_lo_mid_hi": [
+    -2.7,
+    -2.55,
+    -2.61
+   ],
+   "pitch_truth_lo_mid_hi": [
+    -3.17,
+    -3.24,
+    -3.19
+   ],
+   "dpitch_lo_mid_hi": [
+    0.47,
+    0.7,
+    0.58
+   ],
+   "roll_truth_mid": 0.05,
+   "ekf_out_minus_truth_mean": -0.1,
+   "ekf_states_minus_truth_mean": 0.051,
+   "gnss_obs_minus_truth_mean": 0.042,
+   "gnss_innov_mean(state-obs)": 0.006,
+   "gnss_n": 61,
+   "gnss_fused": 61,
+   "gnss_rejected": 0
+  },
+  "W1_brake": {
+   "lo_rel_fin": -2.5,
+   "hi_rel_fin": -0.05,
+   "dur_s": 2.45,
+   "truth_dv_fwd": -3.216,
+   "truth_dv_lat": -0.012,
+   "truth_dv_down": -0.187,
+   "valid_const_speed_ref": false,
+   "truth_acc_mean": -1.313,
+   "truth_v_lo_hi": [
+    5.426,
+    2.21
+   ],
+   "sensor_accel": {
+    "dv_fwd": 0.0,
+    "excess_fwd": 3.216,
+    "excess_rate_mps2": 1.313,
+    "dv_lat": 0.0,
+    "dv_down(+g corr)": 0.0,
+    "n": 0,
+    "n_expected": 2.5,
+    "sum_dt": 0,
+    "dt_max_ms": null
+   },
+   "vehicle_imu": {
+    "dv_fwd": -0.003,
+    "excess_fwd": 3.213,
+    "excess_rate_mps2": 1.311,
+    "dv_lat": -0.001,
+    "dv_down(+g corr)": -0.001,
+    "n": 5,
+    "n_expected": 4.9,
+    "sum_dt": 0.02,
+    "dt_max_ms": 4.0
+   },
+   "sensor_combined": {
+    "dv_fwd": -4.484,
+    "excess_fwd": -1.268,
+    "excess_rate_mps2": -0.517,
+    "dv_lat": -0.012,
+    "dv_down(+g corr)": -0.255,
+    "n": 613,
+    "n_expected": 612.5,
+    "sum_dt": 2.452,
+    "dt_max_ms": 4.0
+   },
+   "raw_x_stats": {
+    "n": 613,
+    "dt_med_ms": 4.0,
+    "mean": -2.39,
+    "sd": 2.365,
+    "min": -6.29,
+    "max": 2.51,
+    "frac_lt_m4": 0.38,
+    "frac_gt_m1": 0.54,
+    "bimodal_low_mean_frac": [
+     -5.12,
+     0.41
+    ],
+    "bimodal_high_mean_frac": [
+     -0.49,
+     0.59
+    ],
+    "z_mean_sd": [
+     -9.783,
+     0.079
+    ],
+    "gyro_y_integrated_deg": 0.026,
+    "top_peaks_amp_hz": [
+     [
+      2.19,
+      50.2
+     ],
+     [
+      1.49,
+      49.8
+     ],
+     [
+      1.03,
+      99.9
+     ],
+     [
+      0.62,
+      50.6
+     ]
+    ],
+    "clip_samples": 0,
+    "sparse_sensor_accel_minus_combined": [
+     0.6887,
+     -0.0017,
+     1.3556
+    ]
+   },
+   "pitch_ekf_lo_mid_hi": [
+    -2.73,
+    -3.23,
+    -4.06
+   ],
+   "pitch_truth_lo_mid_hi": [
+    -3.29,
+    -3.27,
+    -3.24
+   ],
+   "dpitch_lo_mid_hi": [
+    0.56,
+    0.04,
+    -0.82
+   ],
+   "roll_truth_mid": -0.0,
+   "ekf_out_minus_truth_mean": -0.755,
+   "ekf_states_minus_truth_mean": -0.411,
+   "gnss_obs_minus_truth_mean": 0.042,
+   "gnss_innov_mean(state-obs)": -0.467,
+   "gnss_n": 74,
+   "gnss_fused": 74,
+   "gnss_rejected": 0
+  },
+  "W1f_fullbrake": {
+   "lo_rel_fin": -2.99,
+   "hi_rel_fin": -0.05,
+   "dur_s": 2.94,
+   "truth_dv_fwd": -3.9,
+   "truth_dv_lat": -0.006,
+   "truth_dv_down": -0.218,
+   "valid_const_speed_ref": false,
+   "truth_acc_mean": -1.326,
+   "truth_v_lo_hi": [
+    6.11,
+    2.21
+   ],
+   "sensor_accel": {
+    "dv_fwd": 0.0,
+    "excess_fwd": 3.9,
+    "excess_rate_mps2": 1.327,
+    "dv_lat": 0.0,
+    "dv_down(+g corr)": 0.0,
+    "n": 0,
+    "n_expected": 2.9,
+    "sum_dt": 0,
+    "dt_max_ms": null
+   },
+   "vehicle_imu": {
+    "dv_fwd": -0.003,
+    "excess_fwd": 3.897,
+    "excess_rate_mps2": 1.325,
+    "dv_lat": 0.0,
+    "dv_down(+g corr)": -0.0,
+    "n": 6,
+    "n_expected": 5.9,
+    "sum_dt": 0.024,
+    "dt_max_ms": 4.0
+   },
+   "sensor_combined": {
+    "dv_fwd": -5.356,
+    "excess_fwd": -1.456,
+    "excess_rate_mps2": -0.495,
+    "dv_lat": -0.002,
+    "dv_down(+g corr)": -0.301,
+    "n": 735,
+    "n_expected": 735.0,
+    "sum_dt": 2.94,
+    "dt_max_ms": 4.0
+   },
+   "raw_x_stats": {
+    "n": 735,
+    "dt_med_ms": 4.0,
+    "mean": -2.384,
+    "sd": 2.38,
+    "min": -6.29,
+    "max": 2.9,
+    "frac_lt_m4": 0.38,
+    "frac_gt_m1": 0.54,
+    "bimodal_low_mean_frac": [
+     -5.14,
+     0.41
+    ],
+    "bimodal_high_mean_frac": [
+     -0.48,
+     0.59
+    ],
+    "z_mean_sd": [
+     -9.782,
+     0.09
+    ],
+    "gyro_y_integrated_deg": -0.085,
+    "top_peaks_amp_hz": [
+     [
+      2.83,
+      50.0
+     ],
+     [
+      1.07,
+      100.0
+     ],
+     [
+      0.23,
+      45.9
+     ],
+     [
+      0.23,
+      39.1
+     ]
+    ],
+    "clip_samples": 0,
+    "sparse_sensor_accel_minus_combined": [
+     0.6887,
+     -0.0017,
+     1.3556
+    ]
+   },
+   "pitch_ekf_lo_mid_hi": [
+    -2.61,
+    -3.07,
+    -4.06
+   ],
+   "pitch_truth_lo_mid_hi": [
+    -3.19,
+    -3.28,
+    -3.24
+   ],
+   "dpitch_lo_mid_hi": [
+    0.58,
+    0.21,
+    -0.82
+   ],
+   "roll_truth_mid": 0.02,
+   "ekf_out_minus_truth_mean": -0.666,
+   "ekf_states_minus_truth_mean": -0.339,
+   "gnss_obs_minus_truth_mean": 0.04,
+   "gnss_innov_mean(state-obs)": -0.384,
+   "gnss_n": 89,
+   "gnss_fused": 89,
+   "gnss_rejected": 0
+  },
+  "W2_stop_armed": {
+   "lo_rel_fin": 0.8,
+   "hi_rel_fin": 4.268,
+   "dur_s": 3.468,
+   "truth_dv_fwd": 0.0,
+   "truth_dv_lat": 0.0,
+   "truth_dv_down": -0.0,
+   "valid_const_speed_ref": true,
+   "truth_acc_mean": 0.0,
+   "truth_v_lo_hi": [
+    -0.0,
+    0.0
+   ],
+   "sensor_accel": {
+    "dv_fwd": 0.0,
+    "excess_fwd": 0.0,
+    "excess_rate_mps2": 0.0,
+    "dv_lat": 0.0,
+    "dv_down(+g corr)": 0.0,
+    "n": 0,
+    "n_expected": 3.5,
+    "sum_dt": 0,
+    "dt_max_ms": null
+   },
+   "vehicle_imu": {
+    "dv_fwd": -0.0,
+    "excess_fwd": -0.0,
+    "excess_rate_mps2": -0.0,
+    "dv_lat": -0.0,
+    "dv_down(+g corr)": 0.0,
+    "n": 7,
+    "n_expected": 6.9,
+    "sum_dt": 0.028,
+    "dt_max_ms": 4.0
+   },
+   "sensor_combined": {
+    "dv_fwd": -0.001,
+    "excess_fwd": -0.001,
+    "excess_rate_mps2": -0.0,
+    "dv_lat": 0.0,
+    "dv_down(+g corr)": -0.001,
+    "n": 868,
+    "n_expected": 867.0,
+    "sum_dt": 3.472,
+    "dt_max_ms": 4.0
+   },
+   "raw_x_stats": {
+    "n": 868,
+    "dt_med_ms": 4.0,
+    "mean": -0.543,
+    "sd": 0.006,
+    "min": -0.57,
+    "max": -0.5,
+    "frac_lt_m4": 0.0,
+    "frac_gt_m1": 1.0,
+    "bimodal_low_mean_frac": [
+     null,
+     0.0
+    ],
+    "bimodal_high_mean_frac": [
+     -0.54,
+     1.0
+    ],
+    "z_mean_sd": [
+     -9.785,
+     0.005
+    ],
+    "gyro_y_integrated_deg": -0.043,
+    "top_peaks_amp_hz": [
+     [
+      0.0,
+      2.3
+     ],
+     [
+      0.0,
+      2.0
+     ],
+     [
+      0.0,
+      3.2
+     ],
+     [
+      0.0,
+      2.9
+     ]
+    ],
+    "clip_samples": 0,
+    "sparse_sensor_accel_minus_combined": [
+     -0.0024,
+     0.0031,
+     0.002
+    ]
+   },
+   "pitch_ekf_lo_mid_hi": [
+    -4.2,
+    -4.46,
+    -4.05
+   ],
+   "pitch_truth_lo_mid_hi": [
+    -3.14,
+    -3.18,
+    -3.18
+   ],
+   "dpitch_lo_mid_hi": [
+    -1.06,
+    -1.29,
+    -0.87
+   ],
+   "roll_truth_mid": -0.05,
+   "ekf_out_minus_truth_mean": 0.166,
+   "ekf_states_minus_truth_mean": 0.08,
+   "gnss_obs_minus_truth_mean": -0.01,
+   "gnss_innov_mean(state-obs)": 0.091,
+   "gnss_n": 105,
+   "gnss_fused": 105,
+   "gnss_rejected": 0
+  },
+  "W3_disarmed": {
+   "lo_rel_fin": 4.668,
+   "hi_rel_fin": 6.868,
+   "dur_s": 2.2,
+   "truth_dv_fwd": 0.0,
+   "truth_dv_lat": 0.0,
+   "truth_dv_down": 0.0,
+   "valid_const_speed_ref": true,
+   "truth_acc_mean": 0.0,
+   "truth_v_lo_hi": [
+    0.0,
+    0.0
+   ],
+   "sensor_accel": {
+    "dv_fwd": 0.0,
+    "excess_fwd": 0.0,
+    "excess_rate_mps2": 0.0,
+    "dv_lat": 0.0,
+    "dv_down(+g corr)": 0.0,
+    "n": 0,
+    "n_expected": 2.2,
+    "sum_dt": 0,
+    "dt_max_ms": null
+   },
+   "vehicle_imu": {
+    "dv_fwd": -0.0,
+    "excess_fwd": -0.0,
+    "excess_rate_mps2": -0.0,
+    "dv_lat": 0.0,
+    "dv_down(+g corr)": -0.0,
+    "n": 1,
+    "n_expected": 4.4,
+    "sum_dt": 0.004,
+    "dt_max_ms": 4.0
+   },
+   "sensor_combined": {
+    "dv_fwd": 0.0,
+    "excess_fwd": 0.0,
+    "excess_rate_mps2": 0.0,
+    "dv_lat": 0.001,
+    "dv_down(+g corr)": -0.001,
+    "n": 175,
+    "n_expected": 550.0,
+    "sum_dt": 0.7,
+    "dt_max_ms": 4.0
+   },
+   "raw_x_stats": {
+    "n": 175,
+    "dt_med_ms": 4.0,
+    "mean": -0.543,
+    "sd": 0.005,
+    "min": -0.56,
+    "max": -0.53,
+    "frac_lt_m4": 0.0,
+    "frac_gt_m1": 1.0,
+    "bimodal_low_mean_frac": [
+     null,
+     0.0
+    ],
+    "bimodal_high_mean_frac": [
+     -0.54,
+     1.0
+    ],
+    "z_mean_sd": [
+     -9.786,
+     0.005
+    ],
+    "gyro_y_integrated_deg": 0.002,
+    "top_peaks_amp_hz": [
+     [
+      0.0,
+      5.7
+     ],
+     [
+      0.0,
+      37.1
+     ],
+     [
+      0.0,
+      7.1
+     ],
+     [
+      0.0,
+      62.9
+     ]
+    ],
+    "clip_samples": 0,
+    "sparse_sensor_accel_minus_combined": []
+   },
+   "pitch_ekf_lo_mid_hi": [
+    -3.93,
+    -3.72,
+    -3.72
+   ],
+   "pitch_truth_lo_mid_hi": [
+    -3.18,
+    -3.18,
+    -3.18
+   ],
+   "dpitch_lo_mid_hi": [
+    -0.76,
+    -0.55,
+    -0.55
+   ],
+   "roll_truth_mid": -0.05,
+   "ekf_out_minus_truth_mean": 0.291,
+   "ekf_states_minus_truth_mean": 0.237,
+   "gnss_obs_minus_truth_mean": -0.007,
+   "gnss_innov_mean(state-obs)": 0.247,
+   "gnss_n": 21,
+   "gnss_fused": 21,
+   "gnss_rejected": 0
+  }
+ },
+ "post_stop": {
+  "ekf_v_at_fin+0.6": -0.449,
+  "min": [
+   0.55,
+   -0.459
+  ],
+  "max": [
+   0.3,
+   0.389
+  ],
+  "zero_cross_rel_fin": [
+   0.45,
+   1.6
+  ],
+  "truth_v_at_fin": 2.128,
+  "ekf_out_at_fin": 1.413,
+  "dpitch_at_fin": -0.85,
+  "dpitch_at_max": -1.0
+ }
+}

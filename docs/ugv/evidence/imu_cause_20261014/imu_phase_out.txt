@@ -1,0 +1,46 @@
+imu_phase.py 출력 (2026-10-14, WSL pyulog). 창 = [fin+lo, fin+hi]. timestamp%4000us = IMU 표본 격자 위상 (모두 0 → 250 Hz 격자 정확).
+actuator_motors/rover_* 는 로거 감쇄(100 ms 간격 기록) — 실제 명령 주기는 이 로그에서 알 수 없음. 'low' = accel x < −2.5 m/s² (임펄스 수준) 표본.
+
+d6_A_s0547: window [80.87,83.32] IMU n=613 timestamp%4000us histogram {0: 613}
+  actuator_motors: n=24 dt med 100.00 ms p99 100.00 | timestamp%4000us {0: 24}
+  accel_x by elapsed-since-last-actuator_motors (ms): 0ms:n=24,mean=-0.71, 4ms:n=24,mean=-0.30, 8ms:n=24,mean=-0.22, 12ms:n=24,mean=-5.27, 16ms:n=24,mean=-5.43, 20ms:n=24,mean=-0.77, 24ms:n=24,mean=-0.58
+  actuator_motors control[0] mean 0.181 mean|step| 0.0064 max|step| 0.0083
+  low-sample fraction by timestamp%20ms: 0ms:120/123, 4ms:120/123, 8ms:0/122, 12ms:6/122, 16ms:6/123
+
+v5_s0547_a: window [77.10,79.55] IMU n=613 timestamp%4000us histogram {0: 613}
+  actuator_motors: n=25 dt med 100.00 ms | timestamp%4000us {2000: 25}
+  accel_x by elapsed-since-last-actuator_motors (ms): 2ms:n=25,mean=-1.33, 6ms:n=25,mean=-1.34, 10ms:n=24,mean=-0.46, 14ms:n=24,mean=-2.45, 18ms:n=24,mean=-2.53, 22ms:n=24,mean=-1.55
+  actuator_motors control[0] mean 0.142 mean|step| 0.0058 max|step| 0.0109
+  low-sample fraction by timestamp%20ms: 0ms:59/123, 4ms:61/123, 8ms:0/122, 12ms:60/122, 16ms:61/123
+
+v5_s0547_b: window [77.06,79.51] IMU n=613 timestamp%4000us histogram {0: 613}
+  actuator_motors: n=24 dt med 100.00 ms | timestamp%4000us {2000: 24}
+  accel_x by elapsed-since-last-actuator_motors (ms): 2ms:n=24,mean=-4.57, 6ms:n=24,mean=-4.84, 10ms:n=24,mean=-0.82, 14ms:n=24,mean=-0.53, 18ms:n=24,mean=-0.42, 22ms:n=24,mean=-4.77
+  actuator_motors control[0] mean 0.173 mean|step| 0.0061 max|step| 0.0087
+  low-sample fraction by timestamp%20ms: 0ms:4/123, 4ms:117/123, 8ms:120/122, 12ms:1/122, 16ms:4/123
+
+v5_s0547_c: window [77.36,79.81] IMU n=613 timestamp%4000us histogram {0: 613}
+  actuator_motors: n=24 dt med 100.00 ms | timestamp%4000us {2000: 24}
+  accel_x by elapsed-since-last-actuator_motors (ms): 2ms:n=24,mean=-5.13, 6ms:n=24,mean=-5.21, 10ms:n=24,mean=-0.76, 14ms:n=24,mean=-0.43, 18ms:n=24,mean=-0.33, 22ms:n=24,mean=-5.11
+  actuator_motors control[0] mean 0.179 mean|step| 0.0062 max|step| 0.0086
+  low-sample fraction by timestamp%20ms: 0ms:5/123, 4ms:120/123, 8ms:121/123, 12ms:0/122, 16ms:5/122
+
+v5_s3113_b: window [77.07,79.52] IMU n=613 timestamp%4000us histogram {0: 613}
+  actuator_motors: n=25 dt med 100.00 ms | timestamp%4000us {0: 25}
+  accel_x by elapsed-since-last-actuator_motors (ms): 0ms:n=25,mean=-0.47, 4ms:n=25,mean=-0.75, 8ms:n=25,mean=-0.70, 12ms:n=25,mean=-3.64, 16ms:n=25,mean=-3.73, 20ms:n=25,mean=-0.49, 24ms:n=25,mean=-0.40
+  actuator_motors control[0] mean 0.166 mean|step| 0.0041 max|step| 0.0088
+  low-sample fraction by timestamp%20ms: 0ms:0/123, 4ms:4/123, 8ms:4/123, 12ms:89/122, 16ms:90/122
+
+e4b_acc3_s1096_a: window [102.85,105.30] IMU n=613 timestamp%4000us histogram {0: 613}
+  actuator_motors: n=25 dt med 100.00 ms | timestamp%4000us {2000: 25}
+  accel_x by elapsed-since-last-actuator_motors (ms): 2ms:n=25,mean=-1.22, 6ms:n=25,mean=-1.16, 10ms:n=25,mean=-0.55, 14ms:n=25,mean=-1.26, 18ms:n=25,mean=-1.81, 22ms:n=25,mean=-1.44
+  actuator_motors control[0] mean 0.141 mean|step| 0.0050 max|step| 0.0190
+  low-sample fraction by timestamp%20ms: 0ms:25/123, 4ms:26/123, 8ms:31/123, 12ms:32/122, 16ms:12/122
+
+s4r_off_s0547: window [75.55,77.20] IMU n=413 timestamp%4000us histogram {0: 413}
+  actuator_motors: n=17 dt med 100.00 ms | timestamp%4000us {0: 17}
+  accel_x by elapsed-since-last-actuator_motors (ms): 0ms:n=17,mean=-0.60, 4ms:n=17,mean=-2.65, 8ms:n=17,mean=-2.71, 12ms:n=17,mean=-1.09, 16ms:n=17,mean=-1.12, 20ms:n=17,mean=-0.65, 24ms:n=17,mean=-2.56
+  actuator_motors control[0] mean 0.588 mean|step| 0.0151 max|step| 0.0190
+  low-sample fraction by timestamp%20ms: 0ms:45/82, 4ms:1/83, 8ms:45/83, 12ms:45/83, 16ms:44/82
+
+(flat_base_stop30 은 tee 경로 오류로 이 파일에 기록되지 않음 — imu_cause_flat_base_stop30.json 의 raw_x_stats 참고)
