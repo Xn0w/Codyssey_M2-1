@@ -1,0 +1,404 @@
+{
+ "dump": "full_e839eee.jsonl",
+ "rows": 655,
+ "dump_errors": 0,
+ "cands_records": 334,
+ "analysed": 272,
+ "replay_mismatch": [],
+ "replay_mismatch_n": 0,
+ "cap_affects_choice_n": 2,
+ "cap_affects_choice": [
+  {
+   "seq": 90,
+   "test": "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home",
+   "t_best": 31.98,
+   "uncapped_choice": [
+    "683400364",
+    2417.65,
+    0.04,
+    2034.49
+   ],
+   "uncapped_ratio": 63.618,
+   "uncapped_extra_s": 2002.5,
+   "current_choice": [
+    "683400617",
+    22.84,
+    1761.88,
+    69.67
+   ]
+  },
+  {
+   "seq": 160,
+   "test": "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+   "t_best": 31.98,
+   "uncapped_choice": [
+    "683400364",
+    2417.65,
+    0.04,
+    2034.49
+   ],
+   "uncapped_ratio": 63.618,
+   "uncapped_extra_s": 2002.5,
+   "current_choice": [
+    "683400617",
+    22.84,
+    1761.88,
+    69.67
+   ]
+  }
+ ],
+ "uncapped_ratio_hist": [
+  [
+   1.2,
+   57
+  ],
+  [
+   8.3,
+   47
+  ],
+  [
+   1.1,
+   26
+  ],
+  [
+   1.7,
+   21
+  ],
+  [
+   1.4,
+   13
+  ],
+  [
+   1.0,
+   13
+  ],
+  [
+   7.7,
+   7
+  ],
+  [
+   1.6,
+   7
+  ],
+  [
+   1.5,
+   7
+  ],
+  [
+   1.3,
+   6
+  ],
+  [
+   10.6,
+   6
+  ],
+  [
+   3.8,
+   6
+  ],
+  [
+   1.9,
+   5
+  ],
+  [
+   3.2,
+   5
+  ],
+  [
+   8.4,
+   5
+  ],
+  [
+   8.5,
+   4
+  ],
+  [
+   2.0,
+   4
+  ],
+  [
+   5.6,
+   3
+  ],
+  [
+   2.1,
+   3
+  ],
+  [
+   63.6,
+   2
+  ],
+  [
+   1.8,
+   2
+  ],
+  [
+   3.4,
+   2
+  ],
+  [
+   2.6,
+   1
+  ],
+  [
+   3.5,
+   1
+  ],
+  [
+   8.1,
+   1
+  ],
+  [
+   9.2,
+   1
+  ],
+  [
+   7.1,
+   1
+  ],
+  [
+   2.8,
+   1
+  ],
+  [
+   4.1,
+   1
+  ],
+  [
+   8.2,
+   1
+  ]
+ ],
+ "within_20pct_of_threshold_n": 10,
+ "within_20pct_of_threshold": [
+  {
+   "seq": 58,
+   "test": "ugv/tests/test_junction_start.py::test_c23_stop_position_with_offsets_starts_on_next_road[0.0-0.0]",
+   "uncapped_ratio": 3.153,
+   "uncapped_extra_s": 143.0
+  },
+  {
+   "seq": 62,
+   "test": "ugv/tests/test_junction_start.py::test_c23_stop_position_with_offsets_starts_on_next_road[0.0-0.2]",
+   "uncapped_ratio": 3.152,
+   "uncapped_extra_s": 143.0
+  },
+  {
+   "seq": 66,
+   "test": "ugv/tests/test_junction_start.py::test_c23_stop_position_with_offsets_starts_on_next_road[0.0--0.2]",
+   "uncapped_ratio": 3.153,
+   "uncapped_extra_s": 143.0
+  },
+  {
+   "seq": 70,
+   "test": "ugv/tests/test_junction_start.py::test_c23_stop_position_with_offsets_starts_on_next_road[0.2-0.0]",
+   "uncapped_ratio": 3.152,
+   "uncapped_extra_s": 143.0
+  },
+  {
+   "seq": 74,
+   "test": "ugv/tests/test_junction_start.py::test_c23_stop_position_with_offsets_starts_on_next_road[-0.2-0.0]",
+   "uncapped_ratio": 3.153,
+   "uncapped_extra_s": 143.0
+  },
+  {
+   "seq": 106,
+   "test": "ugv/tests/test_multi_vehicle.py::test_one_vehicle_cancel_change_and_comm_loss_do_not_touch_others",
+   "uncapped_ratio": 2.64,
+   "uncapped_extra_s": 63.8
+  },
+  {
+   "seq": 162,
+   "test": "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+   "uncapped_ratio": 3.484,
+   "uncapped_extra_s": 22.0
+  },
+  {
+   "seq": 279,
+   "test": "ugv/tests/test_route_verification.py::test_defect1_no_start_leg_exemption_anywhere",
+   "uncapped_ratio": 2.84,
+   "uncapped_extra_s": 121.9
+  },
+  {
+   "seq": 620,
+   "test": "ugv/tests/test_stop_command_safety.py::test_arrival_ready_only_after_standstill",
+   "uncapped_ratio": 3.373,
+   "uncapped_extra_s": 19.5
+  },
+  {
+   "seq": 622,
+   "test": "ugv/tests/test_stop_command_safety.py::test_px4_park_disarm_is_not_a_fault_and_marks_standstill",
+   "uncapped_ratio": 3.373,
+   "uncapped_extra_s": 19.5
+  }
+ ],
+ "fallback_near_n": 19,
+ "fallback_near_not_improving_n": 1,
+ "grid": {
+  "2|300": {
+   "differs_from_current": 6,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "2|450": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2|600": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2|900": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2|inf": {
+   "differs_from_current": 2,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "2.5|300": {
+   "differs_from_current": 6,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "2.5|450": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2.5|600": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2.5|900": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2.5|inf": {
+   "differs_from_current": 2,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "3|300": {
+   "differs_from_current": 6,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "3|450": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "3|600": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "3|900": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "3|inf": {
+   "differs_from_current": 2,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "4|300": {
+   "differs_from_current": 6,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "4|450": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "4|600": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "4|900": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "4|inf": {
+   "differs_from_current": 2,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "5|300": {
+   "differs_from_current": 6,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "5|450": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "5|600": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "5|900": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "5|inf": {
+   "differs_from_current": 2,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "inf|300": {
+   "differs_from_current": 2,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "inf|450": {
+   "differs_from_current": 2,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "inf|600": {
+   "differs_from_current": 2,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "inf|900": {
+   "differs_from_current": 2,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  },
+  "inf|inf": {
+   "differs_from_current": 2,
+   "tests": [
+    "ugv/tests/test_multi_vehicle.py::test_gazebo_b_station_return_sequence_no_contact",
+    "ugv/tests/test_multi_vehicle.py::test_separate_routes_concurrent_and_each_returns_home"
+   ]
+  }
+ }
+}

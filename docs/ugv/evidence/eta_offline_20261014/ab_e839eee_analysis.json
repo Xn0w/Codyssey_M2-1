@@ -1,0 +1,138 @@
+{
+ "dump": "ab_e839eee.jsonl",
+ "rows": 46,
+ "dump_errors": 0,
+ "cands_records": 23,
+ "analysed": 0,
+ "replay_mismatch": [],
+ "replay_mismatch_n": 0,
+ "cap_affects_choice_n": 0,
+ "cap_affects_choice": [],
+ "uncapped_ratio_hist": [],
+ "within_20pct_of_threshold_n": 0,
+ "within_20pct_of_threshold": [],
+ "fallback_near_n": 0,
+ "fallback_near_not_improving_n": 0,
+ "grid": {
+  "2|300": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2|450": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2|600": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2|900": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2|inf": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2.5|300": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2.5|450": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2.5|600": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2.5|900": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "2.5|inf": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "3|300": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "3|450": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "3|600": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "3|900": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "3|inf": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "4|300": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "4|450": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "4|600": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "4|900": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "4|inf": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "5|300": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "5|450": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "5|600": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "5|900": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "5|inf": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "inf|300": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "inf|450": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "inf|600": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "inf|900": {
+   "differs_from_current": 0,
+   "tests": []
+  },
+  "inf|inf": {
+   "differs_from_current": 0,
+   "tests": []
+  }
+ }
+}
