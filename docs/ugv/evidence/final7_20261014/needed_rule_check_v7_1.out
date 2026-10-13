@@ -1,0 +1,16 @@
+  9.45   34.7 -> True  want True  OK
+  9.45   34.8 -> True  want True  OK
+  9.45   34.6 -> False want False OK
+  9.45   34.9 -> False want False OK
+  None   34.7 -> None  want None  OK
+  9.45   None -> None  want None  OK
+   nan   34.7 -> False want False OK
+  9.45    inf -> False want False OK
+   inf   34.7 -> False want False OK
+ 9.455   34.8 -> False want False OK
+  9.45  34.75 -> False want False OK
+     x   34.7 -> False want False OK
+  9.49   35.0 -> True  want True  OK
+  9.48   35.0 -> True  want True  OK
+  8.17   27.2 -> True  want True  OK
+ALL_OK

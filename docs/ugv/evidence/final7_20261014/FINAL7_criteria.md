@@ -22,3 +22,9 @@ s3113 첫 → s0547 첫 → 교대로 각 **유효 PASS 3회** (첫 회차 포�
 
 ## 판정기 확인 (물리 시험 없이, 실행 전)
 judge_check_v7.py 로 과거 묶음 재판정: s5 FAIL/UNCONFIRMED 와 s4r ON FAIL 그대로, 범위를 인위로 9.0~9.1 로 좁히면 해당 회차 OUT_OF_RANGE, sim_t_cmd 제거 시 전부 UNCONFIRMED — 범위 이탈·자료 누락·제품 FAIL 이 PASS 로 바뀌지 않음. f5 의 v7 재판정 (요청 시점 gz 9.06~9.30, 전부 PASS) 은 **사후 참고 분석**일 뿐 반복 수에 넣지 않음.
+
+## v7.1 재개 (2026-10-14 07:2x, Codex 0713) — 제품/외부 입력 기준 불변, 0g 반올림 구현 정정
+- v7 의 0g 는 반올림된 speed(소수 둘째)를 원시값처럼 재계산 → 9.45/34.7 을 FAIL 로 판정 (구현 결함). v7.1 needed_rule_ok: 가능한 v ∈ [spd−0.005, spd+0.005] 의 needed 반올림 구간 안이면 통과. 누락 → None(UNCONFIRMED), NaN/무한대·자릿수 불일치 → False. 산술 확인 needed_rule_check_v7_1.out ALL_OK (9.45/34.7·34.8 통과, 34.6·34.9 불통과). 기록 정밀도 안에서 계산 규칙과 양립함을 입증할 뿐 원시 v 복구 검증 아님.
+- f7_on_s3113_downabort_1: 최초 v7 FAIL (f7_judge_v7_ORIGINAL_run1.json, judge_v7_ORIGINAL_run1.out 보존) → v7.1 PASS, **'판정기 정정 후 인정'** 으로 s3113 1/3.
+- 실행 전 판정기 확인에서 s5_on_s0547_downabort_b 를 '기존 FAIL 유지'로 오독함 — 실제 v5 PASS, v7 FAIL 은 같은 0g 결함, v7.1 에선 UNCONFIRMED (500 Hz 자료 미수집) — 음성 대조 실패 사례로 세지 않음.
+- 재개 체인 chain_final7r.sh: 장부 s3113 1/3, s0547 0/3 에서 시작 → s0547 첫 → 교대 (s3113 남은 2, s0547 총 3). 비PASS·래퍼 rc≠0 즉시 중단 그대로. 판정기 final_judge_v7_1.py.

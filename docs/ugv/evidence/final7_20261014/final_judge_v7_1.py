@@ -61,6 +61,23 @@ def align(gz, ul, t_hint):
     return round(fine[1], 3), round(fine[0], 3)
 
 
+
+def needed_rule_ok(spd, nd):
+    """(v7.1, Codex 0713) 0g: 기록 정밀도 안에서 needed = v²/(2·1.5)+5 와 양립하는가. 누락 → None, 비유한·자릿수 불일치 → False.
+    speed 는 소수 둘째, needed 는 소수 첫째 기록 — 가능한 v ∈ [spd−0.005, spd+0.005] 의 needed 반올림 구간과 대조."""
+    import math
+    if spd is None or nd is None:
+        return None
+    try:
+        spd, nd = float(spd), float(nd)
+    except (TypeError, ValueError):
+        return False
+    if not (math.isfinite(spd) and math.isfinite(nd)):
+        return False
+    if abs(spd * 100 - round(spd * 100)) > 1e-6 or abs(nd * 10 - round(nd * 10)) > 1e-6:
+        return False
+    return round((spd - 0.005) ** 2 / 3.0 + 5.0, 1) - 1e-6 <= nd <= round((spd + 0.005) ** 2 / 3.0 + 5.0, 1) + 1e-6
+
 def judge(tag):
     case = "s0547" if "s0547" in tag else "s3113"
     on = "_on_" in tag            # final v6: 강제 ON 없음 — 아래에서 STOP_PATH 증거와 대조, 불일치는 UNCONFIRMED
@@ -250,7 +267,7 @@ def judge(tag):
                           "stop_path_speed_mps_record": spd, "needed_m_record": nd, "n_items_record": ni}
     # (v7) 계산 규칙 일관성: needed = profile.stop_distance(STOP_PATH 속도) = v²/(2·1.5) + 5.0 (소수 첫째 자리 반올림)
     # (v7.1, 결과 뒤 정정·공개) speed_mps 는 소수 둘째 자리 반올림값 — 실제 v ∈ [spd-0.005, spd+0.005] 의 needed 반올림 구간과 대조
-    c["0g_needed_rule"] = None if None in (spd, nd) else (round((spd - 0.005) ** 2 / 3.0 + 5.0, 1) - 0.051 <= nd <= round((spd + 0.005) ** 2 / 3.0 + 5.0, 1) + 0.051)
+    c["0g_needed_rule"] = needed_rule_ok(spd, nd)
     if not valid:
         rec["status"] = "INVALID"
     elif any(v is False for v in c.values()):       # 확정된 거짓이 있으면 실패 (미확인 항목이 남아도) — 02:57 수정
