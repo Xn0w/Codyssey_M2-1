@@ -15,3 +15,8 @@
 
 ## 순서·중단
 경사 v7.1 체인이 `s3113 3/· s0547 3/` 으로 끝났을 때만 자동 시작 (아니면 HOLD). s1096 a → s1096 b → s3113 a 직렬, **비PASS·래퍼 rc≠0 즉시 중단·보고**. 3/3 PASS 뒤 S5 후보 고정 판단은 별개 (Codex 보고 후).
+
+## 07:3x 보강 (Codex 0728, 첫 회차 전)
+- 판정기 v3 에 **0i 서버 실제 환경** 추가: road_test health.env 의 UGV_STOP_CAP_FIRST 1·UGV_STOP_ITEMS_RAMP 1·UGV_PX4_END_EXTEND 1·UGV_PX4_PARK_AFTER_S 2.0·UGV_MODEL_VARIANT susp_a_acc3_imu500·UGV_TEST_HOOKS 1·ADAIR_RUN_ID=태그. 기록 없으면 미확인. 확인: e4b 묶음 (CAP_FIRST 0, susp_a_acc3) 은 0i False → FAIL (구성 불일치 검출). END_EXTENSION 실제 적용은 기존 1_evidence (offset 3.0), park 은 7d/7e, 500 Hz 는 0e.
+- **진입 전 읽기 전용 확인 e4f_precheck.py**: 현재 final7/f7_judge.json 에서 사례별 고유 태그 PASS 3·총 6, 비PASS 없음, 회차별 rc/표식, 회차 로그 FINAL7R_RESULT PASS (s3113_1 은 v7 FAIL + ORIGINAL 보존 = 정정 이력), FINAL7R_freeze.sha1 해시 일치. 불일치면 E4f 만 HOLD. (07:3x 실행 시 'PRECHECK_HOLD s3113 PASS 2≠3 | s0547 PASS 1≠3' — 경사 진행 중이라 정상, 해시 불일치 없음.)
+- 대기 체인 재시작: 07:26 의 첫 대기 체인 (아직 대기 루프, 회차 미실행) 을 종료하고 보강본으로 다시 시작. 경사 체인·공유 래퍼는 건드리지 않음.

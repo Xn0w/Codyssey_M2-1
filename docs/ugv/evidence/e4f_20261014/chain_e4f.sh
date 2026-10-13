@@ -9,7 +9,9 @@ L=$(grep "CHAIN_FINAL7R_DONE" logs/ugv/stage6/chain_final7r.out | tail -1)
 echo "$L" | grep -qE "s3113 3/[0-9]+ s0547 3/[0-9]+" || { echo "CHAIN_E4F_HOLD 경사 6 유효 미완료: $L"; exit 0; }
 [ "$(git -C $HK rev-parse --short HEAD)" = 03d5b5d ] || { echo "CHAIN_E4F_HOLD 서버 HEAD 불일치"; exit 0; }
 [ "$(git -C ../ADAIR_wt_vehicle rev-parse --short HEAD)" = 48f3e5f ] || { echo "CHAIN_E4F_HOLD 차량 HEAD 불일치"; exit 0; }
-echo "CHAIN_E4F_START $(date)"
+PC=$(PYTHONIOENCODING=utf-8 $PY $O/e4f_precheck.py 2>&1 | tail -1); echo "$PC" >> $O/run.out
+case "$PC" in PRECHECK_OK*) ;; *) echo "CHAIN_E4F_HOLD 사전 확인 불일치: $PC"; exit 0;; esac
+echo "CHAIN_E4F_START $(date) $PC"
 LT=/home/geumsoni/PX4-Autopilot/build/px4_sitl_default/etc/logging
 SUB=$ST/tiles_v2/road_subset_all_included.json
 export SERVER_TREE=ADAIR_wt_hook

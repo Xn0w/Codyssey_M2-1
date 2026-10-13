@@ -199,6 +199,12 @@ def judge(tag):
         c["0e_imu500_applied"] = None
     # (v3) 0h 정상 도착 회차에 정지 경로(중단) 없음 — F1/항목화 플래그는 켜져 있어도 중단 때만 동작
     c["0h_no_stop_path"] = not any(e["event"] == "STOP_PATH" for e in ev)
+    # (v3) 0i 서버가 실제로 읽은 환경 (road_test health.env) — 플래그 값 기록. STOP_PATH 없음만으로 비활성 분기 플래그 값을 입증하지 않음 (Codex 0728)
+    env = ((d.get("health") or {}).get("env")) or {}
+    want = {"UGV_STOP_CAP_FIRST": "1", "UGV_STOP_ITEMS_RAMP": "1", "UGV_PX4_END_EXTEND": "1", "UGV_PX4_PARK_AFTER_S": "2.0",
+            "UGV_MODEL_VARIANT": "susp_a_acc3_imu500", "UGV_TEST_HOOKS": "1", "ADAIR_RUN_ID": tag}
+    rec["server_env"] = {k: env.get(k) for k in want}
+    c["0i_server_flags"] = None if not env else all(env.get(k) == v for k, v in want.items())
     if not valid:
         rec["status"] = "INVALID"
     elif any(v is False for v in c.values()):
