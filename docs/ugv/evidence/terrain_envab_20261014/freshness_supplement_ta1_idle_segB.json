@@ -1,0 +1,25 @@
+{
+ "n": 45,
+ "request_cost_ub_s": {
+  "max": 0.177,
+  "median": 0.134
+ },
+ "age_at_request_start_s": {
+  "min": -0.088,
+  "max": -0.027
+ },
+ "age_at_response_ub_s": {
+  "max": 0.123,
+  "median": 0.085
+ },
+ "updated_at_step_s": {
+  "min": 2.099,
+  "max": 2.189
+ },
+ "sim_step_s": {
+  "min": 2.11,
+  "max": 2.19
+ },
+ "clock": "wall = Git bash date (Windows 시스템 시계), updated_at = 서버 Python time.time() (같은 Windows 시계) — 같은 시계, 응답 종료 시각은 기록 안 됨 → 다음 요청 시작으로 상한",
+ "note": "원래 A 판정 보존. 이 보충은 신선도 상한 계산 (새 주행 없음)"
+}
