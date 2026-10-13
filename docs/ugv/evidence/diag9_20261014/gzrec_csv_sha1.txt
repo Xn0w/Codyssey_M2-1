@@ -1,0 +1,4 @@
+49052cc85c9817bad77a35dad546793e9c943c1d *gzrec_d9_slope500_s0547_a/cmd.csv
+c56fdbd13962f6c29b8cb8cb0869caaf40eccfd5 *gzrec_d9_slope500_s0547_a/imu.csv
+876c148bb944f7efb6307fe30c132a5dd3a1c3ae *gzrec_d9_slope500_s0547_a/joint.csv
+e4596a80b002873105f7039f0cb4be7ebc578b2d *gzrec_d9_slope500_s0547_a/pose.csv

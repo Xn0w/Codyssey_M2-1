@@ -1,0 +1,3 @@
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"d9_slope500_s0547_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T06:31:54+09:00"}
+d9_slope500_s0547_a run rc=0 rcfile={"tag":"d9_slope500_s0547_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T06:31:54+09:00"} verify=EVIDENCE_OK
