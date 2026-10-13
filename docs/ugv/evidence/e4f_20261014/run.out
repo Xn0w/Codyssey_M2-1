@@ -1,0 +1,13 @@
+PRECHECK_OK {"s3113": ["f7_on_s3113_downabort_1", "f7_on_s3113_downabort_2", "f7_on_s3113_downabort_3"], "s0547": ["f7_on_s0547_downabort_1", "f7_on_s0547_downabort_2", "f7_on_s0547_downabort_3"]}
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"e4f_acc3_s1096_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:41:51+09:00"}
+e4f_acc3_s1096_a run rc=0 rcfile={"tag":"e4f_acc3_s1096_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:41:51+09:00"}
+E4F_RESULT e4f_acc3_s1096_a PASS 07:41:53
+[ugv] MAVLink → 192.168.224.1:14543 (UGV 서버는 udpin://0.0.0.0:14543 로 받는다)
+{"tag":"e4f_acc3_s1096_b","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:45:45+09:00"}
+e4f_acc3_s1096_b run rc=0 rcfile={"tag":"e4f_acc3_s1096_b","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:45:45+09:00"}
+E4F_RESULT e4f_acc3_s1096_b PASS 07:45:48
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"e4f_acc3_s3113_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:49:27+09:00"}
+e4f_acc3_s3113_a run rc=0 rcfile={"tag":"e4f_acc3_s3113_a","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T07:49:27+09:00"}
+E4F_RESULT e4f_acc3_s3113_a PASS 07:49:30

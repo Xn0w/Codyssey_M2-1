@@ -1,0 +1,6 @@
+ok {'MAV_SYS_ID': 4, 'NAV_ACC_RAD': 3.0, 'RA_ACC_RAD_MAX': 3.0} seq 16 / 30 fin 102.706 sp0 102.668 disarm 105.334
+{'accel_rate_hz_median': 500.0, 'dv_dt_us_median': 4000.0, 'dv_clip_values': [0]}
+ok {'MAV_SYS_ID': 4, 'NAV_ACC_RAD': 3.0, 'RA_ACC_RAD_MAX': 3.0} seq 16 / 30 fin 102.306 sp0 102.312 disarm 104.84
+{'accel_rate_hz_median': 500.0, 'dv_dt_us_median': 4000.0, 'dv_clip_values': [0]}
+ok {'MAV_SYS_ID': 2, 'NAV_ACC_RAD': 3.0, 'RA_ACC_RAD_MAX': 3.0} seq 6 / 10 fin 91.138 sp0 91.146 disarm 93.644
+{'accel_rate_hz_median': 500.0, 'dv_dt_us_median': 4000.0, 'dv_clip_values': [0]}
