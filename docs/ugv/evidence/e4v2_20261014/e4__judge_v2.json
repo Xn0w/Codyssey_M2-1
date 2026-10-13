@@ -1,0 +1,625 @@
+[
+ {
+  "tag": "e4_acc3_s1096_a",
+  "kind": "acc3",
+  "checks": {
+   "1_evidence": true,
+   "8_arrived_to_dest_le_1m": true,
+   "2_service_dest_le_1m": true,
+   "4_judge3": true,
+   "5_hold_le_0.1m_30s": true,
+   "3_seq_complete_monotonic": true,
+   "6_px4_self_stop": true,
+   "7b": true,
+   "7c": true,
+   "7d_server_policy": null,
+   "7e_no_runaway_no_cutdrive": null
+  },
+  "wrapper_rc": {
+   "tag": "e4_acc3_s1096_a",
+   "test_rc": 0,
+   "copy_logs_rc": 0,
+   "stop_post_rc": "0",
+   "invalid_stop": false,
+   "time": "2026-10-14T01:10:27+09:00"
+  },
+  "validity": {
+   "rc_file": true,
+   "test_rc": 0,
+   "copy_logs_rc": 0,
+   "stop_post_rc": "0",
+   "invalid_stop": false,
+   "markers": []
+  },
+  "end_extension": {
+   "sim_time_s": 73.95,
+   "timestamp": "2026-10-13T16:08:00.416690+00:00",
+   "event": "END_EXTENSION",
+   "resource_id": "B-ugv1",
+   "task_id": null,
+   "offset_m": 3.0,
+   "driver_info": {
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0,
+    "offset_m": 3.0,
+    "basis": "RA_ACC_RAD_MAX ≥ NAV_ACC_RAD — 끝 지점 반경 경계 정지"
+   },
+   "road_id": "683501096",
+   "remaining_m": 10.0,
+   "service_dest_xy": [
+    14794.88,
+    -576.38
+   ],
+   "px4_end_xy": [
+    14791.93,
+    -576.95
+   ],
+   "applied": true,
+   "check": {
+    "worst_excess_m": -2.596
+   }
+  },
+  "driver_evidence": {
+   "end_stop": {
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0,
+    "offset_m": 3.0,
+    "basis": "RA_ACC_RAD_MAX ≥ NAV_ACC_RAD — 끝 지점 반경 경계 정지"
+   },
+   "park_policy": {
+    "after_s": 2.0,
+    "test_hook": true,
+    "requested": "2.0",
+    "basis": "시험 훅 (UGV_TEST_HOOKS=1)"
+   }
+  },
+  "arrived_to_dest_m": 0.2,
+  "final_stop_to_service_dest_m": 0.387,
+  "judge3": {
+   "arrived": true,
+   "inside": true,
+   "outside_max_m": -2.49,
+   "stop": "확인",
+   "final_pass": true
+  },
+  "hold": {
+   "drift_m": 0.0,
+   "confirm_sim_t": 127.74,
+   "arrival_event_sim_idx": 819,
+   "z": 115.0107
+  },
+  "ulog": {
+   "params": {
+    "MAV_SYS_ID": 4,
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0
+   },
+   "seq_total": 30,
+   "seq_reached": [
+    -1,
+    1,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    15,
+    17,
+    19,
+    21,
+    23,
+    24,
+    25,
+    27,
+    29
+   ],
+   "finished_t": 113.458,
+   "speed_sp_zero_after_finished_t": 113.496,
+   "disarm_t": 117.462,
+   "cmd400_t": [
+    117.46
+   ],
+   "acceptance_radius_values": [
+    3.0
+   ]
+  },
+  "seq_missing": [
+   2,
+   4,
+   6,
+   8,
+   10,
+   12,
+   14,
+   16,
+   18,
+   20,
+   22,
+   26,
+   28
+  ],
+  "align": {
+   "offset_s": -8.218,
+   "rms_mps": 0.144
+  },
+  "e2_3": {
+   "3b_t": 113.879,
+   "slow_run_until_t": 117.443,
+   "disarm_t": 117.462,
+   "after_s": 2.0,
+   "gz_stop_to_disarm_s_record_only": 3.583,
+   "gz_max_gap_s": 0.054,
+   "align_offset_s": -8.218,
+   "align_rms_mps": 0.144,
+   "align_note": "rms 는 속도 일치도이지 시각 정렬 불확실성이 아니다 (Codex 0130 P2)"
+  },
+  "park_server": {
+   "missing": "FileNotFoundError(2, 'No such file or directory')"
+  },
+  "limits": [
+   "seq: ULog mission_result 기록 주기로 솎임 — 끝 도달·단조만 확인, 경유점 누락 없음과 동등하지 않음 (미확인)",
+   "Gazebo 속도 = 0.2 s 창 위치 차분 (창 중심 시각, 필터 지연 ≈ 0.1 s)"
+  ],
+  "status": "UNCONFIRMED"
+ },
+ {
+  "tag": "e4_acc3_s1096_b",
+  "kind": "acc3",
+  "checks": {
+   "1_evidence": true,
+   "8_arrived_to_dest_le_1m": true,
+   "2_service_dest_le_1m": true,
+   "4_judge3": true,
+   "5_hold_le_0.1m_30s": true,
+   "3_seq_complete_monotonic": true,
+   "6_px4_self_stop": true,
+   "7b": true,
+   "7c": true,
+   "7d_server_policy": null,
+   "7e_no_runaway_no_cutdrive": null
+  },
+  "wrapper_rc": {
+   "tag": "e4_acc3_s1096_b",
+   "test_rc": 0,
+   "copy_logs_rc": 0,
+   "stop_post_rc": "0",
+   "invalid_stop": false,
+   "time": "2026-10-14T01:14:16+09:00"
+  },
+  "validity": {
+   "rc_file": true,
+   "test_rc": 0,
+   "copy_logs_rc": 0,
+   "stop_post_rc": "0",
+   "invalid_stop": false,
+   "markers": []
+  },
+  "end_extension": {
+   "sim_time_s": 61.47,
+   "timestamp": "2026-10-13T16:11:49.515417+00:00",
+   "event": "END_EXTENSION",
+   "resource_id": "B-ugv1",
+   "task_id": null,
+   "offset_m": 3.0,
+   "driver_info": {
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0,
+    "offset_m": 3.0,
+    "basis": "RA_ACC_RAD_MAX ≥ NAV_ACC_RAD — 끝 지점 반경 경계 정지"
+   },
+   "road_id": "683501096",
+   "remaining_m": 10.0,
+   "service_dest_xy": [
+    14794.88,
+    -576.38
+   ],
+   "px4_end_xy": [
+    14791.93,
+    -576.95
+   ],
+   "applied": true,
+   "check": {
+    "worst_excess_m": -2.594
+   }
+  },
+  "driver_evidence": {
+   "end_stop": {
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0,
+    "offset_m": 3.0,
+    "basis": "RA_ACC_RAD_MAX ≥ NAV_ACC_RAD — 끝 지점 반경 경계 정지"
+   },
+   "park_policy": {
+    "after_s": 2.0,
+    "test_hook": true,
+    "requested": "2.0",
+    "basis": "시험 훅 (UGV_TEST_HOOKS=1)"
+   }
+  },
+  "arrived_to_dest_m": 0.2,
+  "final_stop_to_service_dest_m": 0.417,
+  "judge3": {
+   "arrived": true,
+   "inside": true,
+   "outside_max_m": -2.46,
+   "stop": "확인",
+   "final_pass": true
+  },
+  "hold": {
+   "drift_m": 0.0,
+   "confirm_sim_t": 115.072,
+   "arrival_event_sim_idx": 812,
+   "z": 115.0103
+  },
+  "ulog": {
+   "params": {
+    "MAV_SYS_ID": 4,
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0
+   },
+   "seq_total": 30,
+   "seq_reached": [
+    -1,
+    1,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    15,
+    17,
+    19,
+    21,
+    23,
+    24,
+    25,
+    27,
+    29
+   ],
+   "finished_t": 101.162,
+   "speed_sp_zero_after_finished_t": 101.236,
+   "disarm_t": 104.336,
+   "cmd400_t": [
+    104.326
+   ],
+   "acceptance_radius_values": [
+    3.0
+   ]
+  },
+  "seq_missing": [
+   2,
+   4,
+   6,
+   8,
+   10,
+   12,
+   14,
+   16,
+   18,
+   20,
+   22,
+   26,
+   28
+  ],
+  "align": {
+   "offset_s": -8.668,
+   "rms_mps": 0.178
+  },
+  "e2_3": {
+   "3b_t": 101.625,
+   "slow_run_until_t": 104.32499999999999,
+   "disarm_t": 104.336,
+   "after_s": 2.0,
+   "gz_stop_to_disarm_s_record_only": 2.711,
+   "gz_max_gap_s": 0.054,
+   "align_offset_s": -8.668,
+   "align_rms_mps": 0.178,
+   "align_note": "rms 는 속도 일치도이지 시각 정렬 불확실성이 아니다 (Codex 0130 P2)"
+  },
+  "park_server": {
+   "missing": "FileNotFoundError(2, 'No such file or directory')"
+  },
+  "limits": [
+   "seq: ULog mission_result 기록 주기로 솎임 — 끝 도달·단조만 확인, 경유점 누락 없음과 동등하지 않음 (미확인)",
+   "Gazebo 속도 = 0.2 s 창 위치 차분 (창 중심 시각, 필터 지연 ≈ 0.1 s)"
+  ],
+  "status": "UNCONFIRMED"
+ },
+ {
+  "tag": "e4_acc3_s3113_a",
+  "kind": "acc3",
+  "checks": {
+   "1_evidence": true,
+   "8_arrived_to_dest_le_1m": true,
+   "2_service_dest_le_1m": true,
+   "4_judge3": true,
+   "5_hold_le_0.1m_30s": true,
+   "3_seq_complete_monotonic": true,
+   "6_px4_self_stop": true,
+   "7b": true,
+   "7c": true,
+   "7d_server_policy": null,
+   "7e_no_runaway_no_cutdrive": null
+  },
+  "wrapper_rc": {
+   "tag": "e4_acc3_s3113_a",
+   "test_rc": 0,
+   "copy_logs_rc": 0,
+   "stop_post_rc": "0",
+   "invalid_stop": false,
+   "time": "2026-10-14T01:21:42+09:00"
+  },
+  "validity": {
+   "rc_file": true,
+   "test_rc": 0,
+   "copy_logs_rc": 0,
+   "stop_post_rc": "0",
+   "invalid_stop": false,
+   "markers": []
+  },
+  "end_extension": {
+   "sim_time_s": 61.45,
+   "timestamp": "2026-10-13T16:19:27.468436+00:00",
+   "event": "END_EXTENSION",
+   "resource_id": "A-ugv1",
+   "task_id": null,
+   "offset_m": 3.0,
+   "driver_info": {
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0,
+    "offset_m": 3.0,
+    "basis": "RA_ACC_RAD_MAX ≥ NAV_ACC_RAD — 끝 지점 반경 경계 정지"
+   },
+   "road_id": "682503113",
+   "remaining_m": 9.95,
+   "service_dest_xy": [
+    3756.06,
+    5789.08
+   ],
+   "px4_end_xy": [
+    3758.35,
+    5791.01
+   ],
+   "applied": true,
+   "check": {
+    "worst_excess_m": -2.85
+   }
+  },
+  "driver_evidence": {
+   "end_stop": {
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0,
+    "offset_m": 3.0,
+    "basis": "RA_ACC_RAD_MAX ≥ NAV_ACC_RAD — 끝 지점 반경 경계 정지"
+   },
+   "park_policy": {
+    "after_s": 2.0,
+    "test_hook": true,
+    "requested": "2.0",
+    "basis": "시험 훅 (UGV_TEST_HOOKS=1)"
+   }
+  },
+  "arrived_to_dest_m": 0.1,
+  "final_stop_to_service_dest_m": 0.12,
+  "judge3": {
+   "arrived": true,
+   "inside": true,
+   "outside_max_m": -2.8,
+   "stop": "확인",
+   "final_pass": true
+  },
+  "hold": {
+   "drift_m": 0.0,
+   "confirm_sim_t": 102.934,
+   "arrival_event_sim_idx": 590,
+   "z": 29.4936
+  },
+  "ulog": {
+   "params": {
+    "MAV_SYS_ID": 2,
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0
+   },
+   "seq_total": 10,
+   "seq_reached": [
+    -1,
+    1,
+    3,
+    5,
+    7,
+    9
+   ],
+   "finished_t": 90.428,
+   "speed_sp_zero_after_finished_t": 90.468,
+   "disarm_t": 92.898,
+   "cmd400_t": [
+    92.888
+   ],
+   "acceptance_radius_values": [
+    3.0
+   ]
+  },
+  "seq_missing": [
+   2,
+   4,
+   6,
+   8
+  ],
+  "align": {
+   "offset_s": -8.502,
+   "rms_mps": 0.187
+  },
+  "e2_3": {
+   "3b_t": 90.679,
+   "slow_run_until_t": 92.893,
+   "disarm_t": 92.898,
+   "after_s": 2.0,
+   "gz_stop_to_disarm_s_record_only": 2.219,
+   "gz_max_gap_s": 0.054,
+   "align_offset_s": -8.502,
+   "align_rms_mps": 0.187,
+   "align_note": "rms 는 속도 일치도이지 시각 정렬 불확실성이 아니다 (Codex 0130 P2)"
+  },
+  "park_server": {
+   "missing": "FileNotFoundError(2, 'No such file or directory')"
+  },
+  "limits": [
+   "seq: ULog mission_result 기록 주기로 솎임 — 끝 도달·단조만 확인, 경유점 누락 없음과 동등하지 않음 (미확인)",
+   "Gazebo 속도 = 0.2 s 창 위치 차분 (창 중심 시각, 필터 지연 ≈ 0.1 s)"
+  ],
+  "status": "UNCONFIRMED"
+ },
+ {
+  "tag": "e4_raoff_s1096_a",
+  "kind": "raoff",
+  "checks": {
+   "1_evidence": true,
+   "8_arrived_to_dest_le_1m": true,
+   "2_service_dest_le_1m": true,
+   "4_judge3": true,
+   "5_hold_le_0.1m_30s": true,
+   "3_seq_complete_monotonic": true
+  },
+  "wrapper_rc": {
+   "tag": "e4_raoff_s1096_a",
+   "test_rc": 0,
+   "copy_logs_rc": 0,
+   "stop_post_rc": "0",
+   "invalid_stop": false,
+   "time": "2026-10-14T01:18:05+09:00"
+  },
+  "validity": {
+   "rc_file": true,
+   "test_rc": 0,
+   "copy_logs_rc": 0,
+   "stop_post_rc": "0",
+   "invalid_stop": false,
+   "markers": []
+  },
+  "end_extension": {
+   "sim_time_s": 61.42,
+   "timestamp": "2026-10-13T16:15:38.738943+00:00",
+   "event": "END_EXTENSION_SKIPPED",
+   "resource_id": "B-ugv1",
+   "task_id": null,
+   "offset_m": 0.0,
+   "driver_info": {
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": -1.0,
+    "offset_m": 0.0,
+    "basis": "RA_ACC_RAD_MAX < NAV_ACC_RAD — 반경 정지 없음, 연장 안 함"
+   },
+   "applied": false,
+   "reason": "OFFSET_0 (차량이 반경 경계 정지를 하지 않음)"
+  },
+  "driver_evidence": {
+   "end_stop": {
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": -1.0,
+    "offset_m": 0.0,
+    "basis": "RA_ACC_RAD_MAX < NAV_ACC_RAD — 반경 정지 없음, 연장 안 함"
+   },
+   "park_policy": {
+    "after_s": 1.0,
+    "test_hook": false,
+    "requested": "2.0",
+    "basis": "PX4 끝 지점 자체 정지 없음/미확인 (RA_ACC_RAD_MAX < NAV_ACC_RAD) — 시험 훅 무시"
+   }
+  },
+  "arrived_to_dest_m": 0.1,
+  "final_stop_to_service_dest_m": 0.058,
+  "judge3": {
+   "arrived": true,
+   "inside": true,
+   "outside_max_m": -2.44,
+   "stop": "확인",
+   "final_pass": true
+  },
+  "hold": {
+   "drift_m": 0.0,
+   "confirm_sim_t": 116.04,
+   "arrival_event_sim_idx": 831,
+   "z": 115.0134
+  },
+  "ulog": {
+   "params": {
+    "MAV_SYS_ID": 4,
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": -1.0
+   },
+   "seq_total": 30,
+   "seq_reached": [
+    -1,
+    1,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    15,
+    17,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29
+   ],
+   "finished_t": 101.626,
+   "speed_sp_zero_after_finished_t": null,
+   "disarm_t": 105.858,
+   "cmd400_t": [
+    105.848
+   ],
+   "acceptance_radius_values": null
+  },
+  "seq_missing": [
+   2,
+   4,
+   6,
+   8,
+   10,
+   12,
+   14,
+   16,
+   18,
+   20,
+   22,
+   24,
+   26,
+   28
+  ],
+  "align": {
+   "offset_s": -8.606,
+   "rms_mps": 0.163
+  },
+  "e2_3": {
+   "3b_t": null,
+   "slow_run_until_t": null,
+   "disarm_t": 105.858,
+   "after_s": 1.0,
+   "gz_stop_to_disarm_s_record_only": null,
+   "gz_max_gap_s": 0.054,
+   "align_offset_s": -8.606,
+   "align_rms_mps": 0.163,
+   "align_note": "rms 는 속도 일치도이지 시각 정렬 불확실성이 아니다 (Codex 0130 P2)"
+  },
+  "park_server": {
+   "missing": "FileNotFoundError(2, 'No such file or directory')"
+  },
+  "e2_3_record_only": {
+   "7b": false,
+   "7c": false,
+   "7d_server_policy": null,
+   "7e_no_runaway_no_cutdrive": null
+  },
+  "limits": [
+   "seq: ULog mission_result 기록 주기로 솎임 — 끝 도달·단조만 확인, 경유점 누락 없음과 동등하지 않음 (미확인)",
+   "Gazebo 속도 = 0.2 s 창 위치 차분 (창 중심 시각, 필터 지연 ≈ 0.1 s)"
+  ],
+  "status": "PASS"
+ }
+]

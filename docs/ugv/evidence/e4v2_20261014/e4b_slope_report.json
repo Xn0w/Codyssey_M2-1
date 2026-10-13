@@ -1,0 +1,130 @@
+[
+ {
+  "tag": "e4b_acc3_s1096_a",
+  "judge3": {
+   "arrived": true,
+   "inside": true,
+   "outside_max_m": -2.43,
+   "stop": "확인",
+   "final_pass": true
+  },
+  "speed_vs_plan_reference_downhill": {
+   "samples": 441,
+   "ratio_ok": 0.764,
+   "min_speed_over_plan": 0.615
+  },
+  "hold": {
+   "drift_m": 0.0,
+   "confirm_sim_t": 119.026,
+   "arrival_event_sim_idx": 805,
+   "z": 115.0109
+  },
+  "hold_v1": {
+   "drift_m": 0.0,
+   "pass_v1": true,
+   "note": "v1 고정 28 표본 — 출발 대기를 잡을 수 있음"
+  },
+  "checks": {
+   "judge3_final_pass": true,
+   "hold_drift_le_0.1m_30s": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ },
+ {
+  "tag": "e4b_acc3_s1096_b",
+  "judge3": {
+   "arrived": true,
+   "inside": true,
+   "outside_max_m": -2.44,
+   "stop": "확인",
+   "final_pass": true
+  },
+  "speed_vs_plan_reference_downhill": {
+   "samples": 440,
+   "ratio_ok": 0.764,
+   "min_speed_over_plan": 0.61
+  },
+  "hold": {
+   "drift_m": 0.0,
+   "confirm_sim_t": 119.104,
+   "arrival_event_sim_idx": 795,
+   "z": 115.0102
+  },
+  "hold_v1": {
+   "drift_m": 0.0,
+   "pass_v1": true,
+   "note": "v1 고정 28 표본 — 출발 대기를 잡을 수 있음"
+  },
+  "checks": {
+   "judge3_final_pass": true,
+   "hold_drift_le_0.1m_30s": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ },
+ {
+  "tag": "e4b_acc3_s3113_a",
+  "judge3": {
+   "arrived": true,
+   "inside": true,
+   "outside_max_m": -2.81,
+   "stop": "확인",
+   "final_pass": true
+  },
+  "speed_vs_plan_reference_downhill": {
+   "samples": 159,
+   "ratio_ok": 0.591,
+   "min_speed_over_plan": 0.52
+  },
+  "hold": {
+   "drift_m": 0.0,
+   "confirm_sim_t": 104.088,
+   "arrival_event_sim_idx": 609,
+   "z": 29.4949
+  },
+  "hold_v1": {
+   "drift_m": 0.0,
+   "pass_v1": true,
+   "note": "v1 고정 28 표본 — 출발 대기를 잡을 수 있음"
+  },
+  "checks": {
+   "judge3_final_pass": true,
+   "hold_drift_le_0.1m_30s": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ },
+ {
+  "tag": "e4b_raoff_s1096_a",
+  "judge3": {
+   "arrived": true,
+   "inside": true,
+   "outside_max_m": -2.43,
+   "stop": "확인",
+   "final_pass": true
+  },
+  "speed_vs_plan_reference_downhill": {
+   "samples": 439,
+   "ratio_ok": 0.759,
+   "min_speed_over_plan": 0.61
+  },
+  "hold": {
+   "drift_m": 0.0,
+   "confirm_sim_t": 117.098,
+   "arrival_event_sim_idx": 834,
+   "z": 115.0147
+  },
+  "hold_v1": {
+   "drift_m": 0.0,
+   "pass_v1": true,
+   "note": "v1 고정 28 표본 — 출발 대기를 잡을 수 있음"
+  },
+  "checks": {
+   "judge3_final_pass": true,
+   "hold_drift_le_0.1m_30s": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ }
+]
