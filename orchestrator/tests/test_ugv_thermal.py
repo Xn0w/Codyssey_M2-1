@@ -2,7 +2,8 @@
 """UGV 지상 열화상 (모의). 2026-10-05, 기본 켜짐 2026-10-09.
 
 - 능력: 켜면(운영 기본) UGV 가 THERMAL 임무 후보가 된다. 끄면(ORCH_UGV_THERMAL=0, 시험 기준) REQUIRED_CAPABILITY_UNAVAILABLE.
-- 관측: 고도 대신 차 위치 중심 고정 범위(ASSUMED_GROUND_VIEW_V1, 기본 450 m)로 환경 정답을 읽는다.
+- 관측(이 파일): 이전 방식인 차 위치 중심 정사각형(ASSUMED_GROUND_VIEW_V1, 450 m)을 골랐을 때.
+  기본 지형 시선 모델(ASSUMED_GROUND_LOS_V1)은 test_ugv_ground_los.py.
 - 범위 밖이면 탐지하지 못하고 임무는 완료되지 않는다 (지어내지 않음).
 """
 import pytest
@@ -19,6 +20,7 @@ def ugv_thermal(monkeypatch):
     caps = dict(config.SIMULATED_CAPABILITIES)
     caps["UGV"] = tuple(caps["UGV"]) + ("THERMAL",)
     monkeypatch.setattr(config, "SIMULATED_CAPABILITIES", caps)
+    monkeypatch.setattr(config, "GROUND_SENSOR_PROFILE_ID", "ASSUMED_GROUND_VIEW_V1")   # 정사각형 모델 고정
 
 
 def _arrive_at(ugv, lat, lon):

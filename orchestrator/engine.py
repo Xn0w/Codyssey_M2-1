@@ -1289,6 +1289,10 @@ class Orchestrator:
             if sensor == "WEATHER":
                 obs = observation.simulate_weather(snapshot=snap, task=task, attempt_id=aid, resource_id=rid,
                                                    position=pos, provider_raw=data.get("observation"))
+            elif ground and config.SENSOR_PROFILES[config.GROUND_SENSOR_PROFILE_ID].get("model") == "TERRAIN_LINE_OF_SIGHT":
+                # UGV 지상 열화상: 지형 시선 (기본, 2026-10-12). 지도 칸은 환경 /map_cells (정적, 한 번 받아 둠)
+                obs = observation.simulate_ground_los(snapshot=snap, map_cells=getattr(self.env, "map_cells", lambda: [])(),
+                                                      task=task, attempt_id=aid, resource_id=rid, position=pos)
             else:
                 obs = observation.simulate(snapshot=snap, task=task, attempt_id=aid, resource_id=rid,
                                            position=pos, uav_raw_observation=data.get("observation"),
@@ -1414,6 +1418,12 @@ class Orchestrator:
                                     "basis": ["ARRIVED", "SIMULATED_OBSERVATION_TARGET_COVERED",
                                               "ENV_ACK" if ack.get("accepted") else "NO_ENV_ACK_REQUIRED"],
                                     "resource_released": False, **self._evidence_level(obs.get("source"), ack)})
+        elif (not obs["target_covered"] and obs["result"] != "FAILED" and att["command"]["resource_type"] != "UAV"
+              and (obs.get("footprint") or {}).get("shape") == "RADIUS_TERRAIN_LOS"):
+            # 지상 열화상이 목표 칸을 못 봄 (지형에 가림 또는 2 km 밖). 다시 열면 UGV 가 같은 도로 지점으로 끝없이
+            # 다시 간다 → 다시 보내지 않고 보류 (운용자 확인). 본 칸의 사실은 위에서 이미 환경에 반영했다
+            self._set_purpose(task, "HOLD", basis="GROUND_VIEW_TARGET_NOT_VISIBLE", attempt_id=aid,
+                              hold_reason="GROUND_VIEW_TARGET_NOT_VISIBLE", resume=MANUAL)
         else:
             self._reopen(task, "OBSERVATION_REQUIREMENT_NOT_MET" if not obs["target_covered"]
                          else "ENV_APPLY_NOT_ACKED", aid)

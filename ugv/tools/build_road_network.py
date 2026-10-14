@@ -16,7 +16,7 @@
 #   3) 가장 큰 연결 덩어리만 남긴다 (영역 경계에서 잘린 조각 제거)
 #   4) 거리 = 선형 길이(m, 5186). LENGTH 컬럼은 단위가 불명확해 쓰지 않는다
 #   5) 통과시간 = 거리 / 도로등급별 속도 (잠정값, 아래 SPEED_KMH)
-#   6) 거점(인제119·기린119)을 가장 가까운 노드에 붙이고 그 노드 id 를 "A"/"B" 로 바꾼다
+#   6) 거점(인제119·기린119, fire_stations.json)을 가장 가까운 노드에 붙이고 그 노드 id 를 "A"/"B" 로 바꾼다
 #      → ugv/config.py 의 home_node("A"/"B")를 그대로 쓸 수 있다
 #   7) 도로마다 지나는 환경 격자 칸 목록(cells: [[x, y], ...])을 기록한다 (화재 셀 ↔ 도로 대응용)
 #   8) 도로 선형(geometry: [[lat, lon], ...], node_a → node_b 방향, 3 m 단순화)을 기록한다
@@ -73,13 +73,10 @@ SPEED_KMH = {
 }
 DEFAULT_SPEED_KMH = 30
 
-# 거점 좌표 — 주소로 추정한 값 (인제소방서 홈페이지 주소, 좌표는 도로명주소 기초번호로 역산)
-#   인제119 : 인제읍 비봉로44번길 71 → 비봉로44번길 선형에서 추정
-#   기린119 : 기린면 대내로 34-14   → 대내로 동쪽 시점에서 약 340 m 지점으로 추정 (±200 m, 현장 확인 필요)
-BASES = {
-    "A": ("인제119", 38.06180, 128.16826),
-    "B": ("기린119", 37.96370, 128.31760),
-}
+# 거점 좌표 — 팀 공통 거점 파일(environment/config/fire_stations.json)을 그대로 읽는다 (단일 출처)
+STATIONS = ROOT / "environment/config/fire_stations.json"
+BASES = {s["base_id"]: (s["name"].replace("안전센터", ""), float(s["lat"]), float(s["lon"]))
+         for s in json.loads(STATIONS.read_text(encoding="utf-8"))["stations"]}
 
 
 def _haversine_m(lat1, lon1, lat2, lon2):

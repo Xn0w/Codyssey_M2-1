@@ -9,7 +9,7 @@
 | 요청 | `OPERATOR-REJECT:20_57` (칸 20_57, 38.06294, 128.13882), 종류 RECON, 자원 UGV, 시뮬레이션 3060초 |
 | UGV 답 | A-ugv1·B-ugv1 모두 `REJECT TARGET_UNREACHABLE` — "가장 가까운 도로 노드가 2201 m 떨어짐 (허용 2000 m)" |
 | 총괄 처리 | `TASK_HOLD NO_FEASIBLE_CANDIDATE` (소방차 2대는 `TYPE_NOT_ALLOWED`, UGV 2대는 `LOCAL_REJECT:TARGET_UNREACHABLE`) |
-| 팀 main 총괄 (②) | 같은 칸·같은 결과. 시뮬레이션 4200초 요청 → A-ugv1·B-ugv1 `TARGET_UNREACHABLE` → `NO_FEASIBLE_CANDIDATE` 보류. 151초 동안 보류 32회, UGV 평가 64회. 공통 문서 8-4 ①(환경 설정)을 적용하지 않아 불이 일찍 꺼져, 이 실행의 출동은 소방차 1회뿐(UGV 0회) |
+| 팀 main 총괄 (②) | 같은 칸·같은 결과. 시뮬레이션 4200초 요청 → A-ugv1·B-ugv1 `TARGET_UNREACHABLE` → `NO_FEASIBLE_CANDIDATE` 보류. 151초 동안 보류 32회, UGV 평가 64회. 팀 main 트윈은 불이 일찍 꺼져, 이 실행의 출동은 소방차 1회뿐(UGV 0회) |
 | 재평가 | 보류 재개 조건 `NEW_RESOURCE_OR_INPUT` 때문에 환경 이벤트마다 다시 평가 — 실제 138초 동안 보류 27회, UGV 평가 39회, 모두 같은 거절 |
 
 | 파일 | 내용 |
@@ -22,9 +22,9 @@
 
 화면: `ugv/ugv_image/orch_board_reject.png`(①), `orch_board_reject_main.png`(②) — 총괄 상황판 "정찰 · 20_57 보류 · 보낼 자원 없음". 도로 상황판 기록 탭 영상은 ②에서 찍은 [영상 09](https://drive.google.com/file/d/1gaAT6Zct-FrcqPuWq4ibnaslTJCdRTlK/view), GIF는 `docs/ugv/media/ugv_final_reject.gif`(30~90초 구간 3배속), 4컷은 `ugv_final_reject_frames.jpg`.
 
-## ③ 설 자리 `road_point` + 총괄 2 km 시야 (제안한 조합, 2026-10-11 13:37)
+## ③ 설 자리 `road_point` + 총괄 2 km 시야 (조합, 2026-10-11 13:37)
 
-통합 시연 환경에서 UGV 기본값을 `road_point`(도로 위 가장 가까운 점)로 바꿔 같은 `final`을 돌렸다. 총괄은 총괄 테스트 저장소 버전(시야 600 m~2 km + 지형 시선). 공통 문서 8-3 3번의 제안을 처음으로 같이 돌린 것이다.
+통합 시연 환경에서 UGV 기본값을 `road_point`(도로 위 가장 가까운 점)로 바꿔 같은 `final`을 돌렸다. 총괄은 총괄 테스트 저장소 버전(시야 600 m~2 km + 지형 시선). 도로 위 점 정차와 2 km 시야를 처음으로 같이 돌린 것이다.
 
 | 항목 | 노드 방식 (5-3 ⑥, `2026-10-11_twin4`) | 도로 위 점 (③) |
 |---|---|---|
