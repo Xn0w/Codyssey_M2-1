@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <!-- 수정 후보 c1 (2026-10-14 Codex 0905/0920): 충돌 heightmap size X/Y 1000 → 1000.9765625 (gz-physics 7.8.0 scale=size/vertSize 보정, 충돌 꼭짓점 간격 1000/1024·폭 1000). visual·높이·pose·PNG 불변. 시험 전용 — 운영 지도 아님 -->
+  <model name="kangwon_tile_T04_16">
+    <static>true</static>
+    <pose>3880.000 5869.000 14.345 0 0 0</pose>
+    <link name="link">
+      <collision name="collision"><geometry><heightmap><uri>model://T04_16/heightmap.png</uri><size>1000.9765625 1000.9765625 110.0552</size><pos>0 0 0</pos></heightmap></geometry>
+        <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface></collision>
+      <visual name="visual"><geometry><heightmap><uri>model://T04_16/heightmap.png</uri><size>1000.000 1000.000 110.0552</size><pos>0 0 0</pos></heightmap></geometry></visual>
+    </link>
+  </model>
+</sdf>

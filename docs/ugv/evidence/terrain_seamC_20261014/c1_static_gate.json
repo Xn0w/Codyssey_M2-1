@@ -1,0 +1,123 @@
+{
+ "tiles": {
+  "T04_16": {
+   "N": 1025,
+   "dtype": "uint16",
+   "sampling_tag_present": false,
+   "png_same_as_orig": true,
+   "pose_same": true,
+   "vis_size_same": true,
+   "col_z_size_same": true,
+   "col_xy_size": [
+    1000.9765625,
+    1000.9765625
+   ],
+   "orig": {
+    "scale": 0.975609756097561,
+    "width": 999.0243902439024,
+    "half": 499.5121951219512,
+    "max_vertex_offset_vs_png_m": 0.4878048780487916
+   },
+   "cand": {
+    "scale": 0.9765625,
+    "width": 1000.0,
+    "half": 500.0,
+    "max_vertex_offset_x_m": 0.0,
+    "max_vertex_offset_y_m": 0.0
+   },
+   "sample_points": {
+    "corner0": {
+     "i": 0,
+     "local_cand": -500.0,
+     "local_png": -500.0
+    },
+    "q1": {
+     "i": 256,
+     "local_cand": -250.0,
+     "local_png": -250.0
+    },
+    "center": {
+     "i": 512,
+     "local_cand": 0.0,
+     "local_png": 0.0
+    },
+    "q3": {
+     "i": 768,
+     "local_cand": 250.0,
+     "local_png": 250.0
+    },
+    "corner1": {
+     "i": 1024,
+     "local_cand": 500.0,
+     "local_png": 500.0
+    }
+   }
+  },
+  "T05_16": {
+   "N": 1025,
+   "dtype": "uint16",
+   "sampling_tag_present": false,
+   "png_same_as_orig": true,
+   "pose_same": true,
+   "vis_size_same": true,
+   "col_z_size_same": true,
+   "col_xy_size": [
+    1000.9765625,
+    1000.9765625
+   ],
+   "orig": {
+    "scale": 0.975609756097561,
+    "width": 999.0243902439024,
+    "half": 499.5121951219512,
+    "max_vertex_offset_vs_png_m": 0.4878048780487916
+   },
+   "cand": {
+    "scale": 0.9765625,
+    "width": 1000.0,
+    "half": 500.0,
+    "max_vertex_offset_x_m": 0.0,
+    "max_vertex_offset_y_m": 0.0
+   },
+   "sample_points": {
+    "corner0": {
+     "i": 0,
+     "local_cand": -500.0,
+     "local_png": -500.0
+    },
+    "q1": {
+     "i": 256,
+     "local_cand": -250.0,
+     "local_png": -250.0
+    },
+    "center": {
+     "i": 512,
+     "local_cand": 0.0,
+     "local_png": 0.0
+    },
+    "q3": {
+     "i": 768,
+     "local_cand": 250.0,
+     "local_png": 250.0
+    },
+    "corner1": {
+     "i": 1024,
+     "local_cand": 500.0,
+     "local_png": 500.0
+    }
+   }
+  }
+ },
+ "checks": {
+  "all_tile_checks": true,
+  "shared_edge_x": [
+   4380.0,
+   4380.0
+  ],
+  "shared_edge_gap_m": 0.0,
+  "shared_edge_height_diff_max_m": 0.0027,
+  "shared_edge_height_diff_p99_m": 0.0024,
+  "orig_gap_m": 0.97561,
+  "note": "꼭짓점 좌표는 상류 소스 전달식 기반 계산 — 실제 엔진 반영은 후보 기동 시 AABB 로그 (반폭 500.000 기대) 와 R0/R1 접촉으로 확인"
+ },
+ "status": "PASS"
+}

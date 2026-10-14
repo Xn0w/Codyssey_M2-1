@@ -1,0 +1,16 @@
+de2bc4a03ef32a8785772858bd669a72921f2a39 *SEAMC_criteria.md
+2112a4f6af354fbd57ff05a5809fc623c04058da *c1_static_gate.py
+f4b3ff4b66f886e90f7853d0b3455756b239a126 *c1_static_gate.json
+0a0763e23149d04510325cbe3ba2f3b36f2d148d *seam_static_c1.sh
+8b237bddbe7eaa0375727e9f0db3de07939abd2a *seam_check_c1.py
+03da524fbd9c98fce57d78223a3ff011a10e7ae9 *gz_detail_seam.py
+608e9000d0e35c6de4a6188e960fb79e530c6479 *tiles_c1/T04_16/model.sdf
+2778fe81a5bbfaf7a68f4634b80dc043e744860b *tiles_c1/T04_16/heightmap.png
+c1635ab3db46b925f94936cde2760cb46ec9bdd4 *tiles_c1/T04_16/model.config
+dda0376192dd77b77d0f608235d55b1bc5e6cbc0 *tiles_c1/T05_16/model.sdf
+5fd5c3c8ff61796f05f57b7d3469ecb3faf3fae4 *tiles_c1/T05_16/heightmap.png
+40976908c463ba462cd6214c4d0c9343279fd300 *tiles_c1/T05_16/model.config
+68de3e3c61f969ba605775472d183b0a40334f69 *../../chain_seamC.sh
+1f8e1dbd4e8e8a343a5b7ebfaacd9dbfa6584bb0 *../seamR/spawn_calc.json
+bc00e3c338029acc5eb571fbc15ef02f03de6fbb *../../verify_drive_evidence.py
+7d1d838bc5b6800e0336a1aa5883cce04510b7c6 *../../../stage5/tiles_v2/ab_route_v1.sdf
