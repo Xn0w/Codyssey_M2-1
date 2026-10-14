@@ -21,6 +21,7 @@ orchestrator/api.py
 - 환경은 팀 READ 계약 전까지 fixture 다 (/health 의 env.contract_complete 로 표시).
 """
 
+import contextlib
 import json
 import os
 import threading
@@ -166,8 +167,19 @@ def _task_view(orch: Orchestrator, task) -> dict:
 
 
 def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> FastAPI:
+    # 서버 시작·종료 때 할 일 (FastAPI 의 on_event 는 폐지 예정 → lifespan, 2026-10-14). 등록 순서대로 실행한다
+    on_startup, on_shutdown = [], []
+
+    @contextlib.asynccontextmanager
+    async def lifespan(_app):
+        for f in on_startup:
+            f()
+        yield
+        for f in on_shutdown:
+            f()
+
     app = FastAPI(title="ADAIR Orchestrator", version=config.SCHEMA_VERSION,
-                  description="총괄 오케스트레이터 — 규칙 판단 + Local/Safety 검증")
+                  description="총괄 오케스트레이터 — 규칙 판단 + Local/Safety 검증", lifespan=lifespan)
     lock = threading.Lock()          # 판단·추적은 한 번에 하나씩 (장부 순서 보장)
     dispatch_gate = threading.Lock() # 배정(평가·출동 HTTP·LLM)끼리 직렬화. 추적·취소·접수는 이 잠금을 기다리지 않는다
     stop = threading.Event()
@@ -182,11 +194,11 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
                 orch.llm_store(req, orch.llm_call(req))
             return orch.dispatch_pending(allow_llm_call=False)
 
-    @app.on_event("startup")
     def _recover_on_start():
         # 송신 전후에 멈춘 PREPARED 시도를 제공자 상태와 대조 (재송신 없음)
         with dispatch_gate, lock:
             orch.recover()
+    on_startup.append(_recover_on_start)
 
     dispatch_wanted = threading.Event() if poll_interval_s else None   # 배정 작업자가 있을 때만
     if poll_interval_s:
@@ -216,14 +228,14 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
                 except Exception as e:  # noqa: BLE001 — 추적 루프는 멈추지 않는다
                     orch.ledger.log("POLL_ERROR", reason=type(e).__name__, detail={"error": str(e)})
 
-        @app.on_event("startup")
         def _start():
             threading.Thread(target=loop, daemon=True, name="orch-poller").start()
             threading.Thread(target=dispatcher, daemon=True, name="orch-dispatcher").start()
 
-        @app.on_event("shutdown")
         def _stop():
             stop.set()
+        on_startup.append(_start)
+        on_shutdown.append(_stop)
 
     @app.get("/health")
     def health():

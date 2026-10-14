@@ -143,7 +143,8 @@ def test_uav_restart_after_observation_keeps_observation(uav):
 # ---------------------------------------------------------------- UGV-02 · UGV-04
 @pytest.fixture(scope="module")
 def ugv(tmp_path_factory):
-    s = Server(["ugv.server:app"], ROOT, {"UGV_DRIVER": "sim",
+    # 무화재 실행 키 시험: UGV 는 화재 정보 없이 출동하지 않으므로(9de2b06, 2026-10-11) 무화재 시험임을 명시한다
+    s = Server(["ugv.server:app"], ROOT, {"UGV_DRIVER": "sim", "UGV_ALLOW_NO_FIRE_DATA": "1",
                                          "UGV_STATE_DIR": str(tmp_path_factory.mktemp("ugv"))}).start(60)
     yield s
     if s.p.poll() is None:
