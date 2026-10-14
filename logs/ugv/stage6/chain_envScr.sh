@@ -11,7 +11,7 @@ LT=/home/geumsoni/PX4-Autopilot/build/px4_sitl_default/etc/logging
 SUB=$ST/tiles_v2c1/road_subset_ab_route_v1.json
 export SERVER_TREE=ADAIR_wt_hook
 OPS="UGV_STOP_CAP_FIRST=1 UGV_STOP_ITEMS_RAMP=1 UGV_PX4_END_EXTEND=1 UGV_STOP_SPEED_CMD=0 UGV_STOP_GRADE=0 UGV_SPEED_TERRAIN=0 UGV_SPEED_TERRAIN_CMD=0"
-T=ts2_screenA_c1_a
+T=ts2_screenA_c1_b
 echo "CHAIN_ENVSCR_START $(date)"
 MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu-24.04 --exec bash -c "free -m | awk '/Mem:/ {print \$3\",\"\$7}'" > $O/mem_before_$T.txt 2>&1
 MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu-24.04 --exec bash -c "(setsid nohup bash $W/$TA/rtf_mem_probe.sh ab_route_v1 $W/$O/probe_$T.csv 1200 > /dev/null 2>&1 < /dev/null & echo \$! > /tmp/probe_$T.pid)"

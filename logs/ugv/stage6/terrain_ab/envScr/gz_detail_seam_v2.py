@@ -83,6 +83,7 @@ def main():
     ap.add_argument("--duration", type=float, default=170)
     ap.add_argument("--hz", type=float, default=50)
     ap.add_argument("--heartbeat", default=None)
+    ap.add_argument("--att-abort-deg", type=float, default=3.0)   # (2026-10-14 중거리) 자세 중단 기준 — 기본 3° (평지 정지), 경사 주행 구간은 지형 경사 + 여유로
     a = ap.parse_args()
     lock = threading.Lock()
     step = 1 / a.hz
@@ -210,7 +211,7 @@ def main():
                 t_first[0] = t
             if abort["reason"] is None and t - t_first[0] >= 2.0:
                 why = None
-                if abs(math.degrees(roll)) > 3.0 or abs(math.degrees(pitch)) > 3.0:
+                if abs(math.degrees(roll)) > a.att_abort_deg or abs(math.degrees(pitch)) > a.att_abort_deg:
                     why = f"ATTITUDE roll={math.degrees(roll):.2f} pitch={math.degrees(pitch):.2f}"
                 for s_ in SUSP:
                     q_ = joints[f"{s_}_q"]
@@ -271,7 +272,7 @@ def main():
                 "dt_max_s": round(max(dts), 4) if dts else None, "gaps_over_0_1s": sum(1 for d in dts if d > 0.1),
                 "contact_state_ratio": {w: {k: round(v / tot[w], 4) for k, v in states[w].items()} for w in W},
                 "contact_messages": meta_c, "joints_seen": sorted(seen_joints), "contact_other_counts": others, "abort": abort,
-                "abort_rules": "정착 2.0 s 뒤: |롤|·|피치| > 3° 즉시, 서스펜션 |q| ≥ 0.098 0.3 s, 접촉 메시지 나이 > 0.3 s (받은 적 있음) — dz < −0.06 은 사후 분석",
+                "abort_rules": f"정착 2.0 s 뒤: |롤|·|피치| > {a.att_abort_deg}° 즉시, 서스펜션 |q| ≥ 0.098 0.3 s, 접촉 메시지 나이 > 0.3 s (받은 적 있음) — dz < −0.06 은 사후 분석",
                 "susp_joints_published": any(j.startswith("susp_") for j in seen_joints),
                 "force_frame": "body_1_wrench.force (월드 좌표 가정 — 평탄 정지 Σfz≈m·g 로 확인할 것)",
                 "link_pose_basis": "dynamic_pose/info 링크 자세 = 모델 기준 가정 (원본 fable_gz_track 과 같음)",

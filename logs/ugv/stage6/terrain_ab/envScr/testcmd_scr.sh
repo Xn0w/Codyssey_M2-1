@@ -8,7 +8,7 @@ T=$1; W=/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR; O=logs/ugv
 M=$(pwd); ST=$M/logs/ugv/stage5; PY=../ADAIR/.venv/Scripts/python.exe; HK=../ADAIR_wt_hook; SUB=$ST/tiles_v2c1/road_subset_ab_route_v1.json
 HB=$O/detail_hb_$T.json; rm -f $HB
 MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu-24.04 --exec env GZ_PARTITION=adair_ugv GZ_IP=127.0.0.1 python3 $W/$O/gz_detail_seam_v2.py --world ab_route_v1 --model adair_ugv_1 \
-  --out $W/$O/detail_$T.csv --duration 900 --heartbeat $W/$HB > $O/detail_$T.log 2>&1 &
+  --out $W/$O/detail_$T.csv --duration 900 --att-abort-deg 8 --heartbeat $W/$HB > $O/detail_$T.log 2>&1 &
 WPID=$!; echo "detail_wsl_pid=$WPID start=$(date +%T)" > $O/detail_life_$T.txt
 hb() { $PY -c "import json,sys,math
 try: h=json.load(open(sys.argv[1]))
