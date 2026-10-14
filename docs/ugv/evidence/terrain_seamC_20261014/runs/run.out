@@ -22,3 +22,11 @@ gz_detail_rc=0
 [ugv] 종료 (끔 1, 강제 0, 기록 밖 잔존 0, 남음 0)
 SEAM_STATIC_DONE Wed Oct 14 09:27:01 KST 2026
 SEAMC_RESULT sc_R1a PASS 09:27:02
+== sc_R2 pose 4386.0,5928.044,29.037,-2.5652 (기록 40 s)
+[ugv] 차량 스폰: adair_ugv_1 @ 4386.0,5928.044,29.037,-2.5652
+[ugv] NO_PX4=1 — PX4 없이 월드·차량만
+1112 rows -> /mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/terrain_ab/seamC/runs/sc_R2.csv 
+gz_detail_rc=0
+[ugv] 종료 (끔 1, 강제 0, 기록 밖 잔존 0, 남음 0)
+SEAM_STATIC_DONE Wed Oct 14 09:31:21 KST 2026
+SEAMC_RESULT sc_R2 (most 09:31:22

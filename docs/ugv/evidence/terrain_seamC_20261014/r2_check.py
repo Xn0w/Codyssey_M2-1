@@ -72,7 +72,7 @@ for r0, r1 in zip(hold, hold[1:]):
     if dt > 0: sp.append(math.hypot(f(r1, "x") - f(r0, "x"), f(r1, "y") - f(r0, "y")) / dt)
 rec["hold_speed_max"] = round(max(sp), 4) if sp else None
 c["stopped_hold_lt_0.05"] = bool(sp) and float(np.median(sp)) < 0.05
-rec["checks"] = c
+rec["checks"] = c = {k: (None if v is None else bool(v)) for k, v in c.items()}   # (v1.1 직렬화 수정: numpy bool → bool, 판정 불변)
 rec["status"] = "FAIL" if any(v is False for v in c.values()) else ("UNCONFIRMED" if any(v is None for v in c.values()) else "PASS")
 json.dump(rec, open(O / f"r2check_{tag}.json", "w"), ensure_ascii=False, indent=1)
 print(tag, rec["status"], json.dumps({k: rec.get(k) for k in ("checks", "actual", "roll_abs_max_deg", "pitch_abs_max_deg", "base_dz", "hold_speed_max", "valid_ratio_drive_hold")}, ensure_ascii=False))
