@@ -1,0 +1,197 @@
+{
+ "yaw": 1.570796,
+ "band_x": [
+  15379.512195121952,
+  15380.487804878048
+ ],
+ "band_y": [
+  -4631.487804878048,
+  -4630.512195121952
+ ],
+ "cases": {
+  "bR0": {
+   "center": [
+    15400.8,
+    -4645.0
+   ],
+   "spawn": "15400.8,-4645.0,102.02,1.570796",
+   "wheels": {
+    "FL": {
+     "x": 15400.0,
+     "y": -4643.65,
+     "tile": "T16_05",
+     "in_band_x": false,
+     "in_band_y": false,
+     "patch_inside_band_y": false,
+     "ground_z": 101.5702
+    },
+    "FR": {
+     "x": 15401.6,
+     "y": -4643.65,
+     "tile": "T16_05",
+     "in_band_x": false,
+     "in_band_y": false,
+     "patch_inside_band_y": false,
+     "ground_z": 101.5632
+    },
+    "RL": {
+     "x": 15400.0,
+     "y": -4646.35,
+     "tile": "T16_05",
+     "in_band_x": false,
+     "in_band_y": false,
+     "patch_inside_band_y": false,
+     "ground_z": 101.5742
+    },
+    "RR": {
+     "x": 15401.6,
+     "y": -4646.35,
+     "tile": "T16_05",
+     "in_band_x": false,
+     "in_band_y": false,
+     "patch_inside_band_y": false,
+     "ground_z": 101.5715
+    }
+   },
+   "wheel_ground_spread": 0.011
+  },
+  "bR1y": {
+   "center": [
+    15400.8,
+    -4632.35
+   ],
+   "spawn": "15400.8,-4632.35,101.992,1.570796",
+   "wheels": {
+    "FL": {
+     "x": 15400.0,
+     "y": -4631.0,
+     "tile": "T16_06",
+     "in_band_x": false,
+     "in_band_y": true,
+     "patch_inside_band_y": true,
+     "ground_z": 101.5513
+    },
+    "FR": {
+     "x": 15401.6,
+     "y": -4631.0,
+     "tile": "T16_06",
+     "in_band_x": false,
+     "in_band_y": true,
+     "patch_inside_band_y": true,
+     "ground_z": 101.5288
+    },
+    "RL": {
+     "x": 15400.0,
+     "y": -4633.7,
+     "tile": "T16_05",
+     "in_band_x": false,
+     "in_band_y": false,
+     "patch_inside_band_y": false,
+     "ground_z": 101.555
+    },
+    "RR": {
+     "x": 15401.6,
+     "y": -4633.7,
+     "tile": "T16_05",
+     "in_band_x": false,
+     "in_band_y": false,
+     "patch_inside_band_y": false,
+     "ground_z": 101.5356
+    }
+   },
+   "wheel_ground_spread": 0.0262
+  },
+  "bR1c": {
+   "center": [
+    15380.8,
+    -4632.35
+   ],
+   "spawn": "15380.8,-4632.35,102.259,1.570796",
+   "wheels": {
+    "FL": {
+     "x": 15380.0,
+     "y": -4631.0,
+     "tile": "T16_06",
+     "in_band_x": true,
+     "in_band_y": true,
+     "patch_inside_band_y": true,
+     "ground_z": 101.8408
+    },
+    "FR": {
+     "x": 15381.6,
+     "y": -4631.0,
+     "tile": "T16_06",
+     "in_band_x": false,
+     "in_band_y": true,
+     "patch_inside_band_y": true,
+     "ground_z": 101.8168
+    },
+    "RL": {
+     "x": 15380.0,
+     "y": -4633.7,
+     "tile": "T16_05",
+     "in_band_x": true,
+     "in_band_y": false,
+     "patch_inside_band_y": false,
+     "ground_z": 101.7984
+    },
+    "RR": {
+     "x": 15381.6,
+     "y": -4633.7,
+     "tile": "T16_05",
+     "in_band_x": false,
+     "in_band_y": false,
+     "patch_inside_band_y": false,
+     "ground_z": 101.7793
+    }
+   },
+   "wheel_ground_spread": 0.0615
+  },
+  "bR2y_start": {
+   "center": [
+    15400.8,
+    -4640.0
+   ],
+   "spawn": "15400.8,-4640.0,102.008,1.570796",
+   "wheels": {
+    "FL": {
+     "x": 15400.0,
+     "y": -4638.65,
+     "tile": "T16_05",
+     "in_band_x": false,
+     "in_band_y": false,
+     "patch_inside_band_y": false,
+     "ground_z": 101.5619
+    },
+    "FR": {
+     "x": 15401.6,
+     "y": -4638.65,
+     "tile": "T16_05",
+     "in_band_x": false,
+     "in_band_y": false,
+     "patch_inside_band_y": false,
+     "ground_z": 101.5493
+    },
+    "RL": {
+     "x": 15400.0,
+     "y": -4641.35,
+     "tile": "T16_05",
+     "in_band_x": false,
+     "in_band_y": false,
+     "patch_inside_band_y": false,
+     "ground_z": 101.5663
+    },
+    "RR": {
+     "x": 15401.6,
+     "y": -4641.35,
+     "tile": "T16_05",
+     "in_band_x": false,
+     "in_band_y": false,
+     "patch_inside_band_y": false,
+     "ground_z": 101.5571
+    }
+   },
+   "wheel_ground_spread": 0.017
+  }
+ }
+}
