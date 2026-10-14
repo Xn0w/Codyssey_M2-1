@@ -1,0 +1,91 @@
+diff --git a/ugv/drivers/px4.py b/ugv/drivers/px4.py
+index 7639193..7756706 100644
+--- a/ugv/drivers/px4.py
++++ b/ugv/drivers/px4.py
+@@ -66,7 +66,7 @@ def park_after_policy(end_stop_info: dict) -> dict:
+     req = os.getenv("UGV_PX4_PARK_AFTER_S") if os.getenv("UGV_TEST_HOOKS") == "1" else None
+     pol = {"after_s": PARK_AFTER_S, "test_hook": False, "requested": req, "basis": "운영 기본"}
+     if req is None:
+-        return pol
++        return park_still_ops_policy(end_stop_info, pol)
+     try:
+         v = min(max(float(req), PARK_AFTER_S), RUNAWAY_PARK_S - 1.0)
+     except ValueError:
+@@ -77,6 +77,25 @@ def park_after_policy(end_stop_info: dict) -> dict:
+     return {**pol, "after_s": v, "test_hook": True, "basis": "시험 훅 (UGV_TEST_HOOKS=1)"}
+ 
+ 
++def park_still_ops_policy(end_stop_info: dict, pol: dict) -> dict:
++    """운영 설정 UGV_PX4_PARK_STILL_S (2026-10-14 리더 결정 — 운영 경사 중단의 '차단 전 1 초 자체 정지' 후보, 시험 훅과 별개):
++    정상 정차 시동 끔 대기를 명시적으로 늘린다. 없으면 운영 기본 1.0 그대로 (기본값 불변). 시험 훅과 같은 범위 [PARK_AFTER_S, RUNAWAY_PARK_S − 1.0]
++    로 자르고, PX4 끝 지점 자체 정지 차 (RA_ACC_RAD_MAX ≥ NAV_ACC_RAD > 0) 에만 적용 — 그 밖의 차는 기본 유지. RUNAWAY 상한·cut_drive·비상 정지 불변.
++    시험 훅 요청 (UGV_TEST_HOOKS=1 + UGV_PX4_PARK_AFTER_S) 이 있으면 그쪽이 먼저 (park_after_policy)."""
++    ops = os.getenv("UGV_PX4_PARK_STILL_S")
++    if ops is None:
++        return pol
++    pol = {**pol, "ops_setting": ops}
++    try:
++        v = min(max(float(ops), PARK_AFTER_S), RUNAWAY_PARK_S - 1.0)
++    except ValueError:
++        return {**pol, "basis": "운영 설정 해석 실패 — 기본 유지"}
++    nav, ra = (end_stop_info or {}).get("NAV_ACC_RAD"), (end_stop_info or {}).get("RA_ACC_RAD_MAX")
++    if nav is None or ra is None or not (ra >= nav > 0.0):
++        return {**pol, "basis": "PX4 끝 지점 자체 정지 없음/미확인 — 운영 설정 무시, 기본 유지"}
++    return {**pol, "after_s": v, "basis": "운영 설정 (UGV_PX4_PARK_STILL_S)"}
++
++
+ def park_due(speed_mps: float, now: float, still_since, finished_since, park_after_s: float = None):
+     """미션이 끝난 차의 정차 유지(시동 끔) 판단 → (끌지, still_since, finished_since).
+     0.3 m/s 미만이 PARK_AFTER_S 이어지면 끈다 (정상 정차). 속도와 관계없이 미션 끝 뒤 RUNAWAY_PARK_S 가 지나도 끈다 (서지 않고 달림).
+diff --git a/ugv/tests/test_park_hook.py b/ugv/tests/test_park_hook.py
+index 1ef26df..bd37e04 100644
+--- a/ugv/tests/test_park_hook.py
++++ b/ugv/tests/test_park_hook.py
+@@ -151,3 +151,47 @@ def test_park_sample_error_does_not_block_park(monkeypatch):
+     monkeypatch.setenv("UGV_TEST_HOOKS", "1")
+     log = _watch([0.1] * 8, after_s=1.0, with_xy=False)
+     assert log["reason"] == "NORMAL_STILL" and any("sample_error" in x for x in log["samples"])
++
++
++# 운영 설정 UGV_PX4_PARK_STILL_S (2026-10-14 리더 결정 — 시험 훅과 별개, 기본값 불변)
++def test_ops_setting_absent_keeps_default(monkeypatch):
++    monkeypatch.delenv("UGV_TEST_HOOKS", raising=False); monkeypatch.delenv("UGV_PX4_PARK_STILL_S", raising=False)
++    p = park_after_policy(ACC3)
++    assert p["after_s"] == PARK_AFTER_S == 1.0 and p["basis"] == "운영 기본" and "ops_setting" not in p
++
++
++def test_ops_setting_applies_without_test_hooks(monkeypatch):
++    monkeypatch.delenv("UGV_TEST_HOOKS", raising=False); monkeypatch.setenv("UGV_PX4_PARK_STILL_S", "2.0")
++    p = park_after_policy(ACC3)
++    assert p["after_s"] == 2.0 and p["test_hook"] is False and p["ops_setting"] == "2.0" and p["basis"].startswith("운영 설정")
++
++
++def test_ops_setting_clamped_and_bad_value(monkeypatch):
++    monkeypatch.delenv("UGV_TEST_HOOKS", raising=False)
++    monkeypatch.setenv("UGV_PX4_PARK_STILL_S", "9"); assert park_after_policy(ACC3)["after_s"] == RUNAWAY_PARK_S - 1.0
++    monkeypatch.setenv("UGV_PX4_PARK_STILL_S", "0.2"); assert park_after_policy(ACC3)["after_s"] == PARK_AFTER_S
++    monkeypatch.setenv("UGV_PX4_PARK_STILL_S", "abc"); p = park_after_policy(ACC3)
++    assert p["after_s"] == PARK_AFTER_S and "해석 실패" in p["basis"]
++
++
++def test_ops_setting_ignored_for_vehicle_without_end_stop(monkeypatch):
++    monkeypatch.delenv("UGV_TEST_HOOKS", raising=False); monkeypatch.setenv("UGV_PX4_PARK_STILL_S", "2.0")
++    for info in (RA_OFF, {"basis": "파라미터 읽기 실패"}, None):
++        p = park_after_policy(info)
++        assert p["after_s"] == PARK_AFTER_S and p["test_hook"] is False
++
++
++def test_test_hook_takes_precedence_over_ops_setting(monkeypatch):
++    monkeypatch.setenv("UGV_TEST_HOOKS", "1"); monkeypatch.setenv("UGV_PX4_PARK_AFTER_S", "2.5"); monkeypatch.setenv("UGV_PX4_PARK_STILL_S", "2.0")
++    p = park_after_policy(ACC3)
++    assert p["after_s"] == 2.5 and p["test_hook"] is True
++
++
++def test_ops_2s_still_runaway_cap_unchanged():
++    # 2.0 s 대기에서도 미션 끝 뒤 RUNAWAY_PARK_S 상한은 그대로 먼저
++    due, still, fin = park_due(0.1, 10.0, 9.0, 6.0, park_after_s=2.0)
++    assert due is True          # 10 − 6 = 4.0 ≥ RUNAWAY_PARK_S (상한)
++    due, still, fin = park_due(0.1, 10.0, 8.5, 7.5, park_after_s=2.0)
++    assert due is False         # 저속 1.5 s < 2.0, 미션 끝 뒤 2.5 s < 4.0
++    due, still, fin = park_due(0.1, 10.5, 8.5, 7.5, park_after_s=2.0)
++    assert due is True          # 저속 2.0 s
