@@ -1,0 +1,185 @@
+{
+ "tag": "b4e_exact",
+ "n_samples": 259,
+ "wheels": {
+  "wheel_front_left": {
+   "pts_per_msg": {
+    "median": 1,
+    "max": 1,
+    "min": 1
+   },
+   "others": [
+    "kangwon_tile_T16_06::link::collision"
+   ],
+   "wheel_is_engine_body1": [
+    true
+   ],
+   "normal_tilt_deg": {
+    "median": 0.7079,
+    "max": 0.7079,
+    "min": 0.7079
+   },
+   "normal_x": {
+    "median": 0.012,
+    "max": 0.012,
+    "min": 0.012
+   },
+   "ft_fn_point": {
+    "median": 0.9327,
+    "max": 1.3152,
+    "min": 0.4293
+   },
+   "depth": {
+    "median": 0.0,
+    "max": 0.0,
+    "min": 0.0
+   }
+  },
+  "wheel_front_right": {
+   "pts_per_msg": {
+    "median": 2,
+    "max": 2,
+    "min": 1
+   },
+   "others": [
+    "kangwon_tile_T16_06::link::collision"
+   ],
+   "wheel_is_engine_body1": [
+    false,
+    true
+   ],
+   "normal_tilt_deg": {
+    "median": 0.8754,
+    "max": 0.8754,
+    "min": 0.8754
+   },
+   "normal_x": {
+    "median": 0.015,
+    "max": 0.015,
+    "min": 0.015
+   },
+   "ft_fn_point": {
+    "median": 1.1166,
+    "max": 1.7117,
+    "min": 0.0
+   },
+   "depth": {
+    "median": 0.0079,
+    "max": 0.0118,
+    "min": 0.0055
+   }
+  },
+  "wheel_rear_left": {
+   "pts_per_msg": {
+    "median": 1,
+    "max": 1,
+    "min": 1
+   },
+   "others": [
+    "kangwon_tile_T16_05::link::collision"
+   ],
+   "wheel_is_engine_body1": [
+    true
+   ],
+   "normal_tilt_deg": {
+    "median": 0.7635,
+    "max": 0.7635,
+    "min": 0.7635
+   },
+   "normal_x": {
+    "median": 0.0131,
+    "max": 0.0131,
+    "min": 0.0131
+   },
+   "ft_fn_point": {
+    "median": 0.0427,
+    "max": 1.4166,
+    "min": 0.0005
+   },
+   "depth": {
+    "median": 0.0,
+    "max": 0.0,
+    "min": 0.0
+   }
+  },
+  "wheel_rear_right": {
+   "pts_per_msg": {
+    "median": 1,
+    "max": 1,
+    "min": 1
+   },
+   "others": [
+    "kangwon_tile_T16_05::link::collision"
+   ],
+   "wheel_is_engine_body1": [
+    true
+   ],
+   "normal_tilt_deg": {
+    "median": 0.7938,
+    "max": 0.7938,
+    "min": 0.7938
+   },
+   "normal_x": {
+    "median": 0.0131,
+    "max": 0.0131,
+    "min": 0.0131
+   },
+   "ft_fn_point": {
+    "median": 0.0908,
+    "max": 1.1519,
+    "min": 0.061
+   },
+   "depth": {
+    "median": 0.0,
+    "max": 0.0,
+    "min": 0.0
+   }
+  }
+ },
+ "engine_body_names_seen": [
+  [
+   "",
+   ""
+  ]
+ ],
+ "body_names_empty": true,
+ "action_reaction_max_abs": 0.0,
+ "front_axial_fx_median": {
+  "wheel_front_left": -4003.7,
+  "wheel_front_right": 1794.0
+ },
+ "wheel_link_settled": {
+  "wheel_front_left": {
+   "x": 15400.0047,
+   "y": -4630.9988
+  },
+  "wheel_front_right": {
+   "x": 15401.6045,
+   "y": -4630.9988
+  },
+  "wheel_rear_left": {
+   "x": 15400.0048,
+   "y": -4633.6988
+  },
+  "wheel_rear_right": {
+   "x": 15401.6047,
+   "y": -4633.6988
+  }
+ },
+ "susp_q_median": {
+  "susp_front_left": 0.01894,
+  "susp_front_right": 0.0094,
+  "susp_rear_left": 0.01423,
+  "susp_rear_right": 0.01579
+ },
+ "steer_median": [
+  0.0,
+  0.0
+ ],
+ "wheel_spin_median": {
+  "wheel_front_left": -0.0,
+  "wheel_front_right": 0.0,
+  "wheel_rear_left": -0.0,
+  "wheel_rear_right": -0.0
+ }
+}
