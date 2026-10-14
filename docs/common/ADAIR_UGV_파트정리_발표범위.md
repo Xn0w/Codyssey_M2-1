@@ -14,7 +14,7 @@
 | 담당 | UGV (지상 자원 — 무인 지상 차량·소방차) |
 | 시험 기간 | 2026-10-10 ~ 10-11 (시험 목록 5장. 배속 측정은 0장). 로컬 = macOS, Gazebo = Windows WSL |
 | 발표 범위 | UAV·UGV가 환경 모델의 화재를 관측하고, 총괄이 모아 인지 지도를 만드는 과정 (진화·살수 제외) |
-| 자료 | 근거 [`docs/ugv/evidence/`](../ugv/evidence/) · 영상 [`docs/ugv/media/`](../ugv/media/) · 상세 [`ugv/UGV_README.md`](../../ugv/UGV_README.md) |
+| 자료 | 근거 [`docs/ugv/evidence/`](../ugv/evidence/) · 영상 [`docs/ugv/media/`](../ugv/media/) · 상세 [`ugv/README.md`](../../ugv/README.md) |
 
 ---
 
@@ -177,7 +177,7 @@ ETA = 경로에 있는 도로 비용의 합
 
 ## 4. 입력과 출력 (API)
 
-전체 사양 `ugv/API_DEFINE.md`, 필드 설명 `ugv/UGV_README.md` 3장
+전체 사양 `ugv/API_DEFINE.md`, 필드 설명 `ugv/README.md` 3장
 
 | 요청 | 하는 일 |
 |---|---|
