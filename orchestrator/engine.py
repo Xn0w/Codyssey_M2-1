@@ -1393,12 +1393,17 @@ class Orchestrator:
             if sensor == "WEATHER":
                 obs = observation.simulate_weather(snapshot=snap, task=task, attempt_id=aid, resource_id=rid,
                                                    position=pos, provider_raw=data.get("observation"))
-            elif task.plan_id or ground:
-                # 관측 계획 Task, 그리고 계획 밖 UGV 열화상도 같은 지상 시선 모델(config.UGV_VIEW)을 쓴다
+            elif ground and config.SENSOR_PROFILES[config.GROUND_SENSOR_PROFILE_ID].get("model") == "TERRAIN_LINE_OF_SIGHT":
+                # UGV 지상 열화상: 지형 시선 (기본, 2026-10-12). 지도 칸은 환경 /map_cells (정적, 한 번 받아 둠)
+                obs = observation.simulate_ground_los(snapshot=snap, map_cells=getattr(self.env, "map_cells", lambda: [])(),
+                                                      task=task, attempt_id=aid, resource_id=rid, position=pos)
+            elif task.plan_id:
+                # 관측 계획 Task (드론 = 테두리 추적 띠, UGV = 지상 시선)
                 obs = self._planned_observation(snap, task, aid, rid, pos, data, ground)
             else:
                 obs = observation.simulate(snapshot=snap, task=task, attempt_id=aid, resource_id=rid,
-                                           position=pos, uav_raw_observation=data.get("observation"))
+                                           position=pos, uav_raw_observation=data.get("observation"),
+                                           profile_id=config.GROUND_SENSOR_PROFILE_ID if ground else None)
             if closed:
                 obs["received_after_purpose"] = after_label
                 obs["used_for_completion"] = False
@@ -1549,6 +1554,12 @@ class Orchestrator:
                                                             "basis": ["ARRIVED", "PLANNED_VISIT_DONE"],
                                                             "target_covered": obs["target_covered"],
                                                             "resource_released": False})
+        elif (not obs["target_covered"] and obs["result"] != "FAILED" and att["command"]["resource_type"] != "UAV"
+              and (obs.get("footprint") or {}).get("shape") == "RADIUS_TERRAIN_LOS"):
+            # 지상 열화상이 목표 칸을 못 봄 (지형에 가림 또는 2 km 밖). 다시 열면 UGV 가 같은 도로 지점으로 끝없이
+            # 다시 간다 → 다시 보내지 않고 보류 (운용자 확인). 본 칸의 사실은 위에서 이미 환경에 반영했다
+            self._set_purpose(task, "HOLD", basis="GROUND_VIEW_TARGET_NOT_VISIBLE", attempt_id=aid,
+                              hold_reason="GROUND_VIEW_TARGET_NOT_VISIBLE", resume=MANUAL)
         else:
             self._reopen(task, "OBSERVATION_REQUIREMENT_NOT_MET" if not obs["target_covered"]
                          else "ENV_APPLY_NOT_ACKED", aid)
@@ -2224,7 +2235,7 @@ class Orchestrator:
             view = (f"테두리를 다 탄 쪽 {config.OBS_EDGE_OFFSET_M:g} m 안에서 불 머리 쪽으로 "
                     f"{sw['speed_ms'] * sw['duration_s']:g} m × 폭 {sw['swath_m']:g} m"
                     if v.resource_type == "UAV" else
-                    f"가까운 도로에서 반지름 {config.UGV_VIEW['min_m']:g} m~{config.UGV_VIEW['max_m'] / 1000:g} km "
+                    f"가까운 도로에서 반지름 {config.SENSOR_PROFILES['ASSUMED_GROUND_LOS_V1']['min_m']:g} m~{config.SENSOR_PROFILES['ASSUMED_GROUND_LOS_V1']['max_m'] / 1000:g} km "
                     f"(지형에 가리면 안 보임, 도로로 이동)")
             row = {"resource_id": rid, "resource_type": v.resource_type,
                    "lat": round(v.lat, 5), "lon": round(v.lon, 5), "observation": view,
@@ -3240,7 +3251,7 @@ class Orchestrator:
         idx_cells = getattr(self.env, "map_cells", lambda: [])()
         if ground:      # UGV: 반지름 600 m ~ 2 km, 지형 시선 (사용자 결정 2026-10-08)
             return observation.simulate_ground_los(snapshot=snap, map_cells=idx_cells, task=task, attempt_id=aid,
-                                                   resource_id=rid, position=pos)
+                                                   resource_id=rid, position=pos, profile_id="ASSUMED_GROUND_LOS_V1")
         return observation.simulate_edge_sweep(snapshot=snap, map_cells=idx_cells, task=task, attempt_id=aid,
                                                resource_id=rid, position=pos,
                                                report_point=self._report_point(self._map_index()),

@@ -132,6 +132,42 @@ SENSOR_PROFILES = {
         "reference_payload": "H20T_CLASS_EXAMPLE",
         "basis": "IDEALIZED_DIAGONAL_FOV_GEOMETRY",
     },
+    # 지상(UGV) 열화상 — 순찰 차량 마스트의 열화상 카메라가 차 주변을 둘러본다고 가정 (2026-10-05).
+    # 차 위치 중심 정사각형(기본 450 m = 90 m 칸 5×5). 수평 시야라 지형 가림은 반영하지 않는다 (가정임을 결과에 남긴다).
+    # 바꾸기: ORCH_GROUND_THERMAL_VIEW_M. 2026-10-12부터 기본은 아래 ASSUMED_GROUND_LOS_V1 (이 정사각형은 선택용으로 남김)
+    "ASSUMED_GROUND_VIEW_V1": {
+        "source": "SIMULATED",
+        "status": "TEST_ONLY",
+        "sensor_type": "THERMAL",
+        "platform": "GROUND",
+        "agl_m": None,
+        "scale_with_agl": False,
+        "view_direction": "HORIZONTAL_360",
+        "footprint_shape": "RECTANGLE",
+        "footprint_width_m": float(os.getenv("ORCH_GROUND_THERMAL_VIEW_M", "450")),
+        "footprint_height_m": float(os.getenv("ORCH_GROUND_THERMAL_VIEW_M", "450")),
+        "reference_payload": "VEHICLE_MAST_THERMAL_EXAMPLE",
+        "basis": "ASSUMED_GROUND_VIEW_SQUARE_AROUND_VEHICLE (지형 가림 미반영)",
+    },
+    # 지상(UGV) 열화상 — 지형 시선 (2026-10-12): 차 위치에서 반경 min_m 안 칸은 항상 보이고, min_m ~ max_m 칸은
+    # 카메라(차가 선 칸 지면 + mast_m)에서 그 칸 지면까지의 시선이 사이 지형에 막히지 않으면 보인다.
+    # max_m 은 UGV 수락 거리(ugv UGV_TARGET_SNAP_M 2 km)와 같다. 나무·건물 가림은 반영하지 않는다 (가정임을 결과에 남긴다).
+    # 바꾸기: ORCH_UGV_VIEW_MIN_M · ORCH_UGV_VIEW_MAX_M · ORCH_UGV_MAST_M. 이전 정사각형: ORCH_GROUND_SENSOR_PROFILE=ASSUMED_GROUND_VIEW_V1
+    "ASSUMED_GROUND_LOS_V1": {
+        "source": "SIMULATED",
+        "status": "TEST_ONLY",
+        "sensor_type": "THERMAL",
+        "platform": "GROUND",
+        "model": "TERRAIN_LINE_OF_SIGHT",
+        "agl_m": None,
+        "scale_with_agl": False,
+        "view_direction": "HORIZONTAL_360",
+        "min_m": float(os.getenv("ORCH_UGV_VIEW_MIN_M", "600")),
+        "max_m": float(os.getenv("ORCH_UGV_VIEW_MAX_M", "2000")),
+        "mast_m": float(os.getenv("ORCH_UGV_MAST_M", "3.0")),
+        "reference_payload": "VEHICLE_MAST_THERMAL_EXAMPLE",
+        "basis": "RADIUS_ALWAYS_THEN_TERRAIN_LINE_OF_SIGHT (카메라 높이 3 m 가정, 나무·건물 가림 미반영)",
+    },
     # 임시 가정 (사용자 결정 2026-09-30): 드론이 목표에 도착해 그 칸 위를 원으로 한 바퀴 돌았다고 보고
     # 관측 범위를 90m × 90m 로 둔다. 실제 드론은 아직 제자리 비행만 한다 (원 비행은 UAV-08 계약 대기) —
     # 이 범위는 실제로 본 범위가 아니라 가정이다. 높이에 따라 늘리거나 줄이지 않는다.
@@ -152,21 +188,15 @@ SENSOR_PROFILES = {
 }
 # 원래 관측 범위(한 프레임)는 TEST_THERMAL_90M_V1 로 남겨 둔다. 되돌리기: ORCH_SENSOR_PROFILE=TEST_THERMAL_90M_V1
 DEFAULT_SENSOR_PROFILE_ID = os.getenv("ORCH_SENSOR_PROFILE", "ASSUMED_ORBIT_90M_V1")
-# UGV 열화상 시야 (사용자 결정 2026-10-08): 반지름 600 m ~ 2 km, 지형에 따라 다르다.
-#   600 m 안은 항상 보임. 600 m ~ 2 km 는 카메라(지면 위 3 m)에서 그 칸까지 지면 높이(지도 90 m 칸)가 시선을 막지 않으면 보임.
-#   카메라 높이·600 m 안 항상 보임은 시험용 가정 (TEST_ONLY) — 실제 값이 정해지면 숫자만 바꾼다.
-UGV_VIEW = {"sensor_profile_id": "ASSUMED_GROUND_LOS_V1", "source": "SIMULATED", "status": "TEST_ONLY",
-            "sensor_type": "THERMAL", "min_m": 600.0, "max_m": 2000.0,
-            "mast_m": float(os.getenv("ORCH_UGV_MAST_M", "3.0")),
-            "basis": "RADIUS_600M_ALWAYS_TO_2KM_TERRAIN_LINE_OF_SIGHT (카메라 높이 3 m 가정, 나무·건물 가림 미반영)"}
+GROUND_SENSOR_PROFILE_ID = os.getenv("ORCH_GROUND_SENSOR_PROFILE", "ASSUMED_GROUND_LOS_V1")   # UGV 열화상
 
 # ---------------------------------------------------------------------------
 # 현장 환경 측정 (사용자 결정 2026-09-30: 2019 재현 필수 기능)
 # 드론·UGV·소방차에 기상 센서가 아직 없어 총괄 쪽 모의 센서로 측정한다 (TEST_ONLY).
 # 모의 센서는 도착 위치의 환경 값을 읽을 뿐이며, 환경이 주지 않은 항목은 만들지 않는다.
 # ---------------------------------------------------------------------------
-# 지상 자원 열화상 (모의): 켜면 UGV 가 열화상 임무 후보가 된다. 관측은 지상 시선 모델 config.UGV_VIEW
-# (observation.simulate_ground_los). 끄기: ORCH_UGV_THERMAL=0
+# 지상 자원 열화상 (모의): 켜면 UGV 가 열화상 임무 후보가 된다. 관측은 지상 센서 프로필 config.GROUND_SENSOR_PROFILE_ID
+# (기본 ASSUMED_GROUND_LOS_V1 → observation.simulate_ground_los). 끄기: ORCH_UGV_THERMAL=0
 UGV_THERMAL_ENABLED = os.getenv("ORCH_UGV_THERMAL", "1") == "1"   # 사용자 결정 2026-10-07: 관측 계획 시연용으로 켬
 _UGV_SIM_SENSORS = ("WEATHER", "THERMAL") if UGV_THERMAL_ENABLED else ("WEATHER",)
 SIMULATED_CAPABILITIES = dict(UAV=("WEATHER",), UGV=_UGV_SIM_SENSORS, FIRE_ENGINE=("WEATHER",))

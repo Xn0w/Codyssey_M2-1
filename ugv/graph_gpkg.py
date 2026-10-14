@@ -5,7 +5,7 @@
 # 여기서는 JSON 만 읽으므로 추가 패키지가 필요 없다.
 #
 # 거점 노드 id 는 "A"(인제119), "B"(기린119) 로 바뀌어 있다 → ugv/config.py 의 home_node 그대로 사용.
-# 거점 좌표는 주소로 추정한 값이고, 가장 가까운 도로 노드에 붙였다 (BASES[*]["snap_m"] 참고).
+# 거점 좌표는 팀 공통 거점 파일(environment/config/fire_stations.json) 값이고, 출발 노드까지 거리는 BASES[*]["snap_m"].
 # ROADS 의 geometry 는 도로 선형 [[lat, lon], ...] — 차량이 도로를 따라 달리는 데 쓴다.
 # SPAWN 은 자원별 Gazebo 스폰 자세 (ugv/tools/px4-start.sh 가 같은 JSON 을 읽는다).
 

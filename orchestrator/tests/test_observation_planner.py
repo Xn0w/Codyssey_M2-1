@@ -468,7 +468,8 @@ def test_known_edge_and_frontier_use_belief_only():
 def test_plan_input_carries_edge_fields(pw, monkeypatch):
     monkeypatch.setattr(config, "OBS_MAX_CANDIDATE_BLOCKS", 0)            # 상한과 무관한 시험 (전체 후보)
     # 시험 지도가 2.7 km 라 UGV 시야(2 km)면 거의 다 보인다 → 이 시험만 좁힌다
-    monkeypatch.setattr(config, "UGV_VIEW", {**config.UGV_VIEW, "min_m": 200.0, "max_m": 300.0})
+    monkeypatch.setitem(config.SENSOR_PROFILES, "ASSUMED_GROUND_LOS_V1",
+                        {**config.SENSOR_PROFILES["ASSUMED_GROUND_LOS_V1"], "min_m": 200.0, "max_m": 300.0})
     orch, env = pw["orch"], pw["env"]
     _to_report_time(env)
     orch.obs_plan_cycle()
@@ -1382,12 +1383,12 @@ def test_ugv_sees_600m_always_and_up_to_2km_unless_terrain_blocks():
     seen = set(flat["covered_cells"])
     assert flat["sensor_profile_id"] == "ASSUMED_GROUND_LOS_V1" and flat["sensor_status"] == "TEST_ONLY"
     assert {"5_15", "20_15", "22_15"} <= seen and "23_15" not in seen      # 22칸 = 1980 m, 23칸 = 2070 m
-    assert {"5_15", "20_15"} == {p["cell_id"] for p in flat["fire_points"]} and flat["target_covered"]
+    assert {"5_15", "20_15"} == {d["cell_id"] for d in flat["detections"] if d["fire_state"] == "BURNING"} and flat["target_covered"]
     ridge = _ugv_view(ridge_col=10, ridge_m=50.0)                            # 900 m 지점에 50 m 능선
     seen = set(ridge["covered_cells"])
     assert "5_15" in seen and "10_15" in seen                                # 600 m 안 + 능선 자체는 보임
     assert "20_15" not in seen and not ridge["target_covered"]              # 능선 너머 불은 안 보임
-    assert [p["cell_id"] for p in ridge["fire_points"]] == ["5_15"]
+    assert [d["cell_id"] for d in ridge["detections"] if d["fire_state"] == "BURNING"] == ["5_15"]
     assert ridge["footprint"]["hidden_cells"] > 0
 
 

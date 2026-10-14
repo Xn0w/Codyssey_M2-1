@@ -38,7 +38,7 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 ## 구조
 
 - 서버 1개가 지상자원 전부(`ugv/config.py` 의 `RESOURCES`)를 맡는다. UAV 는 기체 1대당 서버 1개지만, UGV 는 자원들이 도로망 그래프 하나를 공유해야 도로 차단이 모든 자원의 판단에 동시에 반영된다.
-- 도로망은 환경 데이터(`environment/data/processed/roads_reprojected.gpkg`, EPSG:5186)를 변환한 `ugv/data/road_network.json` (노드 534, 도로 672, 184 km, 도로 선형 포함). 거점 노드 id 는 `A`(인제119), `B`(기린119) — 좌표는 주소로 추정.
+- 도로망은 환경 데이터(`environment/data/processed/roads_reprojected.gpkg`, EPSG:5186)를 변환한 `ugv/data/road_network.json` (노드 534, 도로 672, 184 km, 도로 선형 포함). 거점 노드 id 는 `A`(인제119), `B`(기린119) — 좌표는 팀 공통 거점 파일(`environment/config/fire_stations.json`).
 - 모든 시각·ETA·속도는 **시뮬레이션 초** 기준 (`ugv/sim_clock.py`). 환경 스텝을 `POST /clock/env` 로 받으면 거기에 맞춘다.
 - 도로 환경(차단 도로·경유 불가 노드·혼잡)은 UGV 것이고 환경 모듈과 별개다. 시나리오 파일의 시간대가 정하고, `/roads/*` API 로 덧붙일 수 있다. 화재는 도로를 막지 않는다 (팀 결정).
 - 차량은 노드 사이 직선이 아니라 **도로 선형을 따라** 달린다 (`ugv/route_plan.py`). 주행 중 남은 경로가 막히면 지금 도로 끝에서 재탐색한다.
