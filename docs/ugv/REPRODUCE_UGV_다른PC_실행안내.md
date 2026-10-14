@@ -21,6 +21,11 @@ Windows + Git Bash + WSL Ubuntu-24.04 (gz-sim 8.15.0, gz-physics 7.8.0, PX4-Auto
 - 실행 결과 (CSV·ULog·JSONL·로그) 는 올리지 않음 — 핵심 결과는 `docs/ugv/evidence/*` 에 사본.
 - **tiles_v2 616 타일 전체** 와 평지 월드 타일 (tiles_flat·tiles_flathm) 도 올림 (db15ea7). 생성기 재생성은 현재 tiles_v2 와 바이트 동일하지 않음 (2026-10-14 T04_16·T05_16 확인) — 그래서 원본 그대로 보관. 이전 판 tiles·tiles_level 은 미포함.
 
+## 절대 경로 해결 (스크립트 수정 없이, 동결 해시 유지)
+1. Windows 관리자 PowerShell: `powershell -ExecutionPolicy Bypass -File tools\setup_other_pc\setup_paths_windows.ps1` → `C:\Users\수다쟁이고양이들` 를 실제 사용자 폴더로 잇는 junction (WSL `/mnt/c/Users/수다쟁이고양이들` 157 곳·Git Bash `/c/Users/…` 2 곳 해결). 파일은 UTF-8 BOM (PowerShell 5.1 한글 경로용).
+2. WSL: `bash tools/setup_other_pc/setup_paths_wsl.sh [PX4 폴더]` → `/home/geumsoni/PX4-Autopilot` 링크 (17 곳 해결, sudo).
+3. 새로 만드는 스크립트는 환경 변수 (예: ADAIR_ROOT, PX4_DIR) 방식으로 작성 권장.
+
 ## 주의
 - 많은 스크립트가 **이 PC 의 절대 경로** (`/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/…`, `C:/Users/…`, WSL `/home/geumsoni/PX4-Autopilot`) 를 씀 → 다른 PC 는 같은 경로 구성으로 두거나 경로를 바꿔야 함.
 - 동결 해시 (`*_freeze.sha1`) 는 줄바꿈 (LF) 기준 — Git 의 CRLF 변환으로 체크아웃되면 해시 불일치로 체인이 HOLD 할 수 있음 → `git config core.autocrlf false` 권장.
