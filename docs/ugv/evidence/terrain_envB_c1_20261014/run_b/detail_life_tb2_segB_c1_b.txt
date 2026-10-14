@@ -1,0 +1,2 @@
+detail_wsl_pid=589641 start=09:50:18
+detail_rc=3 road_test_rc=0 end=09:53:02

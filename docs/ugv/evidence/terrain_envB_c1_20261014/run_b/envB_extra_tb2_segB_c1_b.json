@@ -1,0 +1,26 @@
+{
+ "tag": "tb2_segB_c1_b",
+ "speed": {
+  "env_UGV_MAX_SPEED_KMH": "20",
+  "ready_profile_max_speed_kmh": 20.0,
+  "gz_speed_max_mps": 5.565,
+  "first_items_speed_max": null
+ },
+ "ground": {
+  "n": 374,
+  "dz_min": -0.0163,
+  "dz_max": -0.0126,
+  "roll_abs_max": 0.38,
+  "pitch_abs_max": 0.75,
+  "tiles_seen": [
+   "T04_16",
+   "T05_16"
+  ]
+ },
+ "checks": {
+  "speed_limit_applied": true,
+  "ground_contact": true,
+  "seam_crossed": true
+ },
+ "status": "PASS"
+}

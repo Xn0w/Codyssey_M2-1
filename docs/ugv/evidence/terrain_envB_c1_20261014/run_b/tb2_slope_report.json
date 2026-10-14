@@ -1,0 +1,66 @@
+[
+ {
+  "tag": "tb2_segB_c1_a",
+  "judge3": {
+   "arrived": true,
+   "inside": true,
+   "outside_max_m": -2.42,
+   "stop": "확인",
+   "final_pass": true
+  },
+  "speed_vs_plan_reference_downhill": {
+   "samples": 797,
+   "ratio_ok": 1.0,
+   "min_speed_over_plan": 0.997
+  },
+  "hold": {
+   "drift_m": 0.0,
+   "confirm_sim_t": 141.72,
+   "arrival_event_sim_idx": 1213,
+   "z": 27.3982
+  },
+  "hold_v1": {
+   "drift_m": 0.0,
+   "pass_v1": true,
+   "note": "v1 고정 28 표본 — 출발 대기를 잡을 수 있음"
+  },
+  "checks": {
+   "judge3_final_pass": true,
+   "hold_drift_le_0.1m_30s": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ },
+ {
+  "tag": "tb2_segB_c1_b",
+  "judge3": {
+   "arrived": true,
+   "inside": true,
+   "outside_max_m": -2.41,
+   "stop": "확인",
+   "final_pass": true
+  },
+  "speed_vs_plan_reference_downhill": {
+   "samples": 797,
+   "ratio_ok": 1.0,
+   "min_speed_over_plan": 0.996
+  },
+  "hold": {
+   "drift_m": 0.0,
+   "confirm_sim_t": 143.888,
+   "arrival_event_sim_idx": 1214,
+   "z": 27.3985
+  },
+  "hold_v1": {
+   "drift_m": 0.0,
+   "pass_v1": true,
+   "note": "v1 고정 28 표본 — 출발 대기를 잡을 수 있음"
+  },
+  "checks": {
+   "judge3_final_pass": true,
+   "hold_drift_le_0.1m_30s": true
+  },
+  "status": "PASS",
+  "limits": "바퀴 관절 속도·모터 명령·토크 미수집 (wheel_rad_s 빈칸) — 이상적 속도 구동"
+ }
+]

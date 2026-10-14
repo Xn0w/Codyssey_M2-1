@@ -1,0 +1,116 @@
+{
+ "tag": "tb2_segB_c1_b",
+ "meta": {
+  "rows": 4561,
+  "dt_median_s": 0.036,
+  "dt_max_s": 0.036,
+  "susp_joints_published": true,
+  "abort": {
+   "reason": null,
+   "t": null
+  },
+  "completed": false,
+  "contact_other_counts": {
+   "wheel_front_left": {
+    "kangwon_tile_T05_16::link::collision": 7772,
+    "kangwon_tile_T04_16::link::collision": 74266
+   },
+   "wheel_front_right": {
+    "kangwon_tile_T05_16::link::collision": 7695,
+    "kangwon_tile_T04_16::link::collision": 74337
+   },
+   "wheel_rear_left": {
+    "kangwon_tile_T05_16::link::collision": 8015,
+    "kangwon_tile_T04_16::link::collision": 74022
+   },
+   "wheel_rear_right": {
+    "kangwon_tile_T05_16::link::collision": 7937,
+    "kangwon_tile_T04_16::link::collision": 74093
+   }
+  }
+ },
+ "valid_ratio": {
+  "wheel_front_left": 1.0,
+  "wheel_front_right": 1.0,
+  "wheel_rear_left": 1.0,
+  "wheel_rear_right": 1.0
+ },
+ "wheel_height": {
+  "wheel_front_left": [
+   0.3488,
+   0.3511
+  ],
+  "wheel_front_right": [
+   0.3492,
+   0.3508
+  ],
+  "wheel_rear_left": [
+   0.3487,
+   0.3511
+  ],
+  "wheel_rear_right": [
+   0.3494,
+   0.351
+  ]
+ },
+ "susp_q_range": {
+  "susp_front_left": [
+   0.00951,
+   0.02243
+  ],
+  "susp_front_right": [
+   0.00983,
+   0.02103
+  ],
+  "susp_rear_left": [
+   0.00764,
+   0.01952
+  ],
+  "susp_rear_right": [
+   0.00657,
+   0.01941
+  ]
+ },
+ "contact_other_seq": {
+  "wheel_front_left": [
+   "kangwon_tile_T05_16::link::collision",
+   "kangwon_tile_T04_16::link::collision"
+  ],
+  "wheel_front_right": [
+   "kangwon_tile_T05_16::link::collision",
+   "kangwon_tile_T04_16::link::collision"
+  ],
+  "wheel_rear_left": [
+   "kangwon_tile_T05_16::link::collision",
+   "kangwon_tile_T04_16::link::collision"
+  ],
+  "wheel_rear_right": [
+   "kangwon_tile_T05_16::link::collision",
+   "kangwon_tile_T04_16::link::collision"
+  ]
+ },
+ "roll_pitch_abs_max_deg": [
+  0.405,
+  0.757
+ ],
+ "coverage": {
+  "detail_last_sim": 238.656,
+  "hold_confirm_sim_t": 143.888
+ },
+ "ready": {
+  "ready": 1,
+  "hb": "315787 31 75.578 0.99 1 1 0",
+  "waited_s": 2
+ },
+ "checks": {
+  "recorder_rows_no_abort": true,
+  "contact_valid_95": true,
+  "wheel_height_0.29_0.41": true,
+  "susp_within_limit": true,
+  "all_wheels_T05_to_T04": true,
+  "coverage_to_hold": true,
+  "ready_gate": true,
+  "no_watchdog": true
+ },
+ "status": "PASS"
+}
