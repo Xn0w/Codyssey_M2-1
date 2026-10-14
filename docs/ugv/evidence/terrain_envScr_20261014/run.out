@@ -1,0 +1,8 @@
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"ts2_screenA_c1_b","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T13:01:03+09:00"}
+ts2_screenA_c1_b run rc=0 rcfile={"tag":"ts2_screenA_c1_b","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T13:01:03+09:00"} aabb={"aabb_500":160,"aabb_499_512":0,"prov_candidate_tiles":160}
+ENVSCR_RESULT ts2_screenA_c1_b judge=PASS extra=FAIL detail=FAIL rc=0 13:01:12
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"ts2_screenA_c1_c","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T13:16:31+09:00"}
+ts2_screenA_c1_c run rc=0 rcfile={"tag":"ts2_screenA_c1_c","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T13:16:31+09:00"} aabb={"aabb_500":160,"aabb_499_512":0,"prov_candidate_tiles":160}
+ENVSCR_RESULT ts2_screenA_c1_c judge=FAIL extra=PASS detail=PASS rc=0 13:16:41

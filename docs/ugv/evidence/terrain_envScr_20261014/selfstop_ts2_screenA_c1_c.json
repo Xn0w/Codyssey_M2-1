@@ -1,0 +1,153 @@
+{
+ "ulg": "/home/geumsoni/.adair-ugv/px4-1/log/2026-10-14/04_05_20.ulg",
+ "groundtruth_rate_hz": 55.6,
+ "pub_minus_sample_ms_median": 0.0,
+ "finished_t": 554.632,
+ "cut_candidates": {
+  "disarm_request": 556.094,
+  "armed_false": 556.102,
+  "actuator_outputs_1_first_change_after_ref-2s": 554.106,
+  "actuator_outputs_2_first_change_after_ref-2s": 554.126
+ },
+ "cut_used": 556.094,
+ "last_ge_0.2_t": 554.81,
+ "first_lt_0.2_after_t": 554.828,
+ "slow_until_cut_lower_bound_s": 1.266,
+ "pass_1s": true,
+ "disp_start_to_cut_m": 0.0022,
+ "disp_cut_to_30s_m": 0.0,
+ "gt_gap_max_before_cut_s": 0.018,
+ "v_max_between_start_and_cut": 0.1664,
+ "v_max_30s_after_cut": 0.0,
+ "speed_samples_around": [
+  [
+   553.838,
+   1.047
+  ],
+  [
+   553.928,
+   1.054
+  ],
+  [
+   554.018,
+   1.059
+  ],
+  [
+   554.108,
+   1.061
+  ],
+  [
+   554.198,
+   1.058
+  ],
+  [
+   554.288,
+   1.058
+  ],
+  [
+   554.378,
+   1.058
+  ],
+  [
+   554.468,
+   1.055
+  ],
+  [
+   554.558,
+   1.05
+  ],
+  [
+   554.648,
+   0.881
+  ],
+  [
+   554.738,
+   0.526
+  ],
+  [
+   554.828,
+   0.166
+  ],
+  [
+   554.918,
+   0.001
+  ],
+  [
+   555.008,
+   0.0
+  ],
+  [
+   555.098,
+   0.0
+  ],
+  [
+   555.188,
+   0.0
+  ],
+  [
+   555.278,
+   0.0
+  ],
+  [
+   555.368,
+   0.0
+  ],
+  [
+   555.458,
+   0.0
+  ],
+  [
+   555.548,
+   0.0
+  ],
+  [
+   555.638,
+   0.0
+  ],
+  [
+   555.728,
+   0.0
+  ],
+  [
+   555.818,
+   0.0
+  ],
+  [
+   555.908,
+   0.0
+  ],
+  [
+   555.998,
+   0.0
+  ],
+  [
+   556.088,
+   0.0
+  ],
+  [
+   556.178,
+   0.0
+  ],
+  [
+   556.262,
+   0.0
+  ],
+  [
+   556.352,
+   0.0
+  ],
+  [
+   556.442,
+   0.0
+  ],
+  [
+   556.532,
+   0.0
+  ]
+ ],
+ "notes": [
+  "groundtruth 는 PX4 gz 브리지가 Gazebo odometry 를 받아 publish — timestamp_sample 은 브리지 수신 기준 (물리 생성 시각과 같은 sim 시계, 지연은 pub−sample 로만 표시)",
+  "저속 시작 = 마지막 ≥ 0.2 뒤 첫 < 0.2 표본 (보수적: 실제 교차는 더 이를 수 있음)",
+  "차단 경계 = min(disarm 요청, armed 해제); actuator_outputs 변화는 기록"
+ ]
+}

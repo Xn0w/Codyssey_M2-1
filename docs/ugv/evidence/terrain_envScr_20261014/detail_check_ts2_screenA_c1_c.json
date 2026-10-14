@@ -1,0 +1,124 @@
+{
+ "tag": "ts2_screenA_c1_c",
+ "meta": {
+  "rows": 16276,
+  "dt_median_s": 0.036,
+  "dt_max_s": 0.036,
+  "susp_joints_published": true,
+  "abort": {
+   "reason": null,
+   "t": null
+  },
+  "completed": false,
+  "contact_other_counts": {
+   "wheel_front_left": {
+    "kangwon_tile_T04_16::link::collision": 98268,
+    "kangwon_tile_T05_16::link::collision": 72914,
+    "kangwon_tile_T05_17::link::collision": 121241
+   },
+   "wheel_front_right": {
+    "kangwon_tile_T04_16::link::collision": 98182,
+    "kangwon_tile_T05_16::link::collision": 73099,
+    "kangwon_tile_T05_17::link::collision": 121158
+   },
+   "wheel_rear_left": {
+    "kangwon_tile_T04_16::link::collision": 98519,
+    "kangwon_tile_T05_16::link::collision": 72899,
+    "kangwon_tile_T05_17::link::collision": 121006
+   },
+   "wheel_rear_right": {
+    "kangwon_tile_T04_16::link::collision": 98438,
+    "kangwon_tile_T05_16::link::collision": 73106,
+    "kangwon_tile_T05_17::link::collision": 120924
+   }
+  }
+ },
+ "valid_ratio": {
+  "wheel_front_left": 1.0,
+  "wheel_front_right": 1.0,
+  "wheel_rear_left": 1.0,
+  "wheel_rear_right": 1.0
+ },
+ "wheel_height": {
+  "wheel_front_left": [
+   0.3491,
+   0.3534
+  ],
+  "wheel_front_right": [
+   0.349,
+   0.3536
+  ],
+  "wheel_rear_left": [
+   0.3489,
+   0.3532
+  ],
+  "wheel_rear_right": [
+   0.3492,
+   0.353
+  ]
+ },
+ "susp_q_range": {
+  "susp_front_left": [
+   -0.00056,
+   0.02692
+  ],
+  "susp_front_right": [
+   0.00106,
+   0.02613
+  ],
+  "susp_rear_left": [
+   0.00069,
+   0.02203
+  ],
+  "susp_rear_right": [
+   0.00726,
+   0.02104
+  ]
+ },
+ "contact_other_seq": {
+  "wheel_front_left": [
+   "kangwon_tile_T04_16::link::collision",
+   "kangwon_tile_T05_16::link::collision",
+   "kangwon_tile_T05_17::link::collision"
+  ],
+  "wheel_front_right": [
+   "kangwon_tile_T04_16::link::collision",
+   "kangwon_tile_T05_16::link::collision",
+   "kangwon_tile_T05_17::link::collision"
+  ],
+  "wheel_rear_left": [
+   "kangwon_tile_T04_16::link::collision",
+   "kangwon_tile_T05_16::link::collision",
+   "kangwon_tile_T05_17::link::collision"
+  ],
+  "wheel_rear_right": [
+   "kangwon_tile_T04_16::link::collision",
+   "kangwon_tile_T05_16::link::collision",
+   "kangwon_tile_T05_17::link::collision"
+  ]
+ },
+ "roll_pitch_abs_max_deg": [
+  1.676,
+  4.031
+ ],
+ "coverage": {
+  "detail_last_sim": 674.556,
+  "hold_confirm_sim_t": 557.612
+ },
+ "ready": {
+  "ready": 1,
+  "hb": "334029 31 89.742 0.99 1 1 0",
+  "waited_s": 2
+ },
+ "checks": {
+  "recorder_rows_no_abort": true,
+  "contact_valid_95": true,
+  "wheel_height_0.29_0.41": true,
+  "susp_within_limit": true,
+  "all_wheels_T04_T05_T0517": true,
+  "coverage_to_hold": true,
+  "ready_gate": true,
+  "no_watchdog": true
+ },
+ "status": "PASS"
+}

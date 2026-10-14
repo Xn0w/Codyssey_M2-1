@@ -1,0 +1,27 @@
+{
+ "tag": "ts2_screenA_c1_c",
+ "speed": {
+  "env_UGV_MAX_SPEED_KMH": "20",
+  "ready_profile_max_speed_kmh": 20.0,
+  "gz_speed_max_mps": 5.603,
+  "first_items_speed_max": null
+ },
+ "ground": {
+  "n": 1311,
+  "dz_min": -0.0188,
+  "dz_max": -0.0052,
+  "roll_abs_max": 1.63,
+  "pitch_abs_max": 4.02,
+  "tiles_seen": [
+   "T04_16",
+   "T05_16",
+   "T05_17"
+  ]
+ },
+ "checks": {
+  "speed_limit_applied": true,
+  "ground_contact": true,
+  "seam_crossed": true
+ },
+ "status": "PASS"
+}
