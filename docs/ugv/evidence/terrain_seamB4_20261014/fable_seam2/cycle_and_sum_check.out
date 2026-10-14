@@ -1,0 +1,124 @@
+{
+ "b4e_exact": {
+  "front_right": {
+   "samples_2pts": 257,
+   "point_axle_lambda_over_fn_max": 1.2104,
+   "point_fwd_lambda_over_fn_max": 1.2103,
+   "SUM_axle_lambda_over_fn_max": 1.0027,
+   "SUM_fwd_lambda_over_fn_max": 1.0027,
+   "SUM_axle_gt_1.005": 0,
+   "point_axle_gt_1.005": 256
+  },
+  "front_left": {
+   "samples_2pts": 0,
+   "point_axle_lambda_over_fn_max": 0.9995,
+   "point_fwd_lambda_over_fn_max": 1.0001,
+   "SUM_axle_lambda_over_fn_max": 0.9995,
+   "SUM_fwd_lambda_over_fn_max": 1.0001,
+   "SUM_axle_gt_1.005": 0,
+   "point_axle_gt_1.005": 0
+  },
+  "rear_left": {
+   "samples_2pts": 0,
+   "point_axle_lambda_over_fn_max": 1.0017,
+   "point_fwd_lambda_over_fn_max": 1.0017,
+   "SUM_axle_lambda_over_fn_max": 1.0017,
+   "SUM_fwd_lambda_over_fn_max": 1.0017,
+   "SUM_axle_gt_1.005": 0,
+   "point_axle_gt_1.005": 0
+  }
+ },
+ "b4d_N": {
+  "front_right": {
+   "samples_2pts": 0,
+   "point_axle_lambda_over_fn_max": 0.0133,
+   "point_fwd_lambda_over_fn_max": 0.0029,
+   "SUM_axle_lambda_over_fn_max": 0.0133,
+   "SUM_fwd_lambda_over_fn_max": 0.0029,
+   "SUM_axle_gt_1.005": 0,
+   "point_axle_gt_1.005": 0
+  },
+  "front_left": {
+   "samples_2pts": 0,
+   "point_axle_lambda_over_fn_max": 0.0129,
+   "point_fwd_lambda_over_fn_max": 0.0028,
+   "SUM_axle_lambda_over_fn_max": 0.0129,
+   "SUM_fwd_lambda_over_fn_max": 0.0028,
+   "SUM_axle_gt_1.005": 0,
+   "point_axle_gt_1.005": 0
+  },
+  "rear_left": {
+   "samples_2pts": 259,
+   "point_axle_lambda_over_fn_max": 0.0146,
+   "point_fwd_lambda_over_fn_max": 0.0037,
+   "SUM_axle_lambda_over_fn_max": 0.0137,
+   "SUM_fwd_lambda_over_fn_max": 0.0035,
+   "SUM_axle_gt_1.005": 0,
+   "point_axle_gt_1.005": 0
+  }
+ },
+ "b4d_S": {
+  "front_right": {
+   "samples_2pts": 0,
+   "point_axle_lambda_over_fn_max": 0.0091,
+   "point_fwd_lambda_over_fn_max": 0.0017,
+   "SUM_axle_lambda_over_fn_max": 0.0091,
+   "SUM_fwd_lambda_over_fn_max": 0.0017,
+   "SUM_axle_gt_1.005": 0,
+   "point_axle_gt_1.005": 0
+  },
+  "front_left": {
+   "samples_2pts": 259,
+   "point_axle_lambda_over_fn_max": 0.0197,
+   "point_fwd_lambda_over_fn_max": 0.0037,
+   "SUM_axle_lambda_over_fn_max": 0.0173,
+   "SUM_fwd_lambda_over_fn_max": 0.0032,
+   "SUM_axle_gt_1.005": 0,
+   "point_axle_gt_1.005": 0
+  },
+  "rear_left": {
+   "samples_2pts": 259,
+   "point_axle_lambda_over_fn_max": 0.0204,
+   "point_fwd_lambda_over_fn_max": 0.0044,
+   "SUM_axle_lambda_over_fn_max": 0.0191,
+   "SUM_fwd_lambda_over_fn_max": 0.0041,
+   "SUM_axle_gt_1.005": 0,
+   "point_axle_gt_1.005": 0
+  }
+ }
+}
+FR depth jumps (t, d_before, d_after, dy_before_mm, dy_after_mm): [(18.684, 5.53, 9.86, 0.003, 0.168), (23.112, 5.54, 9.87, 0.002, 0.221), (27.54, 5.56, 9.89, 0.001, 0.257), (31.968, 6.05, 9.91, 0.0, 0.278), (36.396, 6.08, 9.93, 0.0, 0.3), (40.716, 5.72, 10.11, 0.004, 0.041), (45.144, 5.75, 11.32, 0.003, 0.128)]
+periods s: [4.43, 4.43, 4.43, 4.43, 4.32, 4.43]
+between-jump slopes (depth mm/s, dy mm/s): [(np.float64(-0.999), np.float64(-0.0635)), (np.float64(-0.999), np.float64(-0.0632)), (np.float64(-0.999), np.float64(-0.0631)), (np.float64(-0.999), np.float64(-0.0629)), (np.float64(-0.999), np.float64(-0.0629)), (np.float64(-0.999), np.float64(-0.064))]
+b4e_exact FR c_age>2.5ms rows: [(23.04, 0.004), (36.288, 0.012)] count 2
+b4e_exact y drift mm/s (fit after 2 s): {'y': -0.0, 'wheel_front_left_link_y': -0.0, 'wheel_front_right_link_y': -0.0002, 'wheel_rear_left_link_y': -0.0001, 'wheel_rear_right_link_y': -0.0001}
+b4e_exact roll/pitch last: 0.01312 0.00416  FR link y first/last: -4630.9988 -4630.9986
+b4d_N FR c_age>2.5ms rows: [] count 0
+b4d_N y drift mm/s (fit after 2 s): {'y': 0.0, 'wheel_front_left_link_y': 0.0, 'wheel_front_right_link_y': -0.0, 'wheel_rear_left_link_y': 0.0, 'wheel_rear_right_link_y': 0.0}
+b4d_N roll/pitch last: 0.01314 0.00182  FR link y first/last: -4630.8993 -4630.8993
+x=15400.0: T16_06 edge h=101.5513 slope_dz/dy=-0.00144 (lowest-point shift along y = +0.50 mm) | T16_05 edge h=101.5513 slope_dz/dy=-0.00219 (shift +0.77 mm) | edge height diff T06-T05 = +0.02 mm
+x=15401.6: T16_06 edge h=101.5288 slope_dz/dy=-0.00300 (lowest-point shift along y = +1.05 mm) | T16_05 edge h=101.5278 slope_dz/dy=-0.00245 (shift +0.86 mm) | edge height diff T06-T05 = +0.99 mm
+== b4e_exact
+ window 19.0-23.0s slope mm/s: base_y -0.0 base_x -0.0 FR_link_y -0.0598 FL_link_y -0.064 FR_z 0.9989 | yaw slope urad/s -0.89 | q_FR 0.4955 q_FL -0.5034
+ window 23.3-27.4s slope mm/s: base_y 0.0 base_x 0.0 FR_link_y -0.0597 FL_link_y -0.0669 FR_z 0.9986 | yaw slope urad/s -1.3 | q_FR 0.4928 q_FL -0.5061
+ window 27.8-31.8s slope mm/s: base_y -0.0 base_x 0.0 FR_link_y -0.0606 FL_link_y -0.0644 FR_z 1.0004 | yaw slope urad/s -1.45 | q_FR 0.4956 q_FL -0.5034
+ window 32.2-36.2s slope mm/s: base_y 0.0 base_x -0.0 FR_link_y -0.0603 FL_link_y -0.0656 FR_z 0.9981 | yaw slope urad/s -1.66 | q_FR 0.495 q_FL -0.5033
+ window 36.6-40.6s slope mm/s: base_y 0.0 base_x -0.0 FR_link_y -0.0611 FL_link_y -0.0666 FR_z 0.9993 | yaw slope urad/s -1.76 | q_FR 0.4951 q_FL -0.5042
+  t=18.504 base_y=-4632.3500 FR_link_y=-4630.9989 FL_link_y=-4630.9989 FR_z=101.8727 qFR=0.01046 qFL=0.01786 yaw=1.57083 roll=0.01314 pitch=0.00296
+  t=18.792 base_y=-4632.3500 FR_link_y=-4630.9986 FL_link_y=-4630.9986 FR_z=101.8686 qFR=0.00894 qFL=0.02054 yaw=1.57085 roll=0.0131 pitch=0.00389
+  t=22.896 base_y=-4632.3500 FR_link_y=-4630.9989 FL_link_y=-4630.9989 FR_z=101.8727 qFR=0.01041 qFL=0.01791 yaw=1.57083 roll=0.0131 pitch=0.00297
+  t=23.292 base_y=-4632.3500 FR_link_y=-4630.9987 FL_link_y=-4630.9986 FR_z=101.8686 qFR=0.00869 qFL=0.02024 yaw=1.57085 roll=0.0131 pitch=0.00382
+  t=27.396 base_y=-4632.3500 FR_link_y=-4630.9989 FL_link_y=-4630.9989 FR_z=101.8727 qFR=0.01043 qFL=0.01789 yaw=1.57083 roll=0.0131 pitch=0.00296
+  t=27.684 base_y=-4632.3500 FR_link_y=-4630.9987 FL_link_y=-4630.9986 FR_z=101.8686 qFR=0.00875 qFL=0.02038 yaw=1.57085 roll=0.01308 pitch=0.00385
+== b4d_N
+ window 19.0-23.0s slope mm/s: base_y -0.0 base_x -0.0 FR_link_y -0.0 FL_link_y 0.0 FR_z -0.0 | yaw slope urad/s -0.0 | q_FR 0.0 q_FL -0.0
+ window 23.3-27.4s slope mm/s: base_y 0.0 base_x 0.0 FR_link_y 0.0 FL_link_y 0.0 FR_z -0.0 | yaw slope urad/s 0.0 | q_FR 0.0 q_FL 0.0
+ window 27.8-31.8s slope mm/s: base_y 0.0 base_x -0.0 FR_link_y -0.0 FL_link_y -0.0 FR_z -0.0 | yaw slope urad/s 0.0 | q_FR -0.0 q_FL -0.0
+ window 32.2-36.2s slope mm/s: base_y -0.0 base_x 0.0 FR_link_y -0.0 FL_link_y -0.0 FR_z 0.0 | yaw slope urad/s 0.0 | q_FR 0.0 q_FL 0.0
+ window 36.6-40.6s slope mm/s: base_y 0.0 base_x -0.0 FR_link_y 0.0 FL_link_y 0.0 FR_z 0.0 | yaw slope urad/s -0.0 | q_FR -0.0 q_FL -0.0
+  t=18.482 base_y=-4632.2500 FR_link_y=-4630.8993 FL_link_y=-4630.8994 FR_z=101.8785 qFR=0.01348 qFL=0.01482 yaw=1.57089 roll=0.01314 pitch=0.00182
+  t=18.806 base_y=-4632.2500 FR_link_y=-4630.8993 FL_link_y=-4630.8994 FR_z=101.8785 qFR=0.01348 qFL=0.01482 yaw=1.57089 roll=0.01314 pitch=0.00182
+  t=22.910 base_y=-4632.2500 FR_link_y=-4630.8993 FL_link_y=-4630.8994 FR_z=101.8785 qFR=0.01348 qFL=0.01482 yaw=1.57089 roll=0.01314 pitch=0.00182
+  t=23.306 base_y=-4632.2500 FR_link_y=-4630.8993 FL_link_y=-4630.8994 FR_z=101.8785 qFR=0.01348 qFL=0.01482 yaw=1.57089 roll=0.01314 pitch=0.00182
+  t=27.410 base_y=-4632.2500 FR_link_y=-4630.8993 FL_link_y=-4630.8994 FR_z=101.8785 qFR=0.01348 qFL=0.01482 yaw=1.57089 roll=0.01314 pitch=0.00182
+  t=27.698 base_y=-4632.2500 FR_link_y=-4630.8993 FL_link_y=-4630.8994 FR_z=101.8785 qFR=0.01348 qFL=0.01482 yaw=1.57089 roll=0.01314 pitch=0.00182
