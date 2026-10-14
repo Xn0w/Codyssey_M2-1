@@ -29,6 +29,8 @@ class UgvState(BaseModel):
     sim_time_s: float | None = None    # 응답 시점 시뮬레이션 초 (ugv/sim_clock.py)
     activity: str | None = None        # IDLE | LOADING | SUPPRESSING | UNLOADING (state=WORKING 이면 도착 뒤 작업 중)
     equipment: dict | None = None      # 물탱크·펌프·적재·경광등 (ugv/equipment.py Equipment.to_dict)
+    station: dict | None = None        # 소속 거점 {base, node_id, lat, lon, access_point: {road_id, s_m, node_id, lat, lon}}.
+                                       # 총괄 UGV 복귀(ORCH_UGV_RETURN_HOME)가 access_point 로 "RP:road_id:s_m" 실행을 보낸다
 
 
 class CargoSpec(BaseModel):
@@ -40,10 +42,11 @@ class EvaluateRequest(BaseModel):
     task_id: str
     decision_id: str
     target: LatLon | None = None       # 화재 좌표 (권장). 반경 안 도로 노드 중 도달 가능한 가장 가까운 곳으로 판단
-    target_node: str | None = None     # 도로 노드 id 를 이미 알 때 (target 대신)
+    target_node: str | None = None     # 도로 노드 id 를 이미 알 때 (target 대신). 도로 위 지점은 "RP:<도로ID>:<도로 node_a 에서 m>"
     cargo: CargoSpec | None = None     # 실을 짐 (UGV). 적재 한도를 넘으면 REJECT
     via_node: str | None = None        # 짐 싣는 곳(도로 노드). 없으면 지금 자리에서 싣고 출발
     target_mode: Literal["node", "road_point"] | None = None   # target 을 노드로 붙일지 도로 위 점으로 붙일지. 없으면 UGV_TARGET_MODE
+    max_snap_m: float | None = None    # 목표~도로 허용 거리 (COUNTER 의 counter_offer 를 실은 재평가). 없으면 UGV_TARGET_SNAP_M, 최대 UGV_COUNTER_MAX_M
 
 
 class StopPoint(BaseModel):
@@ -65,23 +68,25 @@ class EvaluateResponse(BaseModel):
     task_id: str
     decision_id: str
     resource_id: str
-    verdict: Literal["ACCEPT", "REJECT"]
+    verdict: Literal["ACCEPT", "REJECT", "COUNTER"]   # COUNTER 는 UGV_COUNTER=1 일 때만
     eta_sec: int | None                # ACCEPT 일 때만 값이 있다. 시뮬레이션 초, 차량 최고속도·도로 제한속도·혼잡 반영
     reason: str | None                 # REJECT: BUSY / ROAD_BLOCKED / TARGET_UNREACHABLE
     detail: str | None
     target_node: TargetNode | None     # 실제로 향할 도로 노드 (스냅 실패 시 None). 도로 위 지점이면 지점 도로의 들어가는 끝 노드
     path: list[str] | None             # 노드 id 목록, 출발 노드 포함
     stop_point: StopPoint | None = None   # 도로 위 지점 방식일 때 실제로 설 곳 (target_node 를 지나 도로를 따라 간다)
+    counter_offer: dict | None = None  # COUNTER 일 때만: {"max_snap_m": 재평가에 실을 값, "eta_sec", "note"} (UAV-02 와 같은 형식)
 
 
 class ExecuteRequest(BaseModel):
     task_id: str
     decision_id: str
     target: LatLon | None = None       # 화재 좌표 (권장, UAV 와 같은 방식). evaluate 와 같은 규칙으로 목적지를 고른다
-    target_node: str | None = None     # 도로 노드 id 를 직접 지정할 때 (target 대신)
+    target_node: str | None = None     # 도로 노드 id 또는 도로 위 지점 "RP:<도로ID>:<m>" 를 직접 지정할 때 (target 대신)
     cargo: CargoSpec | None = None     # evaluate 와 같다
     via_node: str | None = None
     target_mode: Literal["node", "road_point"] | None = None   # evaluate 와 같다
+    max_snap_m: float | None = None    # evaluate 와 같다 (COUNTER 수용 뒤 실행)
 
 
 class ExecuteResponse(BaseModel):

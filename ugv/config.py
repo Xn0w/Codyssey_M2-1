@@ -127,6 +127,13 @@ APPROACH_FALLBACK = os.getenv("UGV_APPROACH_FALLBACK", "0") == "1"
 TARGET_MODE = os.getenv("UGV_TARGET_MODE", "road_point")
 APPROACH_MAX_M = float(os.getenv("UGV_APPROACH_MAX_M", "500"))     # fallback 접근 노드의 화재 거리 상한
 
+# 역제안(COUNTER, 기본 꺼짐) — 목표가 도로에서 TARGET_SNAP_M 보다 멀지만 COUNTER_MAX_M 안이고 그 도로 지점까지 갈 수 있으면
+# 거절 대신 COUNTER 로 "도로에서 이만큼 떨어진 지점까지는 갈 수 있다"를 낸다. counter_offer 의 max_snap_m 을
+# 재평가·실행 요청에 그대로 실으면 수락한다. 총괄은 지금 UGV COUNTER 필드를 받지 않아(COUNTER_SUPPORTED_FIELDS)
+# 켜도 거절과 같게 처리된다 — 총괄이 max_snap_m 을 지원할 때 켠다.
+COUNTER_ENABLED = os.getenv("UGV_COUNTER", "0") == "1"
+COUNTER_MAX_M = float(os.getenv("UGV_COUNTER_MAX_M", "3000"))
+
 # 시연용 가속 — 6노드 시연 도로망(graph_data_demo, 총괄 orchestrator_v012 데모)에서만 쓴다.
 # 실제 도로망(server.py)은 차량 max_speed_mps × UGV_TIME_SCALE 로 움직인다.
 DEMO_SPEED_MPS = 2000.0

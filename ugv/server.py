@@ -287,7 +287,25 @@ def _state(agent: GroundResourceAgent) -> UgvState:
         sim_time_s=round(clock.now(), 1),
         activity=None if r.equipment is None else r.equipment.activity,
         equipment=None if r.equipment is None else r.equipment.to_dict(),
+        station=_station(r),
     )
+
+
+_station_cache: dict[str, dict | None] = {}
+
+
+def _station(r) -> dict | None:
+    """소속 거점과 그 앞 도로 위 지점 (총괄 UGV 복귀가 읽는다). 도로망이 바뀌지 않으니 거점 노드별로 한 번만 계산."""
+    if r.home_node not in _station_cache:
+        try:
+            n = fleet.graph.node(r.home_node)
+        except KeyError:
+            _station_cache[r.home_node] = None
+        else:
+            _station_cache[r.home_node] = {"node_id": n.node_id, "lat": round(n.lat, 7), "lon": round(n.lon, 7),
+                                           "access_point": road_point.access_point(fleet.graph, n.node_id)}
+    s = _station_cache[r.home_node]
+    return None if s is None else {"base": r.base, **s}
 
 
 @app.get("/ugv", response_model=list[UgvState])
@@ -302,7 +320,8 @@ async def get_state(resource_id: str):
 
 
 def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str | None,
-            cargo=None, via_node: str | None = None, target_mode: str | None = None) -> dict:
+            cargo=None, via_node: str | None = None, target_mode: str | None = None,
+            snap_limit_m: float | None = None) -> dict:
     """목적지 도로 노드를 고르고 갈 수 있는지 판단한다. evaluate·execute 가 같은 규칙을 쓴다.
 
     target(화재 좌표)을 주면 화재에서 가장 가까운 도로 노드를 목적지로 삼는다.
@@ -313,18 +332,35 @@ def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str 
     ETA 에는 싣기 시간(LOAD_S)이 들어간다. 내리기는 도착 뒤 작업이라 ETA 에 넣지 않는다.
     target_mode="road_point"(또는 UGV_TARGET_MODE) 이고 target 을 주면 노드 대신 가장 가까운 도로 위 점에 선다
     (ugv/road_point.py). 짐 싣기(cargo)와는 같이 쓰지 않는다.
+    target_node 가 "RP:<도로ID>:<m>" 이면 그 도로 위 지점으로 간다 (총괄 UGV 복귀가 거점 앞 지점으로 보낸다).
+    snap_limit_m: 목표~도로 허용 거리 (없으면 TARGET_SNAP_M). COUNTER 를 받아들인 재평가·실행에서 넓어진다.
     반환: verdict, eta_sec, reason, detail, target_node(TargetNode|None), path, stop_point(StopPoint|None), at_target
+          (+ 목표가 도로에서 허용 거리보다 멀어 거절하면 far_snap_m = 실제 거리)
     """
     rid = agent.resource.resource_id
+    limit = config.TARGET_SNAP_M if snap_limit_m is None else snap_limit_m
 
-    def reject(reason, detail, tn=None, sp=None):
+    def reject(reason, detail, tn=None, sp=None, far_snap_m=None):
         return dict(verdict="REJECT", eta_sec=None, reason=reason, detail=detail, target_node=tn, path=None,
-                    stop_point=sp, at_target=False)
+                    stop_point=sp, at_target=False, far_snap_m=far_snap_m)
+
+    try:
+        spec = road_point.parse_spec(target_node)
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if spec is not None:
+        if cargo is not None or via_node is not None:
+            raise HTTPException(422, "도로 위 지점(RP:) 목적지는 짐 싣기와 같이 쓰지 않는다")
+        try:
+            rp = road_point.at(fleet.graph, *spec)
+        except KeyError:
+            raise HTTPException(404, f"도로 {spec[0]} 없음")
+        return _decide_point(agent, None, reject, rp=rp)
 
     # 총괄은 평가에서 받은 target_node 를 실행 때 target 과 같이 돌려보낸다 (engine._approve_and_send) —
     # 도로 위 지점 방식이면 target 기준으로 다시 고른다 (평가와 같은 규칙이라 같은 끝 노드·지점이 나온다)
     if target is not None and cargo is None and (target_mode or config.TARGET_MODE) == "road_point":
-        return _decide_point(agent, target, reject)
+        return _decide_point(agent, target, reject, limit=limit)
 
     if cargo is not None:
         eq = agent.resource.equipment
@@ -364,9 +400,9 @@ def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str 
         candidates = [(n, 0.0)]
     elif target is not None:
         nearest, d = fleet.graph.nearest_node(target.lat, target.lon)
-        if d > config.TARGET_SNAP_M:
+        if d > limit:
             return reject("TARGET_UNREACHABLE",
-                          f"가장 가까운 도로 노드가 {d:.0f} m 떨어짐 (허용 {config.TARGET_SNAP_M:.0f} m)")
+                          f"가장 가까운 도로 노드가 {d:.0f} m 떨어짐 (허용 {limit:.0f} m)", far_snap_m=d)
         candidates = [(nearest, d)]
         if config.APPROACH_FALLBACK:   # 가장 가까운 노드로 못 가면 반경 안 다음 노드로
             candidates += [c for c in fleet.graph.nodes_within(target.lat, target.lon, config.APPROACH_MAX_M)
@@ -396,12 +432,16 @@ def _decide(agent: GroundResourceAgent, target: LatLon | None, target_node: str 
                   + (f", 차단 도로 {blocked}" if blocked else ""), tn)
 
 
-def _decide_point(agent: GroundResourceAgent, target: LatLon, reject) -> dict:
-    """도로 위 지점 목적지. 이미 그 지점(NODE_ARRIVE_M 안)에 서 있으면 움직이지 않고 도착 (붙박이 반복 관측)."""
-    rp = road_point.nearest(fleet.graph, target.lat, target.lon)
-    if rp is None or rp.snap_m > config.TARGET_SNAP_M:
-        return reject("TARGET_UNREACHABLE", "가까운 도로 없음" if rp is None else
-                      f"가장 가까운 도로가 {rp.snap_m:.0f} m 떨어짐 (허용 {config.TARGET_SNAP_M:.0f} m)")
+def _decide_point(agent: GroundResourceAgent, target: LatLon | None, reject, rp=None, limit: float | None = None) -> dict:
+    """도로 위 지점 목적지. 이미 그 지점(NODE_ARRIVE_M 안)에 서 있으면 움직이지 않고 도착 (붙박이 반복 관측).
+    rp 를 주면(RP: 지정) 그 지점으로, 아니면 target 에서 가장 가까운 도로 위 점으로 간다."""
+    limit = config.TARGET_SNAP_M if limit is None else limit
+    if rp is None:
+        rp = road_point.nearest(fleet.graph, target.lat, target.lon)
+        if rp is None or rp.snap_m > limit:
+            return reject("TARGET_UNREACHABLE", "가까운 도로 없음" if rp is None else
+                          f"가장 가까운 도로가 {rp.snap_m:.0f} m 떨어짐 (허용 {limit:.0f} m)",
+                          far_snap_m=None if rp is None else rp.snap_m)
     sp = StopPoint(**rp.to_dict())
     r = agent.resource
     if r.state == "READY" and r.current_node is not None \
@@ -435,14 +475,47 @@ def _rp(sp: StopPoint | None):
 async def evaluate(resource_id: str, req: EvaluateRequest):
     """수행 가능성 판단. 차를 움직이지 않는다. 목적지 선정 규칙은 _decide 참고."""
     agent = _agent(resource_id)
-    d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node, req.target_mode)
+    d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node, req.target_mode,
+                snap_limit_m=_snap_limit(req.max_snap_m))
+    offer = _counter(agent, req, d)
+    if offer is not None:
+        d = {**offer["decision"], "verdict": "COUNTER", "eta_sec": None, "reason": d["reason"],
+             "detail": offer["note"], "counter_offer": offer["counter_offer"]}
     sp = d["stop_point"]
     _report("UGV_EVALUATED", agent, req.task_id, decision_id=req.decision_id, verdict=d["verdict"],
             eta_sec=d["eta_sec"], reason=d["reason"], detail=d["detail"],
             target_node=None if d["target_node"] is None else d["target_node"].node_id,
-            **({} if sp is None else {"stop_point": sp.model_dump()}))
+            **({} if sp is None else {"stop_point": sp.model_dump()}),
+            **({} if offer is None else {"counter_offer": offer["counter_offer"]}))
     return EvaluateResponse(task_id=req.task_id, decision_id=req.decision_id, resource_id=resource_id,
-                            **{k: v for k, v in d.items() if k != "at_target"})
+                            **{k: v for k, v in d.items() if k not in ("at_target", "far_snap_m")})
+
+
+def _snap_limit(max_snap_m: float | None) -> float | None:
+    """요청의 max_snap_m(COUNTER 수용) → 실제 허용 거리. TARGET_SNAP_M 보다 좁히지 않고 COUNTER_MAX_M 을 넘기지 않는다."""
+    if max_snap_m is None:
+        return None
+    return min(max(float(max_snap_m), config.TARGET_SNAP_M), max(config.COUNTER_MAX_M, config.TARGET_SNAP_M))
+
+
+def _counter(agent: GroundResourceAgent, req: EvaluateRequest, d: dict) -> dict | None:
+    """역제안 (UGV_COUNTER=1 일 때만). 목표가 도로에서 허용 거리보다 멀어 거절됐는데 COUNTER_MAX_M 안이고
+    그 지점까지 갈 수 있으면 {"decision": 넓힌 판단, "counter_offer": {...}, "note"} 를 돌려준다. 아니면 None (원래 거절 유지).
+    재평가 요청에 counter_offer 의 max_snap_m 을 그대로 실으면 같은 지점으로 ACCEPT 한다 (UAV-02 와 같은 방식)."""
+    far = d.get("far_snap_m")
+    if not config.COUNTER_ENABLED or d["verdict"] != "REJECT" or far is None or req.max_snap_m is not None:
+        return None
+    if far > config.COUNTER_MAX_M:
+        return None
+    need = float(int(far) + 1)                          # 재평가에서 같은 지점이 확실히 들어오도록 올림
+    wide = _decide(agent, req.target, req.target_node, req.cargo, req.via_node, req.target_mode, snap_limit_m=need)
+    if wide["verdict"] != "ACCEPT":
+        return None
+    note = (f"목표가 도로에서 {far:.0f} m 떨어져 기준 {config.TARGET_SNAP_M:.0f} m 를 넘는다. "
+            f"도로 위 가장 가까운 지점(목표에서 {far:.0f} m)까지는 ETA {wide['eta_sec']} s 로 갈 수 있다 — "
+            f"max_snap_m={need:.0f} 로 다시 요청하면 수락한다. 그 지점에서 목표가 보이는지는 판단하지 않았다")
+    return {"decision": wide, "note": note,
+            "counter_offer": {"max_snap_m": need, "eta_sec": wide["eta_sec"], "note": note}}
 
 
 @app.get("/ugv/{resource_id}/observation")
@@ -808,7 +881,7 @@ async def execute(resource_id: str, req: ExecuteRequest):
     # 실행 키 확인이 먼저다: 같은 키 재요청은 수행 중이어도 기존 실행을 돌려준다 (UGV-04)
     # cargo·via_node 가 없으면 예전 요청과 같은 해시가 되도록 빼고 센다 (업그레이드 전 기록과 충돌하지 않게)
     body = {"resource_id": resource_id,
-            **req.model_dump(exclude={k for k in ("cargo", "via_node") if getattr(req, k) is None})}
+            **req.model_dump(exclude={k for k in ("cargo", "via_node", "max_snap_m") if getattr(req, k) is None})}
     verdict, meta = STORE.check(req.task_id, body)
     if verdict == "CONFLICT":
         raise HTTPException(409, {"reason": "EXECUTION_ID_CONFLICT", "task_id": req.task_id,
@@ -819,7 +892,8 @@ async def execute(resource_id: str, req: ExecuteRequest):
     if _task_of.get(resource_id):
         raise HTTPException(409, f"{resource_id} 는 task {_task_of[resource_id]} 수행 중")
 
-    d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node, req.target_mode)
+    d = _decide(agent, req.target, req.target_node, req.cargo, req.via_node, req.target_mode,
+                snap_limit_m=_snap_limit(req.max_snap_m))
     sp = d["stop_point"]
     spd = {} if sp is None else {"stop_point": sp.model_dump()}
     if d["verdict"] != "ACCEPT":
