@@ -1,0 +1,141 @@
+{
+ "tag": "b4_R0",
+ "kind": "R0",
+ "markers": [],
+ "gz_detail_rc": 0,
+ "meta": {
+  "rows": 833,
+  "dt_median_s": 0.036,
+  "dt_max_s": 0.036,
+  "susp_joints_published": true,
+  "contact_other_counts": {
+   "wheel_front_left": {
+    "kangwon_tile_T16_05::link::collision": 15002
+   },
+   "wheel_front_right": {
+    "kangwon_tile_T16_05::link::collision": 15002
+   },
+   "wheel_rear_left": {
+    "kangwon_tile_T16_05::link::collision": 15002
+   },
+   "wheel_rear_right": {
+    "kangwon_tile_T16_05::link::collision": 15002
+   }
+  },
+  "abort": {
+   "reason": null,
+   "t": null
+  },
+  "completed": true
+ },
+ "n_rows": 833,
+ "n_settled": 777,
+ "wheels": {
+  "wheel_front_left": {
+   "valid_ratio": 1.0,
+   "states": {
+    "VALID": 777
+   },
+   "other": [
+    "kangwon_tile_T16_05::link::collision"
+   ],
+   "link_z_minus_ground": [
+    0.3507,
+    0.3507
+   ],
+   "depth_max": 0.0,
+   "fz_median": 4074.5,
+   "ft_fn_median": 0.0047,
+   "tile_at_link_last": "T16_05"
+  },
+  "wheel_front_right": {
+   "valid_ratio": 1.0,
+   "states": {
+    "VALID": 777
+   },
+   "other": [
+    "kangwon_tile_T16_05::link::collision"
+   ],
+   "link_z_minus_ground": [
+    0.3507,
+    0.3507
+   ],
+   "depth_max": 0.0,
+   "fz_median": 3908.1,
+   "ft_fn_median": 0.0049,
+   "tile_at_link_last": "T16_05"
+  },
+  "wheel_rear_left": {
+   "valid_ratio": 1.0,
+   "states": {
+    "VALID": 777
+   },
+   "other": [
+    "kangwon_tile_T16_05::link::collision"
+   ],
+   "link_z_minus_ground": [
+    0.3506,
+    0.3506
+   ],
+   "depth_max": 0.0,
+   "fz_median": 3865.6,
+   "ft_fn_median": 0.0027,
+   "tile_at_link_last": "T16_05"
+  },
+  "wheel_rear_right": {
+   "valid_ratio": 1.0,
+   "states": {
+    "VALID": 777
+   },
+   "other": [
+    "kangwon_tile_T16_05::link::collision"
+   ],
+   "link_z_minus_ground": [
+    0.3506,
+    0.3506
+   ],
+   "depth_max": 0.0,
+   "fz_median": 4067.0,
+   "ft_fn_median": 0.0026,
+   "tile_at_link_last": "T16_05"
+  }
+ },
+ "roll_abs_max_deg": 0.182,
+ "pitch_abs_max_deg": 0.111,
+ "susp_q_range": {
+  "susp_front_left": [
+   0.01511,
+   0.01511
+  ],
+  "susp_front_right": [
+   0.01318,
+   0.01318
+  ],
+  "susp_rear_left": [
+   0.01384,
+   0.01384
+  ],
+  "susp_rear_right": [
+   0.01626,
+   0.01626
+  ]
+ },
+ "base_dz_range": [
+  -0.0141,
+  -0.0141
+ ],
+ "sum_fz_median": 15915.2,
+ "checks": {
+  "recorder_ok_no_markers": true,
+  "susp_published": true,
+  "contact_valid_95": true,
+  "contact_expected_tile": true,
+  "sum_fz_within_3pct": true,
+  "ft_fn_ratio_le_0.1": true,
+  "attitude_le_2deg": true,
+  "susp_within_limit": true,
+  "wheel_height_0.29_0.41": true
+ },
+ "status": "PASS",
+ "note": "접촉 상대에 타일 이름 없음 — 높이장 접촉 토픽 미확인이면 계측 HOLD"
+}
