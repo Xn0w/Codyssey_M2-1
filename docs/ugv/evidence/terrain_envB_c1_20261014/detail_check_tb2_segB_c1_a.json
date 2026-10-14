@@ -1,0 +1,12 @@
+{
+ "tag": "tb2_segB_c1_a",
+ "meta_error": "FileNotFoundError(2, 'No such file or directory')",
+ "checks": {
+  "recorder_rows_no_abort": null,
+  "contact_valid_95": null,
+  "wheel_height_0.29_0.41": null,
+  "susp_within_limit": null,
+  "all_wheels_T05_to_T04": null
+ },
+ "status": "UNCONFIRMED"
+}

@@ -1,0 +1,1054 @@
+{
+ "run_id": "tb2_segB_c1_a",
+ "procs_tsv": "/home/geumsoni/.adair-ugv/procs.tsv",
+ "procs": [
+  {
+   "role": "gz",
+   "pid": 313742,
+   "start": "13394036",
+   "partition": "adair_ugv",
+   "alive_same": true,
+   "cmd": "gz sim --verbose=3 -r -s /mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/ab_route_v1.sdf"
+  },
+  {
+   "role": "px4-1",
+   "pid": 313940,
+   "start": "13397944",
+   "partition": "adair_ugv",
+   "alive_same": true,
+   "cmd": "/home/geumsoni/PX4-Autopilot/build/px4_sitl_default/bin/px4 -i 1 -d -w /home/geumsoni/.adair-ugv/px4-1 /home/geumsoni/PX4-Autopilot/build/px4_sitl_default/etc"
+  }
+ ],
+ "vehicles": [
+  {
+   "instance": "1",
+   "model": "adair_ugv",
+   "resource_id": "A-ugv1",
+   "px4_pid": 313940,
+   "px4_gz_model_name": "adair_ugv_1",
+   "px4_autostart": "51100",
+   "resource_path": [
+    "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR_wt_vehicle/ugv/gazebo/variants/susp_a_acc3_imu500",
+    "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR_wt_vehicle/ugv/gazebo/models",
+    "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR_wt_vehicle/ugv/gazebo/worlds",
+    "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/terrain_ab/seamC/tiles_c1",
+    "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2",
+    "/home/geumsoni/PX4-Autopilot/Tools/simulation/gz/models",
+    "/home/geumsoni/PX4-Autopilot/Tools/simulation/gz/worlds"
+   ],
+   "model_file": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR_wt_vehicle/ugv/gazebo/variants/susp_a_acc3_imu500/adair_ugv/model.sdf",
+   "model_content_sha1": "b8f355900e1a46347cc846c961aada07b29df57f",
+   "gz_joints": [
+    {
+     "name": "susp_rear_left_joint",
+     "type": "prismatic"
+    },
+    {
+     "name": "susp_rear_right_joint",
+     "type": "prismatic"
+    },
+    {
+     "name": "susp_front_left_joint",
+     "type": "prismatic"
+    },
+    {
+     "name": "susp_front_right_joint",
+     "type": "prismatic"
+    },
+    {
+     "name": "wheel_rear_left_joint",
+     "type": "revolute"
+    },
+    {
+     "name": "wheel_rear_right_joint",
+     "type": "revolute"
+    },
+    {
+     "name": "wheel_front_left_steering_joint",
+     "type": "revolute"
+    },
+    {
+     "name": "wheel_front_right_steering_joint",
+     "type": "revolute"
+    },
+    {
+     "name": "wheel_front_left_joint",
+     "type": "revolute"
+    },
+    {
+     "name": "wheel_front_right_joint",
+     "type": "revolute"
+    }
+   ],
+   "gz_joint_count": 10,
+   "gz_prismatic_count": 4
+  }
+ ],
+ "world": {
+  "file": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/ab_route_v1.sdf",
+  "content_sha1": "4e605cf40a9800ae3f465a75935189a9cba6a922",
+  "tiles": [
+   {
+    "tile": "T03_15",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T03_15",
+    "heightmap_sha1": "14db0e638a49ec0b0d594f20f7559ab94d440379",
+    "model_sdf_sha1": "f47c1dbbd38b91ead260b8564be272922f7ea10f"
+   },
+   {
+    "tile": "T03_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T03_16",
+    "heightmap_sha1": "cbfbf7c510d71e3b6b0811b62e7c95e1896d3a05",
+    "model_sdf_sha1": "b33919b637b8ce892fc59978d66e80d43432b30a"
+   },
+   {
+    "tile": "T03_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T03_17",
+    "heightmap_sha1": "6be083e56dad5c7d320cac8f05d3d658cbcf67b4",
+    "model_sdf_sha1": "cf7310345ddcc75e717e16bab3f1fecdaf0e0b54"
+   },
+   {
+    "tile": "T04_15",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T04_15",
+    "heightmap_sha1": "14062683d64cda74371ab028d184dfad5ea624f7",
+    "model_sdf_sha1": "f761599298fb629b48a8b12fb29cdccbdb056821"
+   },
+   {
+    "tile": "T04_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/terrain_ab/seamC/tiles_c1/T04_16",
+    "heightmap_sha1": "e49bbe03f3c0e2d5f6a534f46767f22cb609c2e8",
+    "model_sdf_sha1": "608e9000d0e35c6de4a6188e960fb79e530c6479"
+   },
+   {
+    "tile": "T04_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T04_17",
+    "heightmap_sha1": "0fdf67a7cec3ceb1618f86df0b80f44e19e0d501",
+    "model_sdf_sha1": "463f7baee41a1bc1f670647a210dbd23f3876518"
+   },
+   {
+    "tile": "T04_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T04_18",
+    "heightmap_sha1": "d079a04325f3ad0a58ed0bcd85345e55596af8bb",
+    "model_sdf_sha1": "29bf942765706b6a65203d017ee64152c76d2aac"
+   },
+   {
+    "tile": "T04_19",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T04_19",
+    "heightmap_sha1": "6b80b54413d6d7a4fb8174d99f8db7ac61fbc3d6",
+    "model_sdf_sha1": "9dfaf68ae50a99548441ccc7aa0c02be3fe90d4f"
+   },
+   {
+    "tile": "T04_20",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T04_20",
+    "heightmap_sha1": "ba0d2809971e78f8511c7e6b4b723308c1e1092a",
+    "model_sdf_sha1": "aaa9cb892a69df3a6e5bfbb1118fafd103ff272e"
+   },
+   {
+    "tile": "T05_15",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T05_15",
+    "heightmap_sha1": "bf12d5568604bb91166c446c5e50bbb8dbe53bdc",
+    "model_sdf_sha1": "65a773f8540251f38421e1d090f5ed0f7089bbea"
+   },
+   {
+    "tile": "T05_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/terrain_ab/seamC/tiles_c1/T05_16",
+    "heightmap_sha1": "503d5ab06f074489725d41b3c40fe76b589104e1",
+    "model_sdf_sha1": "dda0376192dd77b77d0f608235d55b1bc5e6cbc0"
+   },
+   {
+    "tile": "T05_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T05_17",
+    "heightmap_sha1": "87fa182289c24ea8a92b300712b4e8f68581e928",
+    "model_sdf_sha1": "90521192f62959a110197390c81f8c3b7bfa121e"
+   },
+   {
+    "tile": "T05_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T05_18",
+    "heightmap_sha1": "9d1d360d4fe7e8af855a062b57fefd6f40789aa9",
+    "model_sdf_sha1": "40762090898f1e354abef3b1682fc91e96c2190c"
+   },
+   {
+    "tile": "T05_19",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T05_19",
+    "heightmap_sha1": "30d02710c984537be5218c810f385c54761c2119",
+    "model_sdf_sha1": "e5e79eb7cd5869daf2850ca30140fa7e60e272b1"
+   },
+   {
+    "tile": "T05_20",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T05_20",
+    "heightmap_sha1": "9e8a2665cc245d86115c313d309904c0bd2b6245",
+    "model_sdf_sha1": "4ba832c02fbce8f802cfbd205c2b85d39f0b026f"
+   },
+   {
+    "tile": "T06_15",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T06_15",
+    "heightmap_sha1": "e0243353d3fa4da22e080039b0bed738ee452e00",
+    "model_sdf_sha1": "c75839a37497efa0c5af72f2c20d4d2a667c9b36"
+   },
+   {
+    "tile": "T06_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T06_16",
+    "heightmap_sha1": "fd25d7c4046f03068c76e56226758603f8b61871",
+    "model_sdf_sha1": "32bebc59c3d95e19ba7191b7b7b600fa542d8d9f"
+   },
+   {
+    "tile": "T06_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T06_17",
+    "heightmap_sha1": "aed242c871acce10122d82ca101b021734d9b0a0",
+    "model_sdf_sha1": "8b30eacd11f3d669944da9cc4efd8201e70ac88e"
+   },
+   {
+    "tile": "T06_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T06_18",
+    "heightmap_sha1": "de1521c74909a36dcf11f6a1d67f0cc1145c41ea",
+    "model_sdf_sha1": "cf4f4f11898b9318c0368608ee10ad40362355c5"
+   },
+   {
+    "tile": "T06_19",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T06_19",
+    "heightmap_sha1": "f4f6862c3acdccbf9c0164b160d6fa4cee912cb8",
+    "model_sdf_sha1": "e0755dc8028eee67aabb0d589d6a07c5a0673c28"
+   },
+   {
+    "tile": "T06_20",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T06_20",
+    "heightmap_sha1": "1276d1c3473501dde5bef8836f79ec2ba2508267",
+    "model_sdf_sha1": "f9d0317ac6a5a7f3e03f58499a4994bc67b5b3b9"
+   },
+   {
+    "tile": "T07_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T07_16",
+    "heightmap_sha1": "cf3dc921b8b5842a5f181ca6e4a6bb76620f2802",
+    "model_sdf_sha1": "e32451a2feffc36a16e82fb16accc4c4082260f1"
+   },
+   {
+    "tile": "T07_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T07_17",
+    "heightmap_sha1": "24430e03b7314e0a49e24ec6827a3519d5b321b9",
+    "model_sdf_sha1": "915e2a9c224b4fe4b4340c1d2abd4b19d4c6dbd0"
+   },
+   {
+    "tile": "T07_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T07_18",
+    "heightmap_sha1": "5f1d6f3b1a0863efa77f6909eb96d511b3ada99f",
+    "model_sdf_sha1": "07a42485ae3c794c5d88f32f0d1b4f14bb0fc1ba"
+   },
+   {
+    "tile": "T07_19",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T07_19",
+    "heightmap_sha1": "42712f4e8d49c6c69ab2b58ae1a8fe3a3c95a57f",
+    "model_sdf_sha1": "a3852cf1adf3b9b59b0f29b29076280b43e0437b"
+   },
+   {
+    "tile": "T07_20",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T07_20",
+    "heightmap_sha1": "e4bb56b8c353a38372321ca30ac4048508809cc9",
+    "model_sdf_sha1": "e62028b7a8a3551494d951d30bf80a28f7751ebe"
+   },
+   {
+    "tile": "T08_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T08_17",
+    "heightmap_sha1": "2f13a772c6715fa4af340355efacec2161b9e3bd",
+    "model_sdf_sha1": "0be8528c1084b13b6e34ad00f5dc462b60efdf18"
+   },
+   {
+    "tile": "T08_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T08_18",
+    "heightmap_sha1": "32e15c6a842890df266f7584fc48dbddf738190b",
+    "model_sdf_sha1": "0e93bae85ca74dc9f538b497ec032861aa61e641"
+   },
+   {
+    "tile": "T08_19",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T08_19",
+    "heightmap_sha1": "66d904dde383d0ddc81132ad0d898d38e8cc3c26",
+    "model_sdf_sha1": "ec377fcd2e93f7857b34472bf5ef7a6a73958202"
+   },
+   {
+    "tile": "T08_20",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T08_20",
+    "heightmap_sha1": "591eff22f47d701692767128ea5ceddc9bf28ce7",
+    "model_sdf_sha1": "467425374b94240534b635a1375239b7aedcfdc3"
+   },
+   {
+    "tile": "T09_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T09_17",
+    "heightmap_sha1": "47b7ec50fcac6891f141d320bf58ecbba7806084",
+    "model_sdf_sha1": "b8208f198fc96014015f577e219d1e9a7430c70a"
+   },
+   {
+    "tile": "T09_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T09_18",
+    "heightmap_sha1": "0aed0e863aa2a7d19394ae20be43b57c0f395f68",
+    "model_sdf_sha1": "86b5c421942ffd27266c763bcec432239c45b5bf"
+   },
+   {
+    "tile": "T09_19",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T09_19",
+    "heightmap_sha1": "1af759010714aea46e7279af4bc792d00fab13a0",
+    "model_sdf_sha1": "77ae12fc57b17b16952ef607a45ab359d03fc060"
+   },
+   {
+    "tile": "T10_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T10_16",
+    "heightmap_sha1": "48d88707fcd4841b3ac2d57bc15b03115a3ca307",
+    "model_sdf_sha1": "588f13a0fb9789469faeac5205c675f8fcf79f29"
+   },
+   {
+    "tile": "T10_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T10_17",
+    "heightmap_sha1": "e3d863e76d0ec333e8c970b3058eee9314e7d54e",
+    "model_sdf_sha1": "8cee0c8bb93ba673a6935eae1872d8716771061c"
+   },
+   {
+    "tile": "T10_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T10_18",
+    "heightmap_sha1": "31edc6525173884f4b2d4b17bb48dc09782d4532",
+    "model_sdf_sha1": "9e73846cbcf5a15755bbb03837a32f188b7c0e2f"
+   },
+   {
+    "tile": "T10_19",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T10_19",
+    "heightmap_sha1": "35c578377bd6fa250c6255432385f0a93f502470",
+    "model_sdf_sha1": "2cc1c7737c99b060a0170b6a7d1c889eab9802a8"
+   },
+   {
+    "tile": "T11_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T11_16",
+    "heightmap_sha1": "3f34c65e01ab22971ff69772bae20f3ea581f204",
+    "model_sdf_sha1": "f198314d1f788b3d18a8047055d5f787cdb2500c"
+   },
+   {
+    "tile": "T11_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T11_17",
+    "heightmap_sha1": "51244756f9f17e5d58e737501e27152869ccca3f",
+    "model_sdf_sha1": "720055af9d1a32a4f7fe25e4f7607dca6bc732d9"
+   },
+   {
+    "tile": "T11_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T11_18",
+    "heightmap_sha1": "60451ac191fbce7d82203c197be988dadb5fde58",
+    "model_sdf_sha1": "3094bf56544f6f9ff1a5d61126e34e6fa82a6fe3"
+   },
+   {
+    "tile": "T11_19",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T11_19",
+    "heightmap_sha1": "fca78a74a98fb93d9021016a7e19c9d7d8a10f23",
+    "model_sdf_sha1": "e62d602c4ddbf3e4fc10d0655998fa65ef6eb3d3"
+   },
+   {
+    "tile": "T12_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T12_16",
+    "heightmap_sha1": "a3188d66bf355abd758a898c09f02dfadecc0228",
+    "model_sdf_sha1": "78d6b5316d15f45782109993ecc6ed9ac1310a78"
+   },
+   {
+    "tile": "T12_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T12_17",
+    "heightmap_sha1": "e827160dd424358c856efe74061183819c4928bc",
+    "model_sdf_sha1": "d513d07b5941500b3b76d1d0839fc963762d8223"
+   },
+   {
+    "tile": "T12_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T12_18",
+    "heightmap_sha1": "4ecced821f44e3a3e4d0dba78a92127f1cf2de7f",
+    "model_sdf_sha1": "78aa42f891ba02f5ed5fe636ccc76be306ab9d04"
+   },
+   {
+    "tile": "T12_19",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T12_19",
+    "heightmap_sha1": "9e37286eaee9db441f33b2b9c5375c686de2a8dc",
+    "model_sdf_sha1": "5dc62175f8be2d2fdd4e9a19d79e1b6f39d598a2"
+   },
+   {
+    "tile": "T13_07",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T13_07",
+    "heightmap_sha1": "9c6f73b2774259ebe0e50e23db12ba37a6f08c1f",
+    "model_sdf_sha1": "d04c65b26d389e1b071f4346641b8ac968b6a19f"
+   },
+   {
+    "tile": "T13_08",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T13_08",
+    "heightmap_sha1": "26934556fc75d3742f5cdc8d84226b701a1c08ea",
+    "model_sdf_sha1": "2a63d1112121bb12ba9d8746d6fccb0ed4481074"
+   },
+   {
+    "tile": "T13_09",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T13_09",
+    "heightmap_sha1": "2f25df8641ed91316dc9ba5bc0d3e79c36b838e5",
+    "model_sdf_sha1": "b635790ff828c1fd15543ce6d12d2f2ab46a4639"
+   },
+   {
+    "tile": "T13_10",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T13_10",
+    "heightmap_sha1": "ced0969a8848519ec5b7a9baf658607327385ecb",
+    "model_sdf_sha1": "2abc315b09cd1702d8b7a17a7aa229b696a18f30"
+   },
+   {
+    "tile": "T13_11",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T13_11",
+    "heightmap_sha1": "49d2e159bd241426ef649ca6f5264f0d5a9e8211",
+    "model_sdf_sha1": "b7260169eea5c5259c7f0ebaf56ffa6caefd7867"
+   },
+   {
+    "tile": "T13_15",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T13_15",
+    "heightmap_sha1": "241bcc5a9ea3bcc065017d63aad4c36d2fa5a443",
+    "model_sdf_sha1": "7f76dabbc3797b5f2b498f2b2a6c91b8ba80344d"
+   },
+   {
+    "tile": "T13_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T13_16",
+    "heightmap_sha1": "a5ffe0dd4231dfdd348e3498e6ffccf4a33e1dc0",
+    "model_sdf_sha1": "7277d82d3ffce94597c0a0536d9b9427fd3fcb30"
+   },
+   {
+    "tile": "T13_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T13_17",
+    "heightmap_sha1": "7457eca32d589a4dd911713f7e8ead0b619dd83f",
+    "model_sdf_sha1": "9a0215ecce8e17c5342781c5b7a1963a1ba5f6fd"
+   },
+   {
+    "tile": "T13_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T13_18",
+    "heightmap_sha1": "e7375674ce2e3c2002cbb49c079e2efbb48f15f4",
+    "model_sdf_sha1": "9237939ce9d78c4c805d86d4be1b63d1098f9afd"
+   },
+   {
+    "tile": "T14_04",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T14_04",
+    "heightmap_sha1": "1b66d365cce6332d16190e2bfa58318cf51dc017",
+    "model_sdf_sha1": "c6274a39ced83c1d5ebdf2b8229e63e3f946a8ea"
+   },
+   {
+    "tile": "T14_05",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T14_05",
+    "heightmap_sha1": "7a5646c71a8ebbbae3a263b72771c1796173a220",
+    "model_sdf_sha1": "c31415a1004d2fc1db6dbb78633b2b240f2b658b"
+   },
+   {
+    "tile": "T14_06",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T14_06",
+    "heightmap_sha1": "00f0d071fdfe2525f40006ce39e37894f88391de",
+    "model_sdf_sha1": "c38244f82fbbfea4a1f252bc958c0d95f00f91b2"
+   },
+   {
+    "tile": "T14_07",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T14_07",
+    "heightmap_sha1": "75ae34a03a5f0132e7291f461bd24268d0d28236",
+    "model_sdf_sha1": "80585cd9f6cda616e60eea788b66537326ab55ef"
+   },
+   {
+    "tile": "T14_08",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T14_08",
+    "heightmap_sha1": "40e751e6bcdebb835d74dad55671157e83eeeece",
+    "model_sdf_sha1": "4b98d60575a453a8a85db9b4a151988f24872766"
+   },
+   {
+    "tile": "T14_09",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T14_09",
+    "heightmap_sha1": "b3189f6e4034b6b913288fb3a0c3a00ddd9033fe",
+    "model_sdf_sha1": "86157b0c3c8de25429f96bda701e96559ac0d9c2"
+   },
+   {
+    "tile": "T14_10",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T14_10",
+    "heightmap_sha1": "89f9206c09f343b7cd0881467fea6e0925d1f596",
+    "model_sdf_sha1": "1030782e55e97645bfdaff61f0518818d0786047"
+   },
+   {
+    "tile": "T14_11",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T14_11",
+    "heightmap_sha1": "101a013eb93f95495c8b5e24714b82e4517d0f2a",
+    "model_sdf_sha1": "9d848f5c44f269ac5a44945e59b6c89ed03cba09"
+   },
+   {
+    "tile": "T14_15",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T14_15",
+    "heightmap_sha1": "cd17fdb563426e97dfc159c337c0b160819c0568",
+    "model_sdf_sha1": "3cbc8e8d07e42e98f8abb3357e17d4bc95bd6add"
+   },
+   {
+    "tile": "T14_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T14_16",
+    "heightmap_sha1": "ec432212c260d7b7bbc354684128190988ac9aa9",
+    "model_sdf_sha1": "0b99e1fcbd539fbee95fb181c25544f3eba966dd"
+   },
+   {
+    "tile": "T14_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T14_17",
+    "heightmap_sha1": "3ae4e66b29ced2df37f0f07d6f91dc358c5314dc",
+    "model_sdf_sha1": "5a671bc3484ee47bc01e7834a99a34e04513f662"
+   },
+   {
+    "tile": "T14_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T14_18",
+    "heightmap_sha1": "9c3a2851a1d8700ca0789413704df46f11ed87b4",
+    "model_sdf_sha1": "d5ce67420c36b67bb86d6b71a3d9b52a141bcaa7"
+   },
+   {
+    "tile": "T15_04",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T15_04",
+    "heightmap_sha1": "5df29edb723d2f0ddd73a09d8cab294ace621d2c",
+    "model_sdf_sha1": "7a3dfbd4246edbb72c6a97d67b8b9dee9f1bee54"
+   },
+   {
+    "tile": "T15_05",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T15_05",
+    "heightmap_sha1": "e5ae5d2e7d9cf17ac1ab0fc9f511ff0a48be5822",
+    "model_sdf_sha1": "1745ff58e6dcd59ae71276db72510ea2da5c205b"
+   },
+   {
+    "tile": "T15_06",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T15_06",
+    "heightmap_sha1": "3ba79783445355ddf25117b873c127a25f36d349",
+    "model_sdf_sha1": "3f4b0a95c68977ce928800d304759f37b223ed06"
+   },
+   {
+    "tile": "T15_07",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T15_07",
+    "heightmap_sha1": "f00879c54bd750dd600c238c1ae810bbad9bbdb5",
+    "model_sdf_sha1": "7d26e5f860dde8d596006accef059b72a669472f"
+   },
+   {
+    "tile": "T15_08",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T15_08",
+    "heightmap_sha1": "edba853f5bf1a86869d6bd42ffa7a2bb2b5d6321",
+    "model_sdf_sha1": "b7a181915cdf71f605a688137baa05e47839a1b5"
+   },
+   {
+    "tile": "T15_09",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T15_09",
+    "heightmap_sha1": "ce5732dc48fe8b11857535d3ae6c7deaff194193",
+    "model_sdf_sha1": "05728f67c09da512844c5004913edf3d491b13f7"
+   },
+   {
+    "tile": "T15_10",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T15_10",
+    "heightmap_sha1": "ef677128ae470b7e59edaed9701df16ef3348d4e",
+    "model_sdf_sha1": "0a2dc1b1f76bb665da03b345a374d5fa6bb990a8"
+   },
+   {
+    "tile": "T15_11",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T15_11",
+    "heightmap_sha1": "1ba1df24c53f229a871122e364e2bb867ae7c591",
+    "model_sdf_sha1": "3697411ab6c04e1ba9c35266e66b2a4c1866686a"
+   },
+   {
+    "tile": "T15_15",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T15_15",
+    "heightmap_sha1": "2cc6e4407809357cb7888a115eba74afddeabeb1",
+    "model_sdf_sha1": "3c2bdbe6f00e14612bed1dc99d879eae934f61f3"
+   },
+   {
+    "tile": "T15_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T15_16",
+    "heightmap_sha1": "a80b6acfb74d2dc1df38465f6740b4df98e34118",
+    "model_sdf_sha1": "8ec3116040652ac45dc6466df2208e685e2b8c10"
+   },
+   {
+    "tile": "T15_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T15_17",
+    "heightmap_sha1": "2e88da835f999888382e30b1ac8b0281577be11d",
+    "model_sdf_sha1": "b2d52c7365a8f0474d321c7796c3f6e96b8a8805"
+   },
+   {
+    "tile": "T15_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T15_18",
+    "heightmap_sha1": "b18489bcc36d55bf4deabd8f479f15af21758b7c",
+    "model_sdf_sha1": "400bace1463a6c74849727aa77654485bab7a2f2"
+   },
+   {
+    "tile": "T16_03",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_03",
+    "heightmap_sha1": "8351b488e497fea932a95c1da661c54cc8832b84",
+    "model_sdf_sha1": "eb2743b8fa07ed1ffb1089c7b01a42719e0cc979"
+   },
+   {
+    "tile": "T16_04",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_04",
+    "heightmap_sha1": "b9d6160e95f7cf77e8d2017487f125858c64c5c3",
+    "model_sdf_sha1": "d69c054e917413f3e260caf738475c2563adb98e"
+   },
+   {
+    "tile": "T16_05",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_05",
+    "heightmap_sha1": "1def83d07f1bdef25701e4addb3321612d8e7cf3",
+    "model_sdf_sha1": "0361f9d1e96861ac73c97ea7686e87c0c168b78b"
+   },
+   {
+    "tile": "T16_06",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_06",
+    "heightmap_sha1": "aa56f32eb94ea5c7de56b3349a1f7ca7ba2867d8",
+    "model_sdf_sha1": "7acb41c813ca71a3c17d136760dde1a95d1ff76c"
+   },
+   {
+    "tile": "T16_07",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_07",
+    "heightmap_sha1": "efff4ff641f4f1ce7b9e383fc44f1ffc91b549c7",
+    "model_sdf_sha1": "c430393965f5caa52d8df6ca2962f43a5ccc77a0"
+   },
+   {
+    "tile": "T16_08",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_08",
+    "heightmap_sha1": "71ec6acf0457789730771e4196be1c244855edec",
+    "model_sdf_sha1": "c49062e4b3473a789b2808301d697c17ebfa8fa2"
+   },
+   {
+    "tile": "T16_09",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_09",
+    "heightmap_sha1": "ba9cfd3c646d79ddd78dc5966b54815b4831a8eb",
+    "model_sdf_sha1": "7c98df89dff0ec29bf96da147fed4a7174e1f0e6"
+   },
+   {
+    "tile": "T16_10",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_10",
+    "heightmap_sha1": "28df256c1918e7397a05c599dd394d3ed6f4d351",
+    "model_sdf_sha1": "4382398817bed2bf6dfba284ad4868fcf6a97a9b"
+   },
+   {
+    "tile": "T16_11",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_11",
+    "heightmap_sha1": "adac2396020e9d0ef3d3a22d9fd104e463a1f177",
+    "model_sdf_sha1": "011f1426c1a02b356417634b36c532ddbf9cfff4"
+   },
+   {
+    "tile": "T16_15",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_15",
+    "heightmap_sha1": "4a11a8e3f6f062c51fca2ba36d0edbd9d1dcfdb9",
+    "model_sdf_sha1": "ca276e1daa69eebdab2bf20e697e681277046f33"
+   },
+   {
+    "tile": "T16_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_16",
+    "heightmap_sha1": "2a6d0a0ae56fb1331cdb2236022298c93555bd69",
+    "model_sdf_sha1": "2d056ddb21798cd6fab39cfcea83e8f47fa5b1f4"
+   },
+   {
+    "tile": "T16_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_17",
+    "heightmap_sha1": "6bf6c6e40dde5943447d087759302ebdd31675aa",
+    "model_sdf_sha1": "7e3a800e77af25c2ee35210e8d2e297ae7cff82d"
+   },
+   {
+    "tile": "T16_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T16_18",
+    "heightmap_sha1": "967a42f880905120a280b227d8997c51c685392b",
+    "model_sdf_sha1": "b5083c00862f100ca854657f60affd8926ab2419"
+   },
+   {
+    "tile": "T17_03",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_03",
+    "heightmap_sha1": "4ce7a06bb45a3719ad2a9009176e0f1d6b1ad75b",
+    "model_sdf_sha1": "db003c4667b3984d4a517ac82ffb0cfffc3ab2b4"
+   },
+   {
+    "tile": "T17_04",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_04",
+    "heightmap_sha1": "bfc438ad7cc20bb7f58d101ecccecbb143092e2b",
+    "model_sdf_sha1": "12644c55f9e60c68254f17ad4ee22a3ff24b97b0"
+   },
+   {
+    "tile": "T17_05",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_05",
+    "heightmap_sha1": "d855bd9bea9e14f7c70cede5202319374206426a",
+    "model_sdf_sha1": "695705fcdec5b9405c5d17d4fa3c8a5a239cf7f2"
+   },
+   {
+    "tile": "T17_06",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_06",
+    "heightmap_sha1": "de2379f81abf98f5be271b94e8c47902e1f4473b",
+    "model_sdf_sha1": "b9573a9c853c9e6659fefc9bbaf423e42059ec56"
+   },
+   {
+    "tile": "T17_07",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_07",
+    "heightmap_sha1": "3a183abd195451e44e378933eaf8907b29575ff4",
+    "model_sdf_sha1": "3c4bda921faa2ddf65a5820a058ac4743f1970c6"
+   },
+   {
+    "tile": "T17_08",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_08",
+    "heightmap_sha1": "e2364b97b2abeb8b2d4985032b605fe5373005da",
+    "model_sdf_sha1": "cdb96bf260db2f319eb34ed03aa6d3bc6eff1fa6"
+   },
+   {
+    "tile": "T17_09",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_09",
+    "heightmap_sha1": "f78545ecd3153afbbc892780ed4f7748cbd6b19d",
+    "model_sdf_sha1": "f0a9c65b164df97240d92f3d62975e90eacb8603"
+   },
+   {
+    "tile": "T17_10",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_10",
+    "heightmap_sha1": "055d8440ca17d8a6c7c3407d42dad7c76930a518",
+    "model_sdf_sha1": "6a5c48fd470f9c62fa39119106379b5a88fc5701"
+   },
+   {
+    "tile": "T17_11",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_11",
+    "heightmap_sha1": "e4357ed3e38e0a8bb0944223e7809484656d6556",
+    "model_sdf_sha1": "3b466180a8a8529f6d450e5b0c58efceeda83e53"
+   },
+   {
+    "tile": "T17_13",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_13",
+    "heightmap_sha1": "5ec52340a3627852a89b3a49d20d1b2608fcab9a",
+    "model_sdf_sha1": "314eb9cdd7c384cf7d9aed2eaf165056b0265ed2"
+   },
+   {
+    "tile": "T17_14",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_14",
+    "heightmap_sha1": "7bf9ae170edd2de509460614dfd9cdf3319b7479",
+    "model_sdf_sha1": "89f02dd5827f9c7eaf7ff37e9dd98b6af484a8b2"
+   },
+   {
+    "tile": "T17_15",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_15",
+    "heightmap_sha1": "d1a14589fc5e0fdf57b8b20a021787ee07f9b809",
+    "model_sdf_sha1": "97d5a8c3c4928a27926087823c600952d7441809"
+   },
+   {
+    "tile": "T17_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_16",
+    "heightmap_sha1": "395c27cb9d502cba07bf63342cac5c205eb66f3c",
+    "model_sdf_sha1": "3f7f093f58967491cc38b6d10757656fd3f58608"
+   },
+   {
+    "tile": "T17_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_17",
+    "heightmap_sha1": "220c3bc1fcf2f324d13862c70b71535c543d2f52",
+    "model_sdf_sha1": "1179e33d53e495e5d3dac7ce0add4b2ea4a2f6be"
+   },
+   {
+    "tile": "T17_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T17_18",
+    "heightmap_sha1": "6b95638d7bbd683c6f775488a74425e6037ad172",
+    "model_sdf_sha1": "fe43fc14ecd068b21251c01444a546e7a532fbee"
+   },
+   {
+    "tile": "T18_03",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_03",
+    "heightmap_sha1": "43bab0a0f7e0a3b1988a872ed8c20c1cdfa048ec",
+    "model_sdf_sha1": "69e316566623e2898a758fc38bf90a10176c61fe"
+   },
+   {
+    "tile": "T18_04",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_04",
+    "heightmap_sha1": "e9b58b0b412368c1f35a8b80ab0577ee0c684211",
+    "model_sdf_sha1": "cccac9ac5fff59beb5f59a67c580cd40ba13690f"
+   },
+   {
+    "tile": "T18_05",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_05",
+    "heightmap_sha1": "cfcb1507a1d0c5e8a897e0f55877e151c3cba0ee",
+    "model_sdf_sha1": "addf3c07a899a7cf68ebe847337480a4ca0d832d"
+   },
+   {
+    "tile": "T18_06",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_06",
+    "heightmap_sha1": "5468c1929fb53dca7854ec9921d2e6e28e4e9ede",
+    "model_sdf_sha1": "3415bc769c12811f26c7bb64ed148138e2ec1cc3"
+   },
+   {
+    "tile": "T18_07",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_07",
+    "heightmap_sha1": "4854157fb68262eb75955c9b0939c3ef0ece616d",
+    "model_sdf_sha1": "0d4e6eb1e1466ed8a0e010047714b08d0bb65c8e"
+   },
+   {
+    "tile": "T18_08",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_08",
+    "heightmap_sha1": "7da7e7192adc6adafa20d2e0e949c9d6580c5b7a",
+    "model_sdf_sha1": "9e307a8096e78b158c89262612036c244759c00e"
+   },
+   {
+    "tile": "T18_09",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_09",
+    "heightmap_sha1": "87cfaf8f78622a029bb0fa9913f75c62661e4f8f",
+    "model_sdf_sha1": "65ef374811caeff450d0f1cf8966818a2fd10ab8"
+   },
+   {
+    "tile": "T18_10",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_10",
+    "heightmap_sha1": "4bc8c7cabf27ab4896a21b83b1b34252530c7c63",
+    "model_sdf_sha1": "6ccf22528ba171e762cd03014fbfb51eeaa7ca58"
+   },
+   {
+    "tile": "T18_11",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_11",
+    "heightmap_sha1": "ac864791ea1077f977471d3b8ebe2d11014dd154",
+    "model_sdf_sha1": "f7f891324a04487e0baa6139cb2a361dd0ead35d"
+   },
+   {
+    "tile": "T18_12",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_12",
+    "heightmap_sha1": "2a92ffe56456bf32bdc492706882cc4ab87ccbe8",
+    "model_sdf_sha1": "5ab04a1a283099e264131e023c01f38f60e7a4f7"
+   },
+   {
+    "tile": "T18_13",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_13",
+    "heightmap_sha1": "70c34e0b4e619df09c14d8199816e26e75f1ec8f",
+    "model_sdf_sha1": "c4c580aa9901659050f68e068cdddee6e84fbed3"
+   },
+   {
+    "tile": "T18_14",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_14",
+    "heightmap_sha1": "1acca3b96d8d71187cac6444c0238d75d0a5e806",
+    "model_sdf_sha1": "f41e028b22fd4f27acd3baedfe38249fb971db1e"
+   },
+   {
+    "tile": "T18_15",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_15",
+    "heightmap_sha1": "cd3b0b5ef9dad120af3ec1df9ed5601bb1d16a87",
+    "model_sdf_sha1": "dfdfa8f6b7ba684a14a98b5c53f2ca1b1246d26f"
+   },
+   {
+    "tile": "T18_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_16",
+    "heightmap_sha1": "9b8b3d5dba48b42a9f760f833adb90fc7235acb9",
+    "model_sdf_sha1": "2e58bedec58f70ef70454e976c4aa20613e58e67"
+   },
+   {
+    "tile": "T18_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_17",
+    "heightmap_sha1": "40d479c9659decfb3a4c2a9d3874cbbf88ecbad0",
+    "model_sdf_sha1": "7b4bfd4a542581bd68692be77b1318be8bb65955"
+   },
+   {
+    "tile": "T18_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T18_18",
+    "heightmap_sha1": "23bab1765d1e20f48a9231db0b5b89a526b09f06",
+    "model_sdf_sha1": "a8e55d20d2cc3faa2bede75d45d8354a4b07df74"
+   },
+   {
+    "tile": "T19_04",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_04",
+    "heightmap_sha1": "9dfef79641a90c710a676e9b1cdb0425a5aa9d36",
+    "model_sdf_sha1": "6563ae5ec9cf7d0f0fefe306200d57a7fef36e41"
+   },
+   {
+    "tile": "T19_05",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_05",
+    "heightmap_sha1": "308314523f2ec638f10214f2be2604a339a70097",
+    "model_sdf_sha1": "6638768171c9bbd5a546aa3ab45f895ab3c3a4c9"
+   },
+   {
+    "tile": "T19_06",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_06",
+    "heightmap_sha1": "27e0f34f95dac58d883e485604bc1a6844576083",
+    "model_sdf_sha1": "e8f1e0a4bafcae30f83fbc5fa4a64ed338d18186"
+   },
+   {
+    "tile": "T19_07",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_07",
+    "heightmap_sha1": "f0f1378f2c7581011c5459ff7f3bc343c30959b6",
+    "model_sdf_sha1": "418e38f9aa1629e106a140b1a0e6a6659d6035a7"
+   },
+   {
+    "tile": "T19_08",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_08",
+    "heightmap_sha1": "9dd6f374458a61b65f4b99af0a689dee96a44635",
+    "model_sdf_sha1": "4995b8a2dc89ab599f486ba0c2a66542978963cc"
+   },
+   {
+    "tile": "T19_09",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_09",
+    "heightmap_sha1": "ec764fe63d4303a2756a5535a524ee522504c051",
+    "model_sdf_sha1": "a3a4b9a992c74d4bf680adeb04a4466cedddbf7c"
+   },
+   {
+    "tile": "T19_10",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_10",
+    "heightmap_sha1": "5e006f9968631db226fd452d3e44e41f0bbd1c04",
+    "model_sdf_sha1": "e1f6823466ad29257eb579f0833897edfab0ca4c"
+   },
+   {
+    "tile": "T19_11",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_11",
+    "heightmap_sha1": "885cd3d15f56d8fd6a5a2a4570599e166d650259",
+    "model_sdf_sha1": "0ff75d612c8bad24ef542a34c7c1c54284e4eaeb"
+   },
+   {
+    "tile": "T19_12",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_12",
+    "heightmap_sha1": "5dfd1dad9deace3aa79f561fc965d4e7de4b895b",
+    "model_sdf_sha1": "414fd6c6c14ea9a78f157c8a3b687bb0a6d4fe1b"
+   },
+   {
+    "tile": "T19_13",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_13",
+    "heightmap_sha1": "76da2a56d6fa3cb39a299f213a09994240ea536c",
+    "model_sdf_sha1": "d0e9d6d844705cc48074c2b3125c9a3413b45656"
+   },
+   {
+    "tile": "T19_14",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_14",
+    "heightmap_sha1": "3af44ff387792727460466e8b90c0cb8e29e04de",
+    "model_sdf_sha1": "60ca6297155175d9e90b405b95e7da653d0acc08"
+   },
+   {
+    "tile": "T19_15",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_15",
+    "heightmap_sha1": "f569f572205221fe46c7be7929f4db1d6936935a",
+    "model_sdf_sha1": "9934d358bfeaf19de920d31705ec8af023180f62"
+   },
+   {
+    "tile": "T19_16",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_16",
+    "heightmap_sha1": "4854181778b9e55c818adb13152f2f4eb58e8cea",
+    "model_sdf_sha1": "ff7d44120f76f6280dc56012a89d0cb755f01777"
+   },
+   {
+    "tile": "T19_17",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_17",
+    "heightmap_sha1": "57fd1806b351cc479097138f9e4668aab9aed1ef",
+    "model_sdf_sha1": "dfe5fe24609c6685c1ad3c216851291a9e47a010"
+   },
+   {
+    "tile": "T19_18",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T19_18",
+    "heightmap_sha1": "361bb33755b80bdc4e7bb41b36aa3bf0221e405f",
+    "model_sdf_sha1": "9f7dd3fb5384000de18824cc1de05c19c6ad5f96"
+   },
+   {
+    "tile": "T20_05",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T20_05",
+    "heightmap_sha1": "d302d9d2f63ad4166680849977f1409c57ade717",
+    "model_sdf_sha1": "ca8be26cca25c51cfd810771b9e8d4f029ee331c"
+   },
+   {
+    "tile": "T20_06",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T20_06",
+    "heightmap_sha1": "902ce087b50fd4205d9a054bc234602df060bb39",
+    "model_sdf_sha1": "f3448851a0724d3e0747686d056e95e0b543e2f0"
+   },
+   {
+    "tile": "T20_07",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T20_07",
+    "heightmap_sha1": "ad960857e3a3a79c8f16dfafc9814beb4ed9cbb0",
+    "model_sdf_sha1": "125d6899641284558bd22c5502864fb0b72a512d"
+   },
+   {
+    "tile": "T20_08",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T20_08",
+    "heightmap_sha1": "57c4ea82f3e37a08121d830b7e2bc5e1c02a842d",
+    "model_sdf_sha1": "ee67682ed211be72447288331858fa23f7caaeda"
+   },
+   {
+    "tile": "T20_09",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T20_09",
+    "heightmap_sha1": "27fa4a473406c2dc21422fe8e395b46a4f476645",
+    "model_sdf_sha1": "2b45f0b41028e11f1e914b2ed710cc46cdf7d943"
+   },
+   {
+    "tile": "T20_10",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T20_10",
+    "heightmap_sha1": "478aa783ec0a2f1022fee0f5374086012fb74328",
+    "model_sdf_sha1": "f8a108989d06e5979d91f89ae4c1e15953e4ce69"
+   },
+   {
+    "tile": "T20_11",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T20_11",
+    "heightmap_sha1": "530d6151254565f5dad4730305b648ec42b29980",
+    "model_sdf_sha1": "8d2562e3d49787f00433ad3001690d92730dd4c4"
+   },
+   {
+    "tile": "T20_12",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T20_12",
+    "heightmap_sha1": "706df572c4bb2034922606c4b1cd72654018ee03",
+    "model_sdf_sha1": "f2afcfbd21abfc2721f98d52c2d591b974a7a32c"
+   },
+   {
+    "tile": "T20_13",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T20_13",
+    "heightmap_sha1": "46102e25be104967fd921d6cfbfdad7448cf1d0e",
+    "model_sdf_sha1": "677884abbf8e32ba87ffad8188cb72dcf803a1a7"
+   },
+   {
+    "tile": "T20_14",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T20_14",
+    "heightmap_sha1": "f08df03b2faad8541ccf89132106a5c16da3d506",
+    "model_sdf_sha1": "812c655914dba50e6b4207e2694caab670c86369"
+   },
+   {
+    "tile": "T20_15",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T20_15",
+    "heightmap_sha1": "23f93b16a31881a00cd01ba0da345689e1d389b1",
+    "model_sdf_sha1": "33e8fe3efa9faf410f4ef2fd40a78cc5bede606b"
+   },
+   {
+    "tile": "T21_07",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T21_07",
+    "heightmap_sha1": "a15f025aa1aacfc1e6feb1c13a11212028db46a6",
+    "model_sdf_sha1": "51c4208a7fbe1d845b4b0f91d52215fd1bb80c3f"
+   },
+   {
+    "tile": "T21_08",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T21_08",
+    "heightmap_sha1": "47864aaff8cd21c7794db797931380b481ce379c",
+    "model_sdf_sha1": "7b79c36295f0484cfce170cfe3a4462f5c8746ab"
+   },
+   {
+    "tile": "T21_09",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T21_09",
+    "heightmap_sha1": "09a64cd4560e278ac8df4195b3a51ddc837976bb",
+    "model_sdf_sha1": "e984b441514f0604104c29dcfd952bbc14cce09a"
+   },
+   {
+    "tile": "T21_10",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T21_10",
+    "heightmap_sha1": "7962dc592248f1f499d83d3a0c91e0482c82f265",
+    "model_sdf_sha1": "3f53912ef102eca31ee147a4c08c2d05c37e160e"
+   },
+   {
+    "tile": "T21_11",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T21_11",
+    "heightmap_sha1": "ec7fe65948b1b69a5868607684adf0eb4764424c",
+    "model_sdf_sha1": "bdf3ea946db2e35403c3d00869f06e95fb7b27fd"
+   },
+   {
+    "tile": "T21_12",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T21_12",
+    "heightmap_sha1": "69dd6c69f3a9e4cde16b11023cecc666d52e1632",
+    "model_sdf_sha1": "72f7aa292e3696fb6f73b34386526cfff1599fbc"
+   },
+   {
+    "tile": "T21_13",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T21_13",
+    "heightmap_sha1": "209aeafd424380d4d3a77bd55792588b72870cc3",
+    "model_sdf_sha1": "5867da6aebd687004e365701367d837daf5568a4"
+   },
+   {
+    "tile": "T21_14",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T21_14",
+    "heightmap_sha1": "791e19dd627ea025f05ed11a5cc0cbdeb300d199",
+    "model_sdf_sha1": "53d063a20e4101e409fd708f44c01a6879e3a95c"
+   },
+   {
+    "tile": "T22_10",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T22_10",
+    "heightmap_sha1": "44d17e4fc2648c2f9fa95d2a26dc9e5442af6955",
+    "model_sdf_sha1": "1e6cde065126747b2af962dbe3d501231a73d2fc"
+   },
+   {
+    "tile": "T22_11",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T22_11",
+    "heightmap_sha1": "a0dfa1a7ec4b643795015cb929a67541f4ed6683",
+    "model_sdf_sha1": "02ec7098e1832c745a57e46b723acca0f5086895"
+   },
+   {
+    "tile": "T22_12",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T22_12",
+    "heightmap_sha1": "92d493bdd9fd2d89a5fd38bd82b8bdda00d2579e",
+    "model_sdf_sha1": "742b5a7ec1ca9457447dfc9034aa211d00c45c75"
+   },
+   {
+    "tile": "T22_13",
+    "dir": "/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage5/tiles_v2/T22_13",
+    "heightmap_sha1": "1b8a65bc48c7b347d909c0efdd2e4d49d4d8434e",
+    "model_sdf_sha1": "1de821eeeb9f89f96930402061bd954ab41493ee"
+   }
+  ],
+  "tiles_digest": "33699cc9a003000cda400b15826f2569f9ebb85f"
+ }
+}
