@@ -1,0 +1,118 @@
+{
+ "tag": "a3_stopY",
+ "markers": [],
+ "gz_detail_rc": 0,
+ "aabb": {
+  "aabb_500": 160,
+  "aabb_499_512": 0
+ },
+ "drive_window": [
+  30.406,
+  40.376
+ ],
+ "cmd_rad_s": [
+  0.02,
+  2.8571
+ ],
+ "actual": {
+  "v_mean_mps": 1.0,
+  "heading_err_deg": 0.0,
+  "dt": 3.96
+ },
+ "crossing": {
+  "wheel_front_left": {
+   "y_first": -4630.999,
+   "y_last": -4622.999,
+   "other_seq": [
+    "kangwon_tile_T16_06::link::collision"
+   ]
+  },
+  "wheel_front_right": {
+   "y_first": -4630.999,
+   "y_last": -4622.999,
+   "other_seq": [
+    "kangwon_tile_T16_06::link::collision"
+   ]
+  },
+  "wheel_rear_left": {
+   "y_first": -4633.699,
+   "y_last": -4625.699,
+   "other_seq": [
+    "kangwon_tile_T16_05::link::collision",
+    "kangwon_tile_T16_06::link::collision"
+   ]
+  },
+  "wheel_rear_right": {
+   "y_first": -4633.699,
+   "y_last": -4625.699,
+   "other_seq": [
+    "kangwon_tile_T16_05::link::collision",
+    "kangwon_tile_T16_06::link::collision"
+   ]
+  }
+ },
+ "valid_ratio_drive_hold": {
+  "wheel_front_left": 1.0,
+  "wheel_front_right": 1.0,
+  "wheel_rear_left": 1.0,
+  "wheel_rear_right": 1.0
+ },
+ "roll_abs_max_deg": 1.201,
+ "pitch_abs_max_deg": 0.224,
+ "wheel_height": {
+  "wheel_front_left": [
+   0.3491,
+   0.3505
+  ],
+  "wheel_front_right": [
+   0.3395,
+   0.3502
+  ],
+  "wheel_rear_left": [
+   0.3492,
+   0.3511
+  ],
+  "wheel_rear_right": [
+   0.3494,
+   0.3509
+  ]
+ },
+ "susp_q_range": {
+  "susp_front_left": [
+   0.0141,
+   0.02059
+  ],
+  "susp_front_right": [
+   0.00671,
+   0.01537
+  ],
+  "susp_rear_left": [
+   0.01175,
+   0.01611
+  ],
+  "susp_rear_right": [
+   0.0133,
+   0.01802
+  ]
+ },
+ "base_dz": {
+  "settle_median": -0.0162,
+  "hold_median": -0.0157
+ },
+ "hold_speed_max": 0.0,
+ "checks": {
+  "recorder_ok_no_markers": true,
+  "aabb_candidate": true,
+  "drive_phase_recorded": false,
+  "speed_0.8_1.2_and_forward": true,
+  "all_wheels_crossed": true,
+  "contact_from_to": true,
+  "contact_valid_95": true,
+  "attitude_le_2deg": true,
+  "wheel_height_0.29_0.41": true,
+  "susp_within_limit": true,
+  "no_persistent_sinking_0.03": true,
+  "stopped_hold_lt_0.05": true
+ },
+ "status": "FAIL"
+}
