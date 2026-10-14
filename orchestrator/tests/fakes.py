@@ -72,6 +72,25 @@ class FakeUav:
             self.state[rid]["current_task_id"] = tid
             return httpx.Response(200, json={"task_id": tid, "status": "STARTED",
                                              "tracking_url": f"/uav/{rid}/task/{tid}"})
+        if path.startswith("/task/") and path.endswith("/abort"):
+            # 드론팀 UAV-09: 관측 전이면 FAILED/ABORTED + 복귀 중, 아니면 ALREADY_RETURNING (같은 요청 반복은 처음 결과)
+            tid = path.split("/")[2]
+            seq = self.scripts.get(tid)
+            if not seq:
+                return httpx.Response(404, json={"detail": "not found"})
+            if not seq[0].get("abort"):
+                before_obs = seq[0]["status"] in ("STARTED", "IN_PROGRESS")
+                rec = {"reason": (body or {}).get("reason"),
+                       "result": "ABORTED_BEFORE_OBSERVATION" if before_obs else "ALREADY_RETURNING"}
+                if before_obs:
+                    self.scripts[tid] = [{"status": "FAILED", "reason": "ABORTED", "observation": None,
+                                          "progress": {"phase": "RETURNING"}, "abort": rec}]
+                    self.state[rid]["current_task_id"] = None
+                else:
+                    for x in seq:
+                        x["abort"] = rec
+            cur = self.scripts[tid][0]
+            return httpx.Response(200, json={"task_id": tid, "observation": None, "progress": None, **cur})
         if path.startswith("/task/"):
             tid = path.split("/")[-1]
             seq = self.scripts.get(tid)
@@ -121,6 +140,7 @@ class FakeUgv:
         self.default_script = None
         self.scripts = {}
         self.calls = []
+        self.station = None          # 주면 상태에 station.access_point 를 싣는다 (총괄 UGV 복귀 관리 시험)
 
     def handler(self, request):
         import time
@@ -132,7 +152,8 @@ class FakeUgv:
                 "resource_id": rid, "resource_type": "UGV", "base": "A", "state": u["state"],
                 "position": {"lat": u["lat"], "lon": u["lon"]}, "fuel_pct": 90.0, "current_node": "A",
                 "current_task_id": u["current_task_id"], "driver": "sim", "driver_status": "IDLE",
-                "updated_at": time.time()} for rid, u in self.units.items()])
+                "updated_at": time.time(), **({"station": self.station} if self.station else {})}
+                for rid, u in self.units.items()])
         m = re.match(r"/ugv/([^/]+)/(evaluate|execute|task)(?:/(.+))?", path)
         rid, op, tid = m.group(1), m.group(2), m.group(3)
         node = {"node_id": "N1", "lat": 38.07, "lon": 128.20, "snap_m": 10.0}

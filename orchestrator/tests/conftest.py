@@ -4,10 +4,6 @@ import sys
 from pathlib import Path
 
 os.environ["ORCH_SKIP_DOTENV"] = "1"          # 시험은 로컬 .env 의 실제 API 키를 쓰지 않는다
-# 시험 기준 정책: 열화상은 드론만 (시험 장면이 드론 기준으로 짜여 있다). 운영 기본값은 둘 다 켜짐 —
-# UGV 열화상은 test_ugv_thermal 이 직접 켜서 보고, 운영 기본값은 test_ugv_thermal_defaults_on 이 확인한다.
-os.environ["ORCH_UGV_THERMAL"] = "0"
-os.environ["ORCH_AUTO_RECON_GROUND"] = "0"
 
 import pytest
 
@@ -37,6 +33,19 @@ def single_frame_sensor(monkeypatch):
     기본값인 가정 범위(원 비행 가정 90×90m)는 test_orbit_assumption 에서 따로 시험한다."""
     from orchestrator import config
     monkeypatch.setattr(config, "DEFAULT_SENSOR_PROFILE_ID", "TEST_THERMAL_90M_V1")
+
+
+@pytest.fixture(autouse=True)
+def legacy_dispatch_mode(monkeypatch):
+    """기존 시험은 관측 계획 이전 동작(신고 → 최초 정찰 Task, UGV 열화상 꺼짐)을 기준으로 쓴다.
+    관측 계획(2026-10-07 기본 켜짐)은 test_observation_planner 에서 obs_planner 픽스처로 켠다."""
+    from orchestrator import config
+    monkeypatch.setattr(config, "OBS_PLANNER_ENABLED", False)
+    caps = dict(config.SIMULATED_CAPABILITIES)
+    caps["UGV"] = tuple(c for c in caps["UGV"] if c != "THERMAL")
+    monkeypatch.setattr(config, "SIMULATED_CAPABILITIES", caps)
+    # 현장 기상 유효시간(2026-10-07 기본 35분)도 기존 시험 기준(미설정)으로 둔다. 필요한 시험은 field_policy 로 정한다
+    monkeypatch.setattr(config, "FIELD_WEATHER_MAX_AGE_S", {k: None for k in config.WEATHER_ITEMS})
 
 
 @pytest.fixture

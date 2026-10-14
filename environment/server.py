@@ -19,7 +19,10 @@
 | POST | /reset           | 새 시뮬레이션 → 새 run_id |
 
 환경 변수: ENV_STATE_DIR(기본 environment/.state), ENV_TICK_S(60), ENV_SCENARIO_START_KST,
-ENV_SEED(42), ENV_IGNITION("19,142"), ENV_REPORT_DELAY_S(0), ENV_RESUME(1).
+ENV_SEED(42), ENV_IGNITION("19,142"), ENV_REPORT_DELAY_S(0), ENV_RESUME(1),
+ENV_SUBTICK_S(비움 = 끔. 예: 60 이면 /advance 한 번에 1분, CA 단계 사이 점화 시각을 채워 넣음 — 총괄 브랜치 2026-10-07),
+ENV_CONFIG(비움 = environment/config/environment_config.yaml. 저장소 루트 기준 경로. 트윈은 scenario.json twin_env 의
+legacy 설정을 써서 재현과 같은 불을 낸다 — 2026-10-08).
 """
 
 from __future__ import annotations
@@ -41,13 +44,16 @@ from src.contract_env import ContractEnvironment       # noqa: E402
 def build_env() -> ContractEnvironment:
     ign = os.getenv("ENV_IGNITION", "19,142")
     ignitions = [tuple(int(v) for v in p.split(",")) for p in ign.split(";") if p.strip()]
+    cfg = os.getenv("ENV_CONFIG")
+    extra = {"config_path": HERE.parent / cfg} if cfg else {}
     return ContractEnvironment(
-        os.getenv("ENV_STATE_DIR", str(HERE / ".state")),
+        os.getenv("ENV_STATE_DIR", str(HERE / ".state")), **extra,
         tick_s=float(os.getenv("ENV_TICK_S", "60")),
         scenario_start_kst=os.getenv("ENV_SCENARIO_START_KST", "2019-04-04T14:45:00+09:00"),
         seed=int(os.getenv("ENV_SEED", "42")), ignitions=ignitions,
         report_delay_s=float(os.getenv("ENV_REPORT_DELAY_S", "0")),
-        resume=os.getenv("ENV_RESUME", "1") != "0")
+        resume=os.getenv("ENV_RESUME", "1") != "0",
+        subtick_s=float(os.getenv("ENV_SUBTICK_S")) if os.getenv("ENV_SUBTICK_S") else None)
 
 
 def build_analysis(env: ContractEnvironment) -> BeliefSpreadAnalysis:
