@@ -175,6 +175,8 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
     def dispatch_all() -> dict:
         """대기 임무 배정. LLM 호출과 기체 평가·출동 HTTP 모두 lock 밖에서 한다 (dispatch_gate 로만 직렬화)."""
         with dispatch_gate:
+            # 관측 계획 먼저 (LLM 호출은 잠금 밖) — 계획이 고른 자원으로 OBSERVE Task 를 만들고 바로 배정한다
+            orch.obs_plan_cycle()
             req = orch.llm_request()
             if req:
                 orch.llm_store(req, orch.llm_call(req))
@@ -186,8 +188,8 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
         with dispatch_gate, lock:
             orch.recover()
 
+    dispatch_wanted = threading.Event() if poll_interval_s else None   # 배정 작업자가 있을 때만
     if poll_interval_s:
-        dispatch_wanted = threading.Event()
 
         def dispatcher():
             # 자동 배정 전용 작업자. 추적 루프는 배정을 부탁만 하고(dispatch_wanted) 기다리지 않는다 —
@@ -206,7 +208,9 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
                 try:
                     with lock:
                         changed = bool(orch.poll())
-                        created = bool(orch.sync()["created"])     # 그 시각까지의 신고 → 최초 정찰 임무
+                        synced = orch.sync()
+                        orch.ugv_contact()            # 추적할 시도가 없어도 UGV 서버 총괄 통신 단절이 잘못 걸리지 않게
+                        created = bool(synced["created"] or synced.get("observation_plan_wanted"))
                     if (changed or created) and config.AUTO_DISPATCH_ON_CHANGE:
                         dispatch_wanted.set()         # 진행 상황이 바뀌면(반납·재대기·새 신고 등) 배정 작업자에게 부탁
                 except Exception as e:  # noqa: BLE001 — 추적 루프는 멈추지 않는다
@@ -244,7 +248,8 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
                         "key_present": bool(os.getenv(config.LLM_API_KEY_ENV)),
                         "timeout_s": config.LLM_TIMEOUT_S, "max_calls": config.LLM_MAX_CALLS_PER_RUN,
                         "not_ready_reason": orch.llm.status() if orch.llm else "NOT_CONNECTED",
-                        "calls_used": orch.llm.calls if orch.llm else 0},
+                        "calls_used": orch.llm.calls if orch.llm else 0,
+                        "in_flight": orch._llm_in_flight},     # 트윈 시계가 이 동안 멈춘다 (2026-10-08)
                 "f1_official_rule": config.OFFICIAL_RULE_SOURCE or "NOT_READY",
                 "f2_suppression": "READY" if config.SUPPRESSION_CONTRACT_READY else "NOT_READY"}
 
@@ -264,7 +269,14 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
                                           "active_run": orch.ledger.active_run()})
         result = None
         if do_dispatch and created:
-            if config.AUTO_DISPATCH_ON_CHANGE:
+            if config.AUTO_DISPATCH_ON_CHANGE and dispatch_wanted is not None:
+                # 배정 작업자가 돌고 있으면 접수만 하고 바로 응답한다. 배정은 작업자가 우선순위 순서로 한다.
+                # 여기서 dispatch_all 을 기다리면 작업자가 쥔 dispatch_gate(LLM 관측 계획, 최대 OBS_LLM_WALL_MAX_S)
+                # 뒤에 줄을 서고, 잡은 뒤에도 관측 계획·LLM 을 한 번 더 해서 응답이 수 분 늦었다 (2026-10-08 트윈:
+                # 운용자 순찰 요청 180초 시간 초과 — 임무는 접수돼 있었음)
+                dispatch_wanted.set()
+                result = {"status": "QUEUED_FOR_DISPATCHER"}
+            elif config.AUTO_DISPATCH_ON_CHANGE:
                 # 다른 대기 임무와 함께 우선순위 순서로 배정
                 result = dispatch_all()["results"].get(task.task_id)
             else:
@@ -401,6 +413,17 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
         with dispatch_gate:
             return orch.choose_priority(body.order, body.reason)
 
+    @app.get("/observation_plan")
+    def observation_plan():
+        """관측 계획 상황: 최근 계획(LLM/규칙 대체)·배정 결과·인지 지도(칸별 믿음)·가설과 그 대조"""
+        return orch.observation_plan_view()
+
+    @app.get("/evaluation")
+    def evaluation():
+        """테두리 재현율: 지금 값 + 관측 때마다 기록한 변화. 정답을 쓰는 평가 전용 (계획 입력 아님)"""
+        series = [e["detail"] for e in orch.ledger.events(run_id=ACTIVE) if e["event_type"] == "MAP_EVALUATION"]
+        return {"now": orch.evaluate_map(), "series": series}
+
     @app.get("/board", response_class=HTMLResponse)
     def board():
         return BOARD_HTML
@@ -449,7 +472,8 @@ def _build_team_env():
         sys.path.insert(0, env_dir)
     from src.belief_analysis import BeliefSpreadAnalysis
     from src.contract_env import ContractEnvironment
-    c = ContractEnvironment(config.ENV_STATE_DIR)
+    # 점화 후 신고 시각 (사용자 확정 120초). team_http 는 환경 서버의 ENV_REPORT_DELAY_S 를 따른다
+    c = ContractEnvironment(config.ENV_STATE_DIR, report_delay_s=config.OBS_REPORT_DELAY_S)
     return InProcessTeamEnv(c), TeamAnalysis(BeliefSpreadAnalysis(c.static, copy.deepcopy(c.engine._config),
                                                                   tick_s=c.tick_s))
 

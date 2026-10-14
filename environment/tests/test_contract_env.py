@@ -106,7 +106,9 @@ def test_map_cells_static_only(env):
     cells = env.map_cells()
     assert len(cells) == env.grid.rows * env.grid.cols
     keys = set().union(*(c.keys() for c in cells[:50]))
-    assert keys == {"cell_id", "lat", "lon", "cell_size_m", "ground_amsl_m", "building_type", "human_exposure"}
+    # fuel_amount·is_road: 총괄 관측 계획(불이 도로를 못 넘고 연료 없는 곳으로 안 번짐)용 정적 필드 (2026-10-14 총괄 동기화)
+    assert keys == {"cell_id", "lat", "lon", "cell_size_m", "ground_amsl_m", "building_type", "human_exposure",
+                    "fuel_amount", "is_road"}
     res = [c for c in cells if c["building_type"] == 1]
     assert res and all(c["human_exposure"] for c in res)
     assert len(env.protected_sites()) == len(res)
