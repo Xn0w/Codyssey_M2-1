@@ -1,0 +1,5 @@
+[ugv] MAVLink → 192.168.224.1:14541 (UGV 서버는 udpin://0.0.0.0:14541 로 받는다)
+{"tag":"o6_on_s3113_downabort_1","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T10:32:09+09:00"}
+o6_on_s3113_downabort_1 run rc=0 rcfile={"tag":"o6_on_s3113_downabort_1","test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false,"time":"2026-10-14T10:32:09+09:00"}
+selfstop o6_on_s3113_downabort_1 SS_MISSING
+OPS6_RESULT o6_on_s3113_downabort_1 PASS+SS_MISSING 10:32:12
