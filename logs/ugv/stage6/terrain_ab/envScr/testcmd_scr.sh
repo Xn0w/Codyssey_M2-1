@@ -28,7 +28,7 @@ echo "{\"ready\":$READY,\"hb\":\"$H\",\"waited_s\":$i}" > $O/detail_ready_$T.jso
 if [ $READY != 1 ]; then
   echo "고율 기록기 준비 실패 ($H) — 미션 안 보냄"; MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu-24.04 --exec bash -c "kill -TERM ${LPID:-0} 2>/dev/null"; sleep 2; kill $WPID 2>/dev/null; exit 11
 fi
-( cd $HK && exec env UGV_MAX_SPEED_KMH=20 UGV_LAT_ACCEL=1.0 UGV_ROAD_SUBSET=$SUB ADAIR_TILES_OUT=$ST/tiles_v2c1 $PY -m ugv.tools.road_test --tag $T --rid A-ugv1 --model adair_ugv_1 --target 38.07317541264574 128.18216961281541 --track-s 720 --post-stop-s 35 --world ab_route_v1 ) &
+( cd $HK && exec env UGV_MAX_SPEED_KMH=20 UGV_LAT_ACCEL=1.0 UGV_ROAD_SUBSET=$SUB ADAIR_TILES_OUT=$ST/tiles_v2c1 $PY -m ugv.tools.road_test --tag $T --rid A-ugv1 --model adair_ugv_1 --target-node RP:682501747:1040.1 --track-s 720 --post-stop-s 35 --world ab_route_v1 ) &
 RT=$!   # exec 로 서브셸이 road_test 자체가 됨 → kill $RT 가 road_test 를 끝냄
 LAST_SIM=""; LAST_CHANGE=$(date +%s); WD=""
 while kill -0 $RT 2>/dev/null; do
