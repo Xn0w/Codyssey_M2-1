@@ -1,0 +1,2 @@
+322167037d26d0e9ce1f029d88e4ba16db58fa39 *chain_ops6c.sh
+8f23c0ba2a39488b631e8d270e44f5ba1b039ba5 *chain_ops6b.sh

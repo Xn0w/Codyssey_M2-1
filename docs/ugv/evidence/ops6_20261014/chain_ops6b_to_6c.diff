@@ -1,0 +1,38 @@
+2c2
+< # 운영 정차 2.0 s 후보 (리더 결정 2026-10-14, 기준 ops6/OPS6_criteria.md): 서버 5dc1af4 + UGV_PX4_PARK_STILL_S=2.0 (훅 0). s3113 경사 중단 1 → PASS 면 s1096 도착 1. 비PASS 즉시 중단.
+---
+> # ops6c = 도착 단계만 (Codex 103335: o6_on_s3113 유효 PASS 인정, chain_ops6b 의 게이트 정정 포함). 원 설명 — 운영 정차 2.0 s 후보 (리더 결정 2026-10-14, 기준 ops6/OPS6_criteria.md): 서버 5dc1af4 + UGV_PX4_PARK_STILL_S=2.0 (훅 0). s3113 경사 중단 1 → PASS 면 s1096 도착 1. 비PASS 즉시 중단.
+6,9c6,9
+< [ "$(git -C $HK rev-parse --short HEAD)" = 5dc1af4 ] || { echo "CHAIN_OPS6B_HOLD 서버 HEAD 불일치"; exit 0; }
+< [ "$(git -C $HK diff --name-only 03d5b5d HEAD | sort | tr '\n' ' ')" = "ugv/drivers/px4.py ugv/tests/test_park_hook.py " ] || { echo "CHAIN_OPS6B_HOLD 정차 대기 외 변경 있음"; exit 0; }
+< [ "$(git -C ../ADAIR_wt_vehicle rev-parse --short HEAD)" = 48f3e5f ] || { echo "CHAIN_OPS6B_HOLD 차량 HEAD 불일치"; exit 0; }
+< (cd $O && sha1sum -c --quiet OPS6_freeze.sha1) || { echo "CHAIN_OPS6B_HOLD 동결 해시 불일치"; exit 0; }
+---
+> [ "$(git -C $HK rev-parse --short HEAD)" = 5dc1af4 ] || { echo "CHAIN_OPS6C_HOLD 서버 HEAD 불일치"; exit 0; }
+> [ "$(git -C $HK diff --name-only 03d5b5d HEAD | sort | tr '\n' ' ')" = "ugv/drivers/px4.py ugv/tests/test_park_hook.py " ] || { echo "CHAIN_OPS6C_HOLD 정차 대기 외 변경 있음"; exit 0; }
+> [ "$(git -C ../ADAIR_wt_vehicle rev-parse --short HEAD)" = 48f3e5f ] || { echo "CHAIN_OPS6C_HOLD 차량 HEAD 불일치"; exit 0; }
+> (cd $O && sha1sum -c --quiet OPS6_freeze.sha1) || { echo "CHAIN_OPS6C_HOLD 동결 해시 불일치"; exit 0; }
+27,37c27,33
+< gate() { echo "OPS6_RESULT $1 $2 $(date +%T)" >> $O/run.out; [ $RC = 0 ] || { echo "CHAIN_OPS6B_DONE $(date) $1 래퍼 rc=$RC — 중단"; exit 0; }; [ "$2" = PASS ] || { echo "CHAIN_OPS6B_DONE $(date) $1 $2 — 비PASS 중단"; exit 0; }; }
+< echo "CHAIN_OPS6B_START $(date)"
+< # 1) 운영 s3113 경사 중단
+< T=o6_on_s3113_downabort_1; SL=logs/ugv/stage6/slope; pre
+< env $OPS UGV_MODEL_VARIANT=susp_a_acc3_imu500 UGV_PX4_PASS_SKIP=0 UGV_PX4_STALL_DETECT=1 PF_SKIP_SUBSET=1 SUBSET=$SUB TILES=tiles_v2 WORLD=wj494846_1237_1921 UGV_LAT_ACCEL=1.0 \
+<   bash logs/ugv/stage4/run_sc_v10_ops.sh $T $SL/s3113_down_spawn.txt $SL/s3113_down_fleet.json \
+<   bash -c "cd $HK && env UGV_LAT_ACCEL=1.0 UGV_ROAD_SUBSET=$SUB ADAIR_TILES_OUT=$ST/tiles_v2 $PY -m ugv.tools.road_test --tag $T --rid A-ugv1 --model adair_ugv_1 --target-node RP:682503113:143.0 --track-s 200 --post-stop-s 50 --world wj494846_1237_1921 --abort-after 2 --abort-on-downhill 0.03" >> $O/run.out 2>&1
+< RC=$?; post $T 1 slope_ulog_dump.py ulog_$T.json
+< PYTHONIOENCODING=utf-8 $PY logs/ugv/stage6/slope_report.py --prefix o6_ --logs $HK/logs/ugv --out $M/$O/s4_slope_report.json > $O/s4_slope_report.out 2>&1
+< PYTHONIOENCODING=utf-8 $PY $O/final_judge_ops2.py > $O/judge_slope.out 2>&1
+< J=$(grep "^$T " $O/judge_slope.out | awk '{print $2}'); SS=$(sscheck $T); echo "selfstop $T $SS" >> $O/run.out; [ "$SS" = SS_OK ] || J="$J+$SS"; gate $T "$J"
+---
+> gate() { echo "OPS6C_RESULT $1 $2 $(date +%T)" >> $O/run.out; [ $RC = 0 ] || { echo "CHAIN_OPS6C_DONE $(date) $1 래퍼 rc=$RC — 중단"; exit 0; }; [ "$2" = PASS ] || { echo "CHAIN_OPS6C_DONE $(date) $1 $2 — 비PASS 중단"; exit 0; }; }
+> # (ops6c, Codex 103335) 경사 회차 읽기 전용 게이트: 원 판정 PASS·래퍼 rc 0·정정 SS_OK·동결 해시
+> T0=o6_on_s3113_downabort_1
+> grep -q "^$T0 PASS" $O/judge_slope.out || { echo "CHAIN_OPS6C_HOLD 경사 판정 PASS 아님"; exit 0; }
+> grep -q '"test_rc":0,"copy_logs_rc":0,"stop_post_rc":"0","invalid_stop":false' logs/ugv/stage4/rc_$T0.json || { echo "CHAIN_OPS6C_HOLD 경사 래퍼 rc"; exit 0; }
+> [ "$(../ADAIR/.venv/Scripts/python.exe -c "import json,sys;d=json.load(open(sys.argv[1],encoding='utf-8'));a=d.get('disp_start_to_cut_m');c=d.get('disp_cut_to_30s_m');print('SS_OK' if d.get('pass_1s') is True and a is not None and a<=0.05 and c is not None and c<=0.05 else 'SS_FAIL')" $O/selfstop_$T0.json)" = SS_OK ] || { echo "CHAIN_OPS6C_HOLD 경사 SS"; exit 0; }
+> echo "CHAIN_OPS6C_START $(date) (경사 게이트 통과: 판정 PASS·rc 0·SS_OK)"
+47c43
+< echo "CHAIN_OPS6B_DONE $(date) 2/2 PASS"
+---
+> echo "CHAIN_OPS6C_DONE $(date) 2/2 PASS"
