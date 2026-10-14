@@ -1,0 +1,23 @@
+# 진단 7 전율 기록 (Codex 0540) — 기본 프로필에 더함. <topic> <interval_ms> [instance]
+sensor_accel 0
+sensor_gyro 0
+vehicle_imu 0
+vehicle_imu_status 0
+sensor_combined 0
+actuator_motors 0
+actuator_servos 0
+actuator_outputs 0
+actuator_outputs_sim 0
+rover_speed_setpoint 0
+rover_speed_status 0
+rover_throttle_setpoint 0
+rover_position_setpoint 0
+vehicle_local_position 0
+vehicle_local_position_groundtruth 0
+vehicle_attitude 0
+vehicle_attitude_groundtruth 0
+estimator_states 0
+estimator_aid_src_gnss_vel 0
+estimator_innovations 0
+position_setpoint_triplet 0
+mission_result 0

@@ -1,0 +1,756 @@
+{
+ "n": 54,
+ "rule": "200~400 m, 이음매 ≥ 1 (시작 뒤 ≥ 50 m, 끝 앞 ≥ 80 m), 앞 20 m·뒤 40 m 포함 |경사| ≤ 3 %",
+ "top": [
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 36415.0,
+   "s1": 36615.0,
+   "len_m": 200.0,
+   "seam_s": 36465.0,
+   "seam": [
+    "T05_16",
+    "T04_16"
+   ],
+   "grade_abs_max": 0.0071,
+   "grade_abs_p95": 0.0064,
+   "cross_abs_max": 0.0095,
+   "start_xy": [
+    4420.688,
+    5954.475
+   ],
+   "start_heading_rad_enu": -2.5652,
+   "end_xy": [
+    4253.141,
+    5845.259
+   ],
+   "start_ground_z": 28.641,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 36415.0,
+   "s1": 36715.0,
+   "len_m": 300.0,
+   "seam_s": 36465.0,
+   "seam": [
+    "T05_16",
+    "T04_16"
+   ],
+   "grade_abs_max": 0.0081,
+   "grade_abs_p95": 0.008,
+   "cross_abs_max": 0.0095,
+   "start_xy": [
+    4420.688,
+    5954.475
+   ],
+   "start_heading_rad_enu": -2.5652,
+   "end_xy": [
+    4178.118,
+    5779.269
+   ],
+   "start_ground_z": 28.641,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 36415.0,
+   "s1": 36665.0,
+   "len_m": 250.0,
+   "seam_s": 36465.0,
+   "seam": [
+    "T05_16",
+    "T04_16"
+   ],
+   "grade_abs_max": 0.0081,
+   "grade_abs_p95": 0.008,
+   "cross_abs_max": 0.0095,
+   "start_xy": [
+    4420.688,
+    5954.475
+   ],
+   "start_heading_rad_enu": -2.5652,
+   "end_xy": [
+    4215.037,
+    5812.988
+   ],
+   "start_ground_z": 28.641,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 36415.0,
+   "s1": 36765.0,
+   "len_m": 350.0,
+   "seam_s": 36465.0,
+   "seam": [
+    "T05_16",
+    "T04_16"
+   ],
+   "grade_abs_max": 0.009,
+   "grade_abs_p95": 0.0089,
+   "cross_abs_max": 0.0095,
+   "start_xy": [
+    4420.688,
+    5954.475
+   ],
+   "start_heading_rad_enu": -2.5652,
+   "end_xy": [
+    4141.597,
+    5745.121
+   ],
+   "start_ground_z": 28.641,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 36415.0,
+   "s1": 36815.0,
+   "len_m": 400.0,
+   "seam_s": 36465.0,
+   "seam": [
+    "T05_16",
+    "T04_16"
+   ],
+   "grade_abs_max": 0.009,
+   "grade_abs_p95": 0.0088,
+   "cross_abs_max": 0.0095,
+   "start_xy": [
+    4420.688,
+    5954.475
+   ],
+   "start_heading_rad_enu": -2.5652,
+   "end_xy": [
+    4105.241,
+    5710.795
+   ],
+   "start_ground_z": 28.641,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 33340.0,
+   "s1": 33640.0,
+   "len_m": 300.0,
+   "seam_s": 33390.0,
+   "seam": [
+    "T05_19",
+    "T05_18"
+   ],
+   "grade_abs_max": 0.0104,
+   "grade_abs_p95": 0.0099,
+   "cross_abs_max": 0.001,
+   "start_xy": [
+    5167.989,
+    8417.31
+   ],
+   "start_heading_rad_enu": -1.3103,
+   "end_xy": [
+    5241.387,
+    8126.46
+   ],
+   "start_ground_z": 38.685,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 33340.0,
+   "s1": 33590.0,
+   "len_m": 250.0,
+   "seam_s": 33390.0,
+   "seam": [
+    "T05_19",
+    "T05_18"
+   ],
+   "grade_abs_max": 0.0104,
+   "grade_abs_p95": 0.01,
+   "cross_abs_max": 0.001,
+   "start_xy": [
+    5167.989,
+    8417.31
+   ],
+   "start_heading_rad_enu": -1.3103,
+   "end_xy": [
+    5230.026,
+    8175.153
+   ],
+   "start_ground_z": 38.685,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 33340.0,
+   "s1": 33540.0,
+   "len_m": 200.0,
+   "seam_s": 33390.0,
+   "seam": [
+    "T05_19",
+    "T05_18"
+   ],
+   "grade_abs_max": 0.0104,
+   "grade_abs_p95": 0.0101,
+   "cross_abs_max": 0.001,
+   "start_xy": [
+    5167.989,
+    8417.31
+   ],
+   "start_heading_rad_enu": -1.3103,
+   "end_xy": [
+    5218.665,
+    8223.845
+   ],
+   "start_ground_z": 38.685,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 35590.0,
+   "s1": 35790.0,
+   "len_m": 200.0,
+   "seam_s": 35640.0,
+   "seam": [
+    "T05_17",
+    "T05_16"
+   ],
+   "grade_abs_max": 0.0114,
+   "grade_abs_p95": 0.0113,
+   "cross_abs_max": 0.0004,
+   "start_xy": [
+    4911.688,
+    6409.096
+   ],
+   "start_heading_rad_enu": -2.1545,
+   "end_xy": [
+    4801.472,
+    6242.206
+   ],
+   "start_ground_z": 22.97,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 1720.0,
+   "s1": 2020.0,
+   "len_m": 300.0,
+   "seam_s": 1770.0,
+   "seam": [
+    "T05_16",
+    "T05_17"
+   ],
+   "grade_abs_max": 0.0114,
+   "grade_abs_p95": 0.0114,
+   "cross_abs_max": 0.0007,
+   "start_xy": [
+    4858.325,
+    6328.368
+   ],
+   "start_heading_rad_enu": 0.9871,
+   "end_xy": [
+    5023.671,
+    6578.689
+   ],
+   "start_ground_z": 21.947,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 1720.0,
+   "s1": 1970.0,
+   "len_m": 250.0,
+   "seam_s": 1770.0,
+   "seam": [
+    "T05_16",
+    "T05_17"
+   ],
+   "grade_abs_max": 0.0114,
+   "grade_abs_p95": 0.0114,
+   "cross_abs_max": 0.0007,
+   "start_xy": [
+    4858.325,
+    6328.368
+   ],
+   "start_heading_rad_enu": 0.9871,
+   "end_xy": [
+    4996.114,
+    6536.969
+   ],
+   "start_ground_z": 21.947,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 1720.0,
+   "s1": 2070.0,
+   "len_m": 350.0,
+   "seam_s": 1770.0,
+   "seam": [
+    "T05_16",
+    "T05_17"
+   ],
+   "grade_abs_max": 0.0114,
+   "grade_abs_p95": 0.0114,
+   "cross_abs_max": 0.0007,
+   "start_xy": [
+    4858.325,
+    6328.368
+   ],
+   "start_heading_rad_enu": 0.9871,
+   "end_xy": [
+    5051.229,
+    6620.41
+   ],
+   "start_ground_z": 21.947,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 1720.0,
+   "s1": 1920.0,
+   "len_m": 200.0,
+   "seam_s": 1770.0,
+   "seam": [
+    "T05_16",
+    "T05_17"
+   ],
+   "grade_abs_max": 0.0114,
+   "grade_abs_p95": 0.0114,
+   "cross_abs_max": 0.0007,
+   "start_xy": [
+    4858.325,
+    6328.368
+   ],
+   "start_heading_rad_enu": 0.9871,
+   "end_xy": [
+    4968.556,
+    6495.249
+   ],
+   "start_ground_z": 21.947,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 1720.0,
+   "s1": 2120.0,
+   "len_m": 400.0,
+   "seam_s": 1770.0,
+   "seam": [
+    "T05_16",
+    "T05_17"
+   ],
+   "grade_abs_max": 0.0114,
+   "grade_abs_p95": 0.0114,
+   "cross_abs_max": 0.0007,
+   "start_xy": [
+    4858.325,
+    6328.368
+   ],
+   "start_heading_rad_enu": 0.9871,
+   "end_xy": [
+    5078.787,
+    6662.13
+   ],
+   "start_ground_z": 21.947,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 35590.0,
+   "s1": 35890.0,
+   "len_m": 300.0,
+   "seam_s": 35640.0,
+   "seam": [
+    "T05_17",
+    "T05_16"
+   ],
+   "grade_abs_max": 0.0114,
+   "grade_abs_p95": 0.0113,
+   "cross_abs_max": 0.0009,
+   "start_xy": [
+    4911.688,
+    6409.096
+   ],
+   "start_heading_rad_enu": -2.1545,
+   "end_xy": [
+    4746.364,
+    6158.761
+   ],
+   "start_ground_z": 22.97,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 35590.0,
+   "s1": 35840.0,
+   "len_m": 250.0,
+   "seam_s": 35640.0,
+   "seam": [
+    "T05_17",
+    "T05_16"
+   ],
+   "grade_abs_max": 0.0114,
+   "grade_abs_p95": 0.0113,
+   "cross_abs_max": 0.0009,
+   "start_xy": [
+    4911.688,
+    6409.096
+   ],
+   "start_heading_rad_enu": -2.1545,
+   "end_xy": [
+    4773.918,
+    6200.484
+   ],
+   "start_ground_z": 22.97,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 35590.0,
+   "s1": 35940.0,
+   "len_m": 350.0,
+   "seam_s": 35640.0,
+   "seam": [
+    "T05_17",
+    "T05_16"
+   ],
+   "grade_abs_max": 0.0114,
+   "grade_abs_p95": 0.0113,
+   "cross_abs_max": 0.0009,
+   "start_xy": [
+    4911.688,
+    6409.096
+   ],
+   "start_heading_rad_enu": -2.1545,
+   "end_xy": [
+    4718.809,
+    6117.039
+   ],
+   "start_ground_z": 22.97,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 35590.0,
+   "s1": 35990.0,
+   "len_m": 400.0,
+   "seam_s": 35640.0,
+   "seam": [
+    "T05_17",
+    "T05_16"
+   ],
+   "grade_abs_max": 0.0114,
+   "grade_abs_p95": 0.0112,
+   "cross_abs_max": 0.0009,
+   "start_xy": [
+    4911.688,
+    6409.096
+   ],
+   "start_heading_rad_enu": -2.1545,
+   "end_xy": [
+    4691.255,
+    6075.316
+   ],
+   "start_ground_z": 22.97,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 24830.0,
+   "s1": 25080.0,
+   "len_m": 250.0,
+   "seam_s": 24880.0,
+   "seam": [
+    "T19_13",
+    "T20_13"
+   ],
+   "grade_abs_max": 0.0137,
+   "grade_abs_p95": 0.0137,
+   "cross_abs_max": 0.0016,
+   "start_xy": [
+    19331.314,
+    2721.173
+   ],
+   "start_heading_rad_enu": 0.0273,
+   "end_xy": [
+    19567.836,
+    2642.807
+   ],
+   "start_ground_z": 306.662,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 24830.0,
+   "s1": 25030.0,
+   "len_m": 200.0,
+   "seam_s": 24880.0,
+   "seam": [
+    "T19_13",
+    "T20_13"
+   ],
+   "grade_abs_max": 0.0137,
+   "grade_abs_p95": 0.0137,
+   "cross_abs_max": 0.0016,
+   "start_xy": [
+    19331.314,
+    2721.173
+   ],
+   "start_heading_rad_enu": 0.0273,
+   "end_xy": [
+    19521.168,
+    2660.744
+   ],
+   "start_ground_z": 306.662,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 3825.0,
+   "s1": 4125.0,
+   "len_m": 300.0,
+   "seam_s": 4040.0,
+   "seam": [
+    "T05_18",
+    "T05_19"
+   ],
+   "grade_abs_max": 0.0159,
+   "grade_abs_p95": 0.0103,
+   "cross_abs_max": 0.0009,
+   "start_xy": [
+    5232.412,
+    8164.925
+   ],
+   "start_heading_rad_enu": 1.8,
+   "end_xy": [
+    5157.814,
+    8455.474
+   ],
+   "start_ground_z": 40.037,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 3875.0,
+   "s1": 4125.0,
+   "len_m": 250.0,
+   "seam_s": 4040.0,
+   "seam": [
+    "T05_18",
+    "T05_19"
+   ],
+   "grade_abs_max": 0.0159,
+   "grade_abs_p95": 0.0104,
+   "cross_abs_max": 0.0009,
+   "start_xy": [
+    5221.051,
+    8213.617
+   ],
+   "start_heading_rad_enu": 1.8,
+   "end_xy": [
+    5157.814,
+    8455.474
+   ],
+   "start_ground_z": 39.68,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 3775.0,
+   "s1": 4125.0,
+   "len_m": 350.0,
+   "seam_s": 4040.0,
+   "seam": [
+    "T05_18",
+    "T05_19"
+   ],
+   "grade_abs_max": 0.0159,
+   "grade_abs_p95": 0.0103,
+   "cross_abs_max": 0.0009,
+   "start_xy": [
+    5243.773,
+    8116.233
+   ],
+   "start_heading_rad_enu": 1.8,
+   "end_xy": [
+    5157.814,
+    8455.474
+   ],
+   "start_ground_z": 40.42,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 3925.0,
+   "s1": 4125.0,
+   "len_m": 200.0,
+   "seam_s": 4040.0,
+   "seam": [
+    "T05_18",
+    "T05_19"
+   ],
+   "grade_abs_max": 0.0159,
+   "grade_abs_p95": 0.0104,
+   "cross_abs_max": 0.0009,
+   "start_xy": [
+    5209.158,
+    8262.178
+   ],
+   "start_heading_rad_enu": 1.8278,
+   "end_xy": [
+    5157.814,
+    8455.474
+   ],
+   "start_ground_z": 39.472,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 3725.0,
+   "s1": 4125.0,
+   "len_m": 400.0,
+   "seam_s": 4040.0,
+   "seam": [
+    "T05_18",
+    "T05_19"
+   ],
+   "grade_abs_max": 0.0171,
+   "grade_abs_p95": 0.0133,
+   "cross_abs_max": 0.0009,
+   "start_xy": [
+    5255.134,
+    8067.541
+   ],
+   "start_heading_rad_enu": 1.8,
+   "end_xy": [
+    5157.814,
+    8455.474
+   ],
+   "start_ground_z": 40.902,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 935.0,
+   "s1": 1135.0,
+   "len_m": 200.0,
+   "seam_s": 985.0,
+   "seam": [
+    "T04_16",
+    "T05_16"
+   ],
+   "grade_abs_max": 0.0179,
+   "grade_abs_p95": 0.0175,
+   "cross_abs_max": 0.0115,
+   "start_xy": [
+    4339.301,
+    5901.566
+   ],
+   "start_heading_rad_enu": 0.5788,
+   "end_xy": [
+    4506.648,
+    6011.085
+   ],
+   "start_ground_z": 28.463,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 24830.0,
+   "s1": 25130.0,
+   "len_m": 300.0,
+   "seam_s": 24880.0,
+   "seam": [
+    "T19_13",
+    "T20_13"
+   ],
+   "grade_abs_max": 0.0186,
+   "grade_abs_p95": 0.0178,
+   "cross_abs_max": 0.0016,
+   "start_xy": [
+    19331.314,
+    2721.173
+   ],
+   "start_heading_rad_enu": 0.0273,
+   "end_xy": [
+    19611.211,
+    2618.065
+   ],
+   "start_ground_z": 306.662,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 24830.0,
+   "s1": 25180.0,
+   "len_m": 350.0,
+   "seam_s": 24880.0,
+   "seam": [
+    "T19_13",
+    "T20_13"
+   ],
+   "grade_abs_max": 0.0186,
+   "grade_abs_p95": 0.0177,
+   "cross_abs_max": 0.0016,
+   "start_xy": [
+    19331.314,
+    2721.173
+   ],
+   "start_heading_rad_enu": 0.0273,
+   "end_xy": [
+    19650.337,
+    2586.934
+   ],
+   "start_ground_z": 306.662,
+   "vlim_kmh_max": 50.0
+  },
+  {
+   "route": "route_geom_B-ugv1-A-ugv1.json",
+   "s0": 33340.0,
+   "s1": 33690.0,
+   "len_m": 350.0,
+   "seam_s": 33390.0,
+   "seam": [
+    "T05_19",
+    "T05_18"
+   ],
+   "grade_abs_max": 0.02,
+   "grade_abs_p95": 0.0149,
+   "cross_abs_max": 0.001,
+   "start_xy": [
+    5167.989,
+    8417.31
+   ],
+   "start_heading_rad_enu": -1.3103,
+   "end_xy": [
+    5252.748,
+    8077.768
+   ],
+   "start_ground_z": 38.685,
+   "vlim_kmh_max": 60.0
+  },
+  {
+   "route": "route_geom_A-ugv1-B-ugv1.json",
+   "s0": 855.0,
+   "s1": 1155.0,
+   "len_m": 300.0,
+   "seam_s": 985.0,
+   "seam": [
+    "T04_16",
+    "T05_16"
+   ],
+   "grade_abs_max": 0.0206,
+   "grade_abs_p95": 0.0176,
+   "cross_abs_max": 0.0115,
+   "start_xy": [
+    4272.334,
+    5857.802
+   ],
+   "start_heading_rad_enu": 0.5788,
+   "end_xy": [
+    4523.445,
+    6021.941
+   ],
+   "start_ground_z": 28.132,
+   "vlim_kmh_max": 50.0
+  }
+ ]
+}

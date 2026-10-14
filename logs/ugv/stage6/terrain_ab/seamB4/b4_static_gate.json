@@ -1,0 +1,94 @@
+{
+ "tiles": {
+  "T15_05": {
+   "N": 1025,
+   "sampling_tag": false,
+   "png_same": true,
+   "pose_same": true,
+   "vis_same": true,
+   "z_size_same": true,
+   "col_xy": [
+    1000.9765625,
+    1000.9765625
+   ],
+   "max_off_x": 0.0,
+   "max_off_y": 0.0,
+   "half": 500.0
+  },
+  "T16_05": {
+   "N": 1025,
+   "sampling_tag": false,
+   "png_same": true,
+   "pose_same": true,
+   "vis_same": true,
+   "z_size_same": true,
+   "col_xy": [
+    1000.9765625,
+    1000.9765625
+   ],
+   "max_off_x": 0.0,
+   "max_off_y": 0.0,
+   "half": 500.0
+  },
+  "T15_06": {
+   "N": 1025,
+   "sampling_tag": false,
+   "png_same": true,
+   "pose_same": true,
+   "vis_same": true,
+   "z_size_same": true,
+   "col_xy": [
+    1000.9765625,
+    1000.9765625
+   ],
+   "max_off_x": 0.0,
+   "max_off_y": 0.0,
+   "half": 500.0
+  },
+  "T16_06": {
+   "N": 1025,
+   "sampling_tag": false,
+   "png_same": true,
+   "pose_same": true,
+   "vis_same": true,
+   "z_size_same": true,
+   "col_xy": [
+    1000.9765625,
+    1000.9765625
+   ],
+   "max_off_x": 0.0,
+   "max_off_y": 0.0,
+   "half": 500.0
+  }
+ },
+ "edges": {
+  "T15_05|T16_05 (x)": {
+   "gap_m": 0.0,
+   "height_diff_max": 0.0028,
+   "height_diff_p99": 0.0025
+  },
+  "T15_06|T16_06 (x)": {
+   "gap_m": 0.0,
+   "height_diff_max": 0.0031,
+   "height_diff_p99": 0.0028
+  },
+  "T15_05|T15_06 (y)": {
+   "gap_m": 0.0,
+   "height_diff_max": 0.0034,
+   "height_diff_p99": 0.0031
+  },
+  "T16_05|T16_06 (y)": {
+   "gap_m": 0.0,
+   "height_diff_max": 0.0025,
+   "height_diff_p99": 0.0022
+  }
+ },
+ "corner_heights": {
+  "T15_05": 101.839,
+  "T16_05": 101.8398,
+  "T15_06": 101.8404,
+  "T16_06": 101.8408
+ },
+ "corner_spread_m": 0.0018,
+ "status": "PASS"
+}

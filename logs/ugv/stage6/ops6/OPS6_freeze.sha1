@@ -1,0 +1,12 @@
+3b3293b906b9a96a98e3a8f9335afd22f1c0d828 *OPS6_criteria.md
+ec6a5a0ecee16ff8ea8c80bc239fe00d93cc70f8 *final_judge_ops2.py
+a186170999785a5450d2f065a10b34c7406d9ca9 *e4_judge_ops2.py
+5f78a22c00f6a418ca8e8918a55a0eac36b0ae56 *selfstop_gt_check2.py
+e68f1f0d33c35e36642fd62e8ecb3c9a55435d8b *imu_rate_check.py
+264dedfba7371a10cec0475c17ea017fa76ca09a *slope_ulog_dump.py
+5c58f872684ac5f2d8643347a53a472b12a9e0a3 *e4_ulog_dump_v2.py
+efb629285f9ae8e6511eea6ebb30f9ac923a5a34 *logger_topics.txt
+7ae533c140e8cda74aab66fb7a0d9803f9e8a672 *../chain_ops6.sh
+efb6b78904a15ed27488ca71f5568fd18cd740fe *../slope_report.py
+407b5f06248bc68d7a6c5ca754561f353120c40d *../../stage4/run_sc_v10_ops.sh
+830761a0371b1662097fc3e442572c2245effc04 *../../stage4/verify_evidence.py

@@ -1,0 +1,97 @@
+{
+ "tiles": "C:\\Users\\수다쟁이고양이들\\Documents\\GitHub\\ADAIR\\logs\\ugv\\stage5\\tiles_v2",
+ "params": {
+  "junction_mode": "level",
+  "junc_level_sigma_m": 2.0,
+  "road_surface_sigma_m": 40.0,
+  "long_sigma_m": 30.0,
+  "design_cap": true,
+  "junc_terrain_nodes": 3,
+  "long_skip": 115,
+  "bridges": {
+   "on": true,
+   "max_deck_above_dem_m": 6.0,
+   "near_road_m": 8.0,
+   "near_road_dz_m": 0.5
+  },
+  "blend_m": 12.0,
+  "git_head": "81fbe8ac00cce0c216d470d965f940049a4bfd0d",
+  "git_dirty_ugv": false,
+  "extra_roads": null
+ },
+ "stages": "1 지도상 연결 / 2 기하학적 통과 / 3 Gazebo 완주(별도)",
+ "pairs": {
+  "A-ugv1->B": {
+   "vehicle": "adair_ugv",
+   "1_map": {
+    "connected": true,
+    "km": 36.8,
+    "roads": 80,
+    "bridges_assumed": 16
+   },
+   "2_geometry": {
+    "planner": "REJECT",
+    "reason": "TARGET_UNREACHABLE: FIXED_DEST_UNSAFE_UNREACHABLE_OR_NO_RETURN",
+    "eta_s": null,
+    "no_directed_route": 1,
+    "no_return_path": 0,
+    "geometric_pass": false
+   },
+   "3_gazebo": "별도 (주행 기록)"
+  },
+  "B-ugv1->A": {
+   "vehicle": "adair_ugv",
+   "1_map": {
+    "connected": true,
+    "km": 36.8,
+    "roads": 78,
+    "bridges_assumed": 16
+   },
+   "2_geometry": {
+    "planner": "REJECT",
+    "reason": "TARGET_UNREACHABLE: FIXED_DEST_UNSAFE_UNREACHABLE_OR_NO_RETURN",
+    "eta_s": null,
+    "no_directed_route": 1,
+    "no_return_path": 0,
+    "geometric_pass": false
+   },
+   "3_gazebo": "별도 (주행 기록)"
+  },
+  "A-fire1->B": {
+   "vehicle": "adair_firetruck",
+   "1_map": {
+    "connected": true,
+    "km": 36.5,
+    "roads": 74,
+    "bridges_assumed": 13
+   },
+   "2_geometry": {
+    "planner": "REJECT",
+    "reason": "TARGET_UNREACHABLE: FIXED_DEST_UNSAFE_UNREACHABLE_OR_NO_RETURN",
+    "eta_s": null,
+    "no_directed_route": 1,
+    "no_return_path": 0,
+    "geometric_pass": false
+   },
+   "3_gazebo": "별도 (주행 기록)"
+  },
+  "B-fire1->A": {
+   "vehicle": "adair_firetruck",
+   "1_map": {
+    "connected": true,
+    "km": 36.5,
+    "roads": 72,
+    "bridges_assumed": 13
+   },
+   "2_geometry": {
+    "planner": "REJECT",
+    "reason": "TARGET_UNREACHABLE: FIXED_DEST_UNSAFE_UNREACHABLE_OR_NO_RETURN",
+    "eta_s": null,
+    "no_directed_route": 1,
+    "no_return_path": 0,
+    "geometric_pass": false
+   },
+   "3_gazebo": "별도 (주행 기록)"
+  }
+ }
+}

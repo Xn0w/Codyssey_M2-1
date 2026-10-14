@@ -1,0 +1,19 @@
+be794c9f4862d0f47a4bff5306601453f4a6a27e *diag7/DIAG7_plan.md
+efb629285f9ae8e6511eea6ebb30f9ac923a5a34 *diag7/logger_topics.txt
+c95b9f8e4b002a5420d88ebe46fd7f435d42c385 *diag7/gz_rec.py
+9eb573bf58479c5fc895ba4f8a8b412d3089caf4 *diag7/imu_cause.py
+1efe25f8217cec095ab57724699d8e9778e9d917 *chain_diag7_flat.sh
+ccdec53ab456d6526018d211d30e970692e73ba0 *../stage4/run_flat_v9.sh
+9dd7dd1d9b8c6b73bd22cc5191ac7acbac16fc97 *../stage4/run_sc_v9.sh
+05:38:34
+0413496e6a0e94052a31527e7bade5fdbc237741 *diag7/DIAG7_plan.md
+a51b92e56e1523f442da1df4b7c262b7cbab69ea *chain_diag7_flat.sh
+b4c257e1f356b612926d79af677152071c5858c3 *../stage4/run_flat_v9.sh
+1f0b9183481f6f17019f3dc88a577cc8bff4d342 *../stage4/run_sc_v9.sh
+05:44:10
+89dd024d658dd4a4082c813d691ea06f86f41d64 *diag7/DIAG7_plan.md
+571d742bee005d19a0d8b12c66cad8f81a2b49a4 *chain_diag7_slope.sh
+b791a8c46578be11e5f44c469f50ec494c4ac4ac *diag7/diag7_gz.py
+70cdef459438ca0673591bc9cedfb5697caf8a4a *diag7/attitude_check.py
+29943bc31b9696bca7c96027fe43a7d5d1b2474d *diag7/offset_probe.py
+05:51:18

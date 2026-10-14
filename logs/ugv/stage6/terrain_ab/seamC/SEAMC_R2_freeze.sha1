@@ -1,0 +1,12 @@
+a23011ddae51bdecfc94cbf7f9d68ddc9bd08ce9 *SEAMC_R2_criteria.md
+47a69c6d46bfcb5d032bb857b44f211c6f010355 *r2_drive.py
+f05e178bdf264e7978e56e01755f945101bc1ba3 *r2_check.py
+9746b2b0e5dfd304be7439495e90e8aff8210a6e *seam_drive_c1.sh
+03da524fbd9c98fce57d78223a3ff011a10e7ae9 *gz_detail_seam.py
+608e9000d0e35c6de4a6188e960fb79e530c6479 *tiles_c1/T04_16/model.sdf
+dda0376192dd77b77d0f608235d55b1bc5e6cbc0 *tiles_c1/T05_16/model.sdf
+2778fe81a5bbfaf7a68f4634b80dc043e744860b *tiles_c1/T04_16/heightmap.png
+5fd5c3c8ff61796f05f57b7d3469ecb3faf3fae4 *tiles_c1/T05_16/heightmap.png
+099ab427ebfdd88e7595f7c841862bfdcf38bfb6 *../../chain_seamC_R2.sh
+bc00e3c338029acc5eb571fbc15ef02f03de6fbb *../../verify_drive_evidence.py
+7d1d838bc5b6800e0336a1aa5883cce04510b7c6 *../../../stage5/tiles_v2/ab_route_v1.sdf

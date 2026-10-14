@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <model name="kangwon_tile_T04_14">
+    <static>true</static>
+    <pose>3880.000 3869.000 12.047 0 0 0</pose>
+    <link name="link">
+      <collision name="collision"><geometry><heightmap><uri>model://T04_14/heightmap.png</uri><size>1000.000 1000.000 260.8451</size><pos>0 0 0</pos></heightmap></geometry>
+        <surface><friction><ode><mu>1.0</mu><mu2>1.0</mu2></ode></friction></surface></collision>
+      <visual name="visual"><geometry><heightmap><uri>model://T04_14/heightmap.png</uri><size>1000.000 1000.000 260.8451</size><pos>0 0 0</pos></heightmap></geometry></visual>
+    </link>
+  </model>
+</sdf>

@@ -1,0 +1,21 @@
+[
+ {
+  "resource_id": "A-ugv1",
+  "resource_type": "UGV",
+  "profile": "adair_ugv",
+  "station_base_id": "A",
+  "station_slot": 0,
+  "initial": {
+   "lat": 38.06257729722497,
+   "lon": 128.16428268900836,
+   "heading_deg": 49.97783409281209
+  },
+  "px4": {
+   "address": "udpin://0.0.0.0:14541",
+   "instance": 1,
+   "gz_world": "kangwon_flat",
+   "gz_model": "adair_ugv_1"
+  },
+  "driver": "px4"
+ }
+]

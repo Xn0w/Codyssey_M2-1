@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- wj495731_0574_0583: 트윈 지형 타일 9개 (T16_03, T16_04, T16_05, T17_03, T17_04, T17_05, T18_03, T18_04, T18_05). 생성: python -m ugv.tools.build_terrain_tiles --world wj495731_0574_0583
+     충돌 = 타일 높이장 (1 km, 1025×1025, 0.977 m), 이음매 공유 격자점 값 같음. 90 m DEM 보간 — 측량 자료 아님.  -->
+<sdf version="1.9">
+  <world name="wj495731_0574_0583">
+    <physics type="ode"><max_step_size>0.002</max_step_size><real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>500</real_time_update_rate></physics>
+    <gravity>0 0 -9.8</gravity>
+    <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
+    <atmosphere type="adiabatic"/>
+    <scene><grid>false</grid><ambient>0.4 0.4 0.4 1</ambient><background>0.62 0.78 0.92 1</background><shadows>false</shadows></scene>
+    <include><uri>model://T16_03</uri></include>
+    <include><uri>model://T16_04</uri></include>
+    <include><uri>model://T16_05</uri></include>
+    <include><uri>model://T17_03</uri></include>
+    <include><uri>model://T17_04</uri></include>
+    <include><uri>model://T17_05</uri></include>
+    <include><uri>model://T18_03</uri></include>
+    <include><uri>model://T18_04</uri></include>
+    <include><uri>model://T18_05</uri></include>
+    <light name="sun" type="directional">
+      <pose>0 0 500 0 0 0</pose><cast_shadows>false</cast_shadows><intensity>1</intensity>
+      <direction>0.001 0.625 -0.78</direction><diffuse>0.904 0.904 0.904 1</diffuse><specular>0.271 0.271 0.271 1</specular>
+    </light>
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model><world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>38.0112</latitude_deg><longitude_deg>128.122643</longitude_deg><elevation>172.1</elevation>
+    </spherical_coordinates>
+  </world>
+</sdf>

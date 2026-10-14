@@ -1,0 +1,21 @@
+[
+ {
+  "resource_id": "A-ugv1",
+  "resource_type": "UGV",
+  "profile": "adair_ugv",
+  "station_base_id": "A",
+  "station_slot": 0,
+  "initial": {
+   "lat": 38.06169813494236,
+   "lon": 128.16813096781047,
+   "heading_deg": 226.56449046943172
+  },
+  "px4": {
+   "address": "udpin://0.0.0.0:14541",
+   "instance": 1,
+   "gz_world": "ab_route_v1",
+   "gz_model": "adair_ugv_1"
+  },
+  "driver": "px4"
+ }
+]
