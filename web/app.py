@@ -719,10 +719,10 @@ function draw(){const g=ov.getContext('2d');g.clearRect(0,0,ov.width,ov.height);
    g.fillStyle='#00d1b2';g.beginPath();g.arc(x,y,7,0,7);g.fill();
    g.strokeStyle='rgba(0,209,178,.5)';g.lineWidth=4;g.beginPath();g.arc(x,y,12,0,7);g.stroke();}}
 async function tickEnv(){try{const e=await(await fetch('/api/env')).json();fire=e.fire;risk=e.risk;simT=(e.source==='ENV_SERVER'&&e.simulation_time_s!=null)?e.simulation_time_s:null;updateFog();
- $('nfire').textContent=fire.length;$('wind').textContent=(e.wind_speed==null?'-':e.wind_speed+' m/s '+e.spread)+(e.source==='ENV_SERVER'&&e.simulation_time_s!=null?' · 시뮬 '+Math.round(e.simulation_time_s/60)+'분':'');draw();}catch(e){}}
+ $('nfire').textContent=fire.length;$('wind').textContent=(e.wind_speed==null?'-':Number(e.wind_speed).toFixed(1)+' m/s '+e.spread)+(e.source==='ENV_SERVER'&&e.simulation_time_s!=null?' · 시뮬 '+Math.round(e.simulation_time_s/60)+'분':'');draw();}catch(e){}}
 let lastLL=null;
 async function tickState(){try{const s=await(await fetch('/api/state')).json();const p=s.position||{};
- $('lat').textContent=p.lat;$('lon').textContent=p.lon;$('alt').textContent=(p.alt_m_amsl)+' m';
+ $('lat').textContent=(p.lat==null?'-':Number(p.lat).toFixed(5));$('lon').textContent=(p.lon==null?'-':Number(p.lon).toFixed(5));$('alt').textContent=(p.alt_m_amsl==null?'-':Number(p.alt_m_amsl).toFixed(1)+' m');
  $('mode').textContent=s.flight_mode;
  if(p.lat!=null){const g=await(await fetch('/api/cell?lat='+p.lat+'&lon='+p.lon)).json();
    if(g.col!=null){drone=g;
