@@ -1,0 +1,138 @@
+{
+ "tag": "b4d_N",
+ "n_samples": 259,
+ "wheels": {
+  "wheel_front_left": {
+   "pts_per_msg": {
+    "median": 1,
+    "max": 1,
+    "min": 1
+   },
+   "others": [
+    "kangwon_tile_T16_06::link::collision"
+   ],
+   "wheel_is_engine_body1": [
+    true
+   ],
+   "normal_tilt_deg": {
+    "median": 0.7079,
+    "max": 0.7079,
+    "min": 0.7079
+   },
+   "normal_x": {
+    "median": 0.012,
+    "max": 0.012,
+    "min": 0.012
+   },
+   "ft_fn_point": {
+    "median": 0.0132,
+    "max": 0.0132,
+    "min": 0.0132
+   },
+   "depth": {
+    "median": 0.0,
+    "max": 0.0,
+    "min": 0.0
+   }
+  },
+  "wheel_front_right": {
+   "pts_per_msg": {
+    "median": 1,
+    "max": 1,
+    "min": 1
+   },
+   "others": [
+    "kangwon_tile_T16_06::link::collision"
+   ],
+   "wheel_is_engine_body1": [
+    true
+   ],
+   "normal_tilt_deg": {
+    "median": 0.8754,
+    "max": 0.8754,
+    "min": 0.8754
+   },
+   "normal_x": {
+    "median": 0.015,
+    "max": 0.015,
+    "min": 0.015
+   },
+   "ft_fn_point": {
+    "median": 0.0136,
+    "max": 0.0136,
+    "min": 0.0136
+   },
+   "depth": {
+    "median": 0.0,
+    "max": 0.0,
+    "min": 0.0
+   }
+  },
+  "wheel_rear_left": {
+   "pts_per_msg": {
+    "median": 2,
+    "max": 2,
+    "min": 2
+   },
+   "others": [
+    "kangwon_tile_T16_05::link::collision"
+   ],
+   "wheel_is_engine_body1": [
+    true
+   ],
+   "normal_tilt_deg": {
+    "median": 0.7635,
+    "max": 0.7635,
+    "min": 0.7635
+   },
+   "normal_x": {
+    "median": 0.0131,
+    "max": 0.0131,
+    "min": 0.0131
+   },
+   "ft_fn_point": {
+    "median": 0.0075,
+    "max": 0.0151,
+    "min": 0.0
+   },
+   "depth": {
+    "median": 0.0,
+    "max": 0.0,
+    "min": 0.0
+   }
+  },
+  "wheel_rear_right": {
+   "pts_per_msg": {
+    "median": 1,
+    "max": 1,
+    "min": 1
+   },
+   "others": [
+    "kangwon_tile_T16_05::link::collision"
+   ],
+   "wheel_is_engine_body1": [
+    true
+   ],
+   "normal_tilt_deg": {
+    "median": 0.7938,
+    "max": 0.7938,
+    "min": 0.7938
+   },
+   "normal_x": {
+    "median": 0.0131,
+    "max": 0.0131,
+    "min": 0.0131
+   },
+   "ft_fn_point": {
+    "median": 0.0138,
+    "max": 0.0138,
+    "min": 0.0138
+   },
+   "depth": {
+    "median": 0.0,
+    "max": 0.0,
+    "min": 0.0
+   }
+  }
+ }
+}

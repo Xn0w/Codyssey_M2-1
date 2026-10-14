@@ -1,0 +1,113 @@
+{
+ "world": "ab_route_v1",
+ "model": "adair_ugv_1",
+ "requested_hz": 50,
+ "rows": 834,
+ "subscribed": {
+  "pose": true,
+  "joint_state": true,
+  "contact_wheel_front_left": true,
+  "contact_wheel_front_right": true,
+  "contact_wheel_rear_left": true,
+  "contact_wheel_rear_right": true
+ },
+ "dt_median_s": 0.036,
+ "dt_p99_s": 0.036,
+ "dt_max_s": 0.036,
+ "gaps_over_0_1s": 0,
+ "contact_state_ratio": {
+  "wheel_front_left": {
+   "VALID": 1.0,
+   "STALE": 0.0,
+   "NO_CONTACT": 0.0,
+   "NO_MSG": 0.0
+  },
+  "wheel_front_right": {
+   "VALID": 1.0,
+   "STALE": 0.0,
+   "NO_CONTACT": 0.0,
+   "NO_MSG": 0.0
+  },
+  "wheel_rear_left": {
+   "VALID": 0.9988,
+   "STALE": 0.0,
+   "NO_CONTACT": 0.0,
+   "NO_MSG": 0.0012
+  },
+  "wheel_rear_right": {
+   "VALID": 0.9988,
+   "STALE": 0.0,
+   "NO_CONTACT": 0.0,
+   "NO_MSG": 0.0012
+  }
+ },
+ "contact_messages": {
+  "wheel_front_left": {
+   "msgs": 15003,
+   "empty_msgs": 0,
+   "body_1": "adair_ugv_1::wheel_front_left_link::collision",
+   "body_2": "kangwon_tile_T16_06::link::collision"
+  },
+  "wheel_front_right": {
+   "msgs": 15003,
+   "empty_msgs": 0,
+   "body_1": "adair_ugv_1::wheel_front_right_link::collision",
+   "body_2": "kangwon_tile_T16_06::link::collision"
+  },
+  "wheel_rear_left": {
+   "msgs": 15002,
+   "empty_msgs": 0,
+   "body_1": "adair_ugv_1::wheel_rear_left_link::collision",
+   "body_2": "kangwon_tile_T16_05::link::collision"
+  },
+  "wheel_rear_right": {
+   "msgs": 15002,
+   "empty_msgs": 0,
+   "body_1": "adair_ugv_1::wheel_rear_right_link::collision",
+   "body_2": "kangwon_tile_T16_05::link::collision"
+  }
+ },
+ "joints_seen": [
+  "susp_front_left_joint",
+  "susp_front_right_joint",
+  "susp_rear_left_joint",
+  "susp_rear_right_joint",
+  "wheel_front_left_joint",
+  "wheel_front_left_steering_joint",
+  "wheel_front_right_joint",
+  "wheel_front_right_steering_joint",
+  "wheel_rear_left_joint",
+  "wheel_rear_right_joint"
+ ],
+ "contact_other_counts": {
+  "wheel_front_left": {
+   "kangwon_tile_T16_06::link::collision": 15003
+  },
+  "wheel_front_right": {
+   "kangwon_tile_T16_06::link::collision": 15003
+  },
+  "wheel_rear_left": {
+   "kangwon_tile_T16_05::link::collision": 15002
+  },
+  "wheel_rear_right": {
+   "kangwon_tile_T16_05::link::collision": 15002
+  }
+ },
+ "abort": {
+  "reason": null,
+  "t": null
+ },
+ "abort_rules": "정착 2.0 s 뒤: |롤|·|피치| > 3° 즉시, 서스펜션 |q| ≥ 0.098 0.3 s, 접촉 메시지 나이 > 0.3 s (받은 적 있음) — dz < −0.06 은 사후 분석",
+ "susp_joints_published": true,
+ "force_frame": "body_1_wrench.force (월드 좌표 가정 — 평탄 정지 Σfz≈m·g 로 확인할 것)",
+ "link_pose_basis": "dynamic_pose/info 링크 자세 = 모델 기준 가정 (원본 fable_gz_track 과 같음)",
+ "completed": true,
+ "interrupted": false,
+ "elapsed_wall_s": 30.0,
+ "states": {
+  "VALID": "나이 ≤ 0.020 s 이고 wrench 있음",
+  "STALE": "≤ 0.5 s",
+  "NO_CONTACT": "> 0.5 s (받은 적 있음)",
+  "NO_MSG": "한 번도 못 받음"
+ }
+}

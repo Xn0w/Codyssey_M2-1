@@ -1,0 +1,140 @@
+{
+ "tag": "b4d_N",
+ "kind": "R0",
+ "markers": [],
+ "gz_detail_rc": 0,
+ "meta": {
+  "rows": 834,
+  "dt_median_s": 0.036,
+  "dt_max_s": 0.036,
+  "susp_joints_published": true,
+  "contact_other_counts": {
+   "wheel_front_left": {
+    "kangwon_tile_T16_06::link::collision": 15003
+   },
+   "wheel_front_right": {
+    "kangwon_tile_T16_06::link::collision": 15003
+   },
+   "wheel_rear_left": {
+    "kangwon_tile_T16_05::link::collision": 15002
+   },
+   "wheel_rear_right": {
+    "kangwon_tile_T16_05::link::collision": 15002
+   }
+  },
+  "abort": {
+   "reason": null,
+   "t": null
+  },
+  "completed": true
+ },
+ "n_rows": 834,
+ "n_settled": 778,
+ "wheels": {
+  "wheel_front_left": {
+   "valid_ratio": 1.0,
+   "states": {
+    "VALID": 778
+   },
+   "other": [
+    "kangwon_tile_T16_06::link::collision"
+   ],
+   "link_z_minus_ground": [
+    0.3497,
+    0.3497
+   ],
+   "depth_max": 0.0,
+   "fz_median": 4049.7,
+   "ft_fn_median": 0.0132,
+   "tile_at_link_last": "T16_06"
+  },
+  "wheel_front_right": {
+   "valid_ratio": 1.0,
+   "states": {
+    "VALID": 778
+   },
+   "other": [
+    "kangwon_tile_T16_06::link::collision"
+   ],
+   "link_z_minus_ground": [
+    0.35,
+    0.35
+   ],
+   "depth_max": 0.0,
+   "fz_median": 3934.8,
+   "ft_fn_median": 0.0136,
+   "tile_at_link_last": "T16_06"
+  },
+  "wheel_rear_left": {
+   "valid_ratio": 1.0,
+   "states": {
+    "VALID": 778
+   },
+   "other": [
+    "kangwon_tile_T16_05::link::collision"
+   ],
+   "link_z_minus_ground": [
+    0.3505,
+    0.3505
+   ],
+   "depth_max": 0.0,
+   "fz_median": 3906.1,
+   "ft_fn_median": 0.0142,
+   "tile_at_link_last": "T16_05"
+  },
+  "wheel_rear_right": {
+   "valid_ratio": 1.0,
+   "states": {
+    "VALID": 778
+   },
+   "other": [
+    "kangwon_tile_T16_05::link::collision"
+   ],
+   "link_z_minus_ground": [
+    0.3505,
+    0.3505
+   ],
+   "depth_max": 0.0,
+   "fz_median": 4024.6,
+   "ft_fn_median": 0.0138,
+   "tile_at_link_last": "T16_05"
+  }
+ },
+ "roll_abs_max_deg": 0.753,
+ "pitch_abs_max_deg": 0.104,
+ "susp_q_range": {
+  "susp_front_left": [
+   0.01482,
+   0.01482
+  ],
+  "susp_front_right": [
+   0.01348,
+   0.01348
+  ],
+  "susp_rear_left": [
+   0.01432,
+   0.01432
+  ],
+  "susp_rear_right": [
+   0.01574,
+   0.01574
+  ]
+ },
+ "base_dz_range": [
+  -0.0144,
+  -0.0144
+ ],
+ "sum_fz_median": 15915.2,
+ "checks": {
+  "recorder_ok_no_markers": true,
+  "susp_published": true,
+  "contact_valid_95": true,
+  "contact_expected_tile": true,
+  "sum_fz_within_3pct": true,
+  "ft_fn_ratio_le_0.1": true,
+  "attitude_le_2deg": true,
+  "susp_within_limit": true,
+  "wheel_height_0.29_0.41": true
+ },
+ "status": "PASS"
+}

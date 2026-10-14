@@ -1,0 +1,16 @@
+== b4d_N pose 15400.8,-4632.25,101.992,1.570796 (기록 30 s)
+[ugv] 차량 스폰: adair_ugv_1 @ 15400.8,-4632.25,101.992,1.570796
+[ugv] NO_PX4=1 — PX4 없이 월드·차량만
+834 rows -> /mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/terrain_ab/seamB4/runs/b4d_N.csv 
+gz_detail_rc=0
+[ugv] 종료 (끔 1, 강제 0, 기록 밖 잔존 0, 남음 0)
+SEAM_STATIC_DONE Wed Oct 14 10:10:49 KST 2026
+SEAMB4D_RESULT b4d_N PASS OK 10:10:50
+== b4d_S pose 15400.8,-4632.45,101.993,1.570796 (기록 30 s)
+[ugv] 차량 스폰: adair_ugv_1 @ 15400.8,-4632.45,101.993,1.570796
+[ugv] NO_PX4=1 — PX4 없이 월드·차량만
+834 rows -> /mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/terrain_ab/seamB4/runs/b4d_S.csv 
+gz_detail_rc=0
+[ugv] 종료 (끔 1, 강제 0, 기록 밖 잔존 0, 남음 0)
+SEAM_STATIC_DONE Wed Oct 14 10:12:10 KST 2026
+SEAMB4D_RESULT b4d_S PASS OK 10:12:11
