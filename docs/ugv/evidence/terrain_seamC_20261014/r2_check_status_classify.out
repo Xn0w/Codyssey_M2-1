@@ -1,0 +1,6 @@
+np_False           v1=PASS         v1.1=FAIL
+py_False           v1=FAIL         v1.1=FAIL
+None               v1=UNCONFIRMED  v1.1=UNCONFIRMED
+np_True            v1=PASS         v1.1=PASS
+all_True           v1=PASS         v1.1=PASS
+np_False_and_None  v1=UNCONFIRMED  v1.1=FAIL
