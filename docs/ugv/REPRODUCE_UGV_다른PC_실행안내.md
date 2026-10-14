@@ -16,10 +16,10 @@ Windows + Git Bash + WSL Ubuntu-24.04 (gz-sim 8.15.0, gz-physics 7.8.0, PX4-Auto
 ## 저장소에 올린 `logs/ugv` 필수 파일 (logs/ 는 .gitignore — 필수만 강제 추가)
 - `logs/ugv/stage4/*.sh`, `verify_evidence.py` — 실행 래퍼 (run_sc_v9 / v10_ops / v11_c1 …)
 - `logs/ugv/stage6/**` 의 `.sh`·`.py`·기준 문서·동결 해시·스폰/차량 설정 (`*_spawn.txt`, `*_fleet.json`)·경로/스폰 계산 JSON·logger_topics.txt·상류 소스 사본 (`terrain_ab/src_check/`)
-- `logs/ugv/stage5/tiles_v2/` — 메타데이터 (tiles.json·월드 SDF 20 개·road_subset_*.json) + **월드들이 쓰는 타일 179 개** (heightmap.png·model.sdf·model.config)
+- `logs/ugv/stage5/tiles_v2/` — 메타데이터 (tiles.json·월드 SDF 20 개·road_subset_*.json) + 타일 (heightmap.png·model.sdf·model.config)
 - 수정 후보 타일 사본 `terrain_ab/seamC/tiles_c1`, `terrain_ab/seamB4/tiles_c1b4`
 - 실행 결과 (CSV·ULog·JSONL·로그) 는 올리지 않음 — 핵심 결과는 `docs/ugv/evidence/*` 에 사본.
-- 나머지 437 타일 (월드 SDF 에 없는 것) 은 올리지 않음 — 생성기 재생성은 현재 tiles_v2 와 **바이트 동일하지 않음** (2026-10-14 T04_16·T05_16 확인) 이므로 새 월드가 필요하면 별도 생성·검증.
+- **tiles_v2 616 타일 전체** 와 평지 월드 타일 (tiles_flat·tiles_flathm) 도 올림 (db15ea7). 생성기 재생성은 현재 tiles_v2 와 바이트 동일하지 않음 (2026-10-14 T04_16·T05_16 확인) — 그래서 원본 그대로 보관. 이전 판 tiles·tiles_level 은 미포함.
 
 ## 주의
 - 많은 스크립트가 **이 PC 의 절대 경로** (`/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/…`, `C:/Users/…`, WSL `/home/geumsoni/PX4-Autopilot`) 를 씀 → 다른 PC 는 같은 경로 구성으로 두거나 경로를 바꿔야 함.
