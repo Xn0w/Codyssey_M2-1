@@ -1,0 +1,121 @@
+{
+ "tag": "sr_R1a",
+ "kind": "R1",
+ "markers": [],
+ "gz_detail_rc": 0,
+ "meta": {
+  "rows": 836,
+  "dt_median_s": 0.036,
+  "dt_max_s": 0.036,
+  "susp_joints_published": true,
+  "contact_other_counts": {
+   "wheel_front_left": {},
+   "wheel_front_right": {
+    "kangwon_tile_T04_16::link::collision": 15045
+   },
+   "wheel_rear_left": {
+    "kangwon_tile_T05_16::link::collision": 15045
+   },
+   "wheel_rear_right": {
+    "kangwon_tile_T05_16::link::collision": 15045
+   }
+  },
+  "abort": {
+   "reason": null,
+   "t": null
+  },
+  "completed": true
+ },
+ "n_rows": 836,
+ "n_settled": 780,
+ "wheels": {
+  "wheel_front_left": {
+   "valid_ratio": 0.0,
+   "states": {
+    "NO_MSG": 780
+   },
+   "other": [],
+   "link_z_minus_ground": [
+    0.1929,
+    0.193
+   ],
+   "depth_max": null,
+   "fz_median": null,
+   "tile_at_link_last": "T04_16"
+  },
+  "wheel_front_right": {
+   "valid_ratio": 1.0,
+   "states": {
+    "VALID": 780
+   },
+   "other": [
+    "kangwon_tile_T04_16::link::collision"
+   ],
+   "link_z_minus_ground": [
+    0.3564,
+    0.3564
+   ],
+   "depth_max": 0.0,
+   "fz_median": 7990.4,
+   "tile_at_link_last": "T04_16"
+  },
+  "wheel_rear_left": {
+   "valid_ratio": 1.0,
+   "states": {
+    "VALID": 780
+   },
+   "other": [
+    "kangwon_tile_T05_16::link::collision"
+   ],
+   "link_z_minus_ground": [
+    0.3545,
+    0.3545
+   ],
+   "depth_max": 0.0,
+   "fz_median": 6884.0,
+   "tile_at_link_last": "T05_16"
+  },
+  "wheel_rear_right": {
+   "valid_ratio": 1.0,
+   "states": {
+    "VALID": 780
+   },
+   "other": [
+    "kangwon_tile_T05_16::link::collision"
+   ],
+   "link_z_minus_ground": [
+    0.3549,
+    0.3549
+   ],
+   "depth_max": 0.0,
+   "fz_median": 1040.8,
+   "tile_at_link_last": "T05_16"
+  }
+ },
+ "roll_abs_max_deg": 2.475,
+ "pitch_abs_max_deg": 1.82,
+ "susp_q_range": {
+  "susp_front_left": [
+   -0.03281,
+   -0.03281
+  ],
+  "susp_front_right": [
+   0.06098,
+   0.06105
+  ],
+  "susp_rear_left": [
+   0.04879,
+   0.04881
+  ],
+  "susp_rear_right": [
+   -0.01893,
+   -0.01887
+  ]
+ },
+ "base_dz_range": [
+  -0.049,
+  -0.049
+ ],
+ "sum_fz_median": 15915.2,
+ "status": "RECORDED"
+}

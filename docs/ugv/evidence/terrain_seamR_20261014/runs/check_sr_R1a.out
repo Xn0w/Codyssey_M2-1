@@ -1,0 +1,5 @@
+sr_R1a RECORDED {"checks": null, "markers": [], "roll_abs_max_deg": 2.475, "pitch_abs_max_deg": 1.82, "base_dz_range": [-0.049, -0.049], "sum_fz_median": 15915.2}
+  wheel_front_left {'valid_ratio': 0.0, 'states': {'NO_MSG': 780}, 'other': [], 'link_z_minus_ground': [np.float64(0.1929), np.float64(0.193)], 'depth_max': None, 'fz_median': None, 'tile_at_link_last': 'T04_16'}
+  wheel_front_right {'valid_ratio': 1.0, 'states': {'VALID': 780}, 'other': ['kangwon_tile_T04_16::link::collision'], 'link_z_minus_ground': [np.float64(0.3564), np.float64(0.3564)], 'depth_max': 0.0, 'fz_median': 7990.4, 'tile_at_link_last': 'T04_16'}
+  wheel_rear_left {'valid_ratio': 1.0, 'states': {'VALID': 780}, 'other': ['kangwon_tile_T05_16::link::collision'], 'link_z_minus_ground': [np.float64(0.3545), np.float64(0.3545)], 'depth_max': 0.0, 'fz_median': 6884.0, 'tile_at_link_last': 'T05_16'}
+  wheel_rear_right {'valid_ratio': 1.0, 'states': {'VALID': 780}, 'other': ['kangwon_tile_T05_16::link::collision'], 'link_z_minus_ground': [np.float64(0.3549), np.float64(0.3549)], 'depth_max': 0.0, 'fz_median': 1040.8, 'tile_at_link_last': 'T05_16'}

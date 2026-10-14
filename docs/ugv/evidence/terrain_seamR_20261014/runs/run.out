@@ -1,0 +1,23 @@
+== sr_R0a pose 4400.0,5928.044,29.027,-2.5652 (기록 30 s)
+[ugv] 차량 스폰: adair_ugv_1 @ 4400.0,5928.044,29.027,-2.5652
+[ugv] NO_PX4=1 — PX4 없이 월드·차량만
+836 rows -> /mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/terrain_ab/seamR/runs/sr_R0a.csv 
+gz_detail_rc=0
+[ugv] 종료 (끔 1, 강제 0, 기록 밖 잔존 0, 남음 0, 다른 파티션 309920:none 은 그대로)
+SEAM_STATIC_DONE Wed Oct 14 09:14:31 KST 2026
+SEAMR_RESULT sr_R0a PASS 09:14:32
+/mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR_wt_vehicle/ugv/tools/px4-stop.sh: line 23: /proc/310749/cmdline: No such file or directory
+이 월드·차량만
+837 rows -> /mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/terrain_ab/seamR/runs/sr_R0b.csv 
+gz_detail_rc=0
+[ugv] 종료 (끔 1, 강제 0, 기록 밖 잔존 0, 남음 0, 다른 파티션 309920:none 은 그대로)
+SEAM_STATIC_DONE Wed Oct 14 09:15:53 KST 2026
+SEAMR_RESULT sr_R0b PASS 09:15:53
+== sr_R1a pose 4380.6959,5928.044,29.027,-2.5652 (기록 30 s)
+[ugv] 차량 스폰: adair_ugv_1 @ 4380.6959,5928.044,29.027,-2.5652
+[ugv] NO_PX4=1 — PX4 없이 월드·차량만
+836 rows -> /mnt/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR/logs/ugv/stage6/terrain_ab/seamR/runs/sr_R1a.csv 
+gz_detail_rc=0
+[ugv] 종료 (끔 1, 강제 0, 기록 밖 잔존 0, 남음 0, 다른 파티션 309920:none 은 그대로)
+SEAM_STATIC_DONE Wed Oct 14 09:17:11 KST 2026
+SEAMR_RESULT sr_R1a RECORDED 09:17:12
