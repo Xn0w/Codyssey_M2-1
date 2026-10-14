@@ -16,7 +16,7 @@ LLM 이 하는 일
 - 근거가 인용한 ID(input_refs)는 입력에 있던 ID 만
 - 근거 문장 길이 제한
 
-모델·timeout·호출 한도는 설정값이다 (사용자 결정 2026-09-30: gpt-5.6-luna, 30초, 서버 1회 실행당 50회).
+모델·timeout·호출 한도는 설정값이다 (사용자 결정: 2026-10-07 gpt-5.5·60초, 2026-09-30 서버 1회 실행당 50회).
 timeout 이나 호출 한도가 비어 있거나 키가 없으면 LLM 을 부르지 않는다. API 키는 .env 에서 읽고 기록하지 않는다.
 """
 
@@ -61,6 +61,23 @@ OUTPUT_SCHEMA = {
         },
     },
 }
+
+SYSTEM_WITH_FORMAT = (
+    SYSTEM + " 답은 아래 JSON Schema 를 따르는 JSON 객체 하나만 출력한다 (설명·코드블록 없이).\n"
+    + json.dumps(OUTPUT_SCHEMA, ensure_ascii=False)
+)
+
+
+def _strip_code_fence(text):
+    """모델이 ```json ... ``` 으로 감싸 보내는 경우만 벗긴다. 그 밖의 내용은 손대지 않는다."""
+    if not isinstance(text, str):
+        return text
+    t = text.strip()
+    if t.startswith("```") and t.endswith("```"):
+        t = t[3:-3]
+        if t[:4].lower() == "json":
+            t = t[4:]
+    return t.strip()
 
 
 def build_input(snapshot, plan: dict, tasks_by_id: dict) -> dict:
@@ -163,12 +180,22 @@ class LlmPlanner:
         self.max_calls = config.LLM_MAX_CALLS_PER_RUN if max_calls is _DEFAULT else max_calls
         self.temperature = config.LLM_TEMPERATURE if temperature is _DEFAULT else temperature
         self._client = client
+        self._injected = client is not None
         self.calls = 0
+        self.key_index = 0                     # 지금 쓰는 키 순번 (0 = OPENAI_API_KEY)
+        self.exhausted_keys = []               # 예산이 떨어진 키 순번
+
+    @staticmethod
+    def _keys() -> List[str]:
+        names = (config.LLM_API_KEY_ENV,) + tuple(config.LLM_EXTRA_KEY_ENVS)
+        return [os.getenv(n) for n in names if os.getenv(n)]
 
     def status(self) -> Optional[str]:
         """호출할 수 없는 이유. 호출 가능하면 None."""
-        if self._client is None and not os.getenv(config.LLM_API_KEY_ENV):
+        if not self._injected and not self._keys():
             return "API_KEY_MISSING"
+        if not self._injected and self.key_index >= len(self._keys()):
+            return "ALL_KEYS_BUDGET_EXCEEDED"
         if self.timeout_s is None:
             return "TIMEOUT_NOT_CONFIGURED"
         if self.max_calls is None:
@@ -180,8 +207,18 @@ class LlmPlanner:
     def _get_client(self):
         if self._client is None:
             from openai import OpenAI
-            self._client = OpenAI()
+            # SDK 기본은 시간 초과 시 2번 자동 재요청 → 60초 제한이 실제로 2~3배까지 늘어났다 (2026-10-07 실측 101초).
+            # 재요청은 하지 않고 바로 규칙 대체로 넘어간다. 형식 오류 수정 요청(1회)은 plan_observations 가 따로 한다
+            self._client = OpenAI(base_url=config.LLM_BASE_URL, max_retries=0,
+                                  api_key=self._keys()[self.key_index])
         return self._client
+
+    @staticmethod
+    def _is_budget_exceeded(e) -> bool:
+        body = getattr(e, "body", None)
+        code = (body.get("error") or {}).get("code") if isinstance(body, dict) and isinstance(body.get("error"), dict) \
+            else (body or {}).get("code") if isinstance(body, dict) else None
+        return code == "budget_exceeded" or "budget_exceeded" in str(e)
 
     def propose(self, snapshot, plan: dict, tasks_by_id: dict) -> dict:
         """{status: OK/DISABLED/ERROR/INVALID, orders: {group_index: [...]}, rationales, ...}"""
@@ -191,18 +228,19 @@ class LlmPlanner:
         if why:
             return {**base, "status": "DISABLED", "reason": why}
         inp = build_input(snapshot, plan, tasks_by_id)
-        kwargs = {"model": self.model, "instructions": SYSTEM,
-                  "input": json.dumps(inp, ensure_ascii=False),
-                  "text": {"format": {"type": "json_schema", "name": "priority_order",
-                                      "schema": OUTPUT_SCHEMA, "strict": True}},
+        # copa 게이트웨이는 Chat Completions 만 받고 response_format(json_schema·json_object)도 거부한다
+        # (2026-10-07 확인). 그래서 출력 형식은 지시문으로 주고, 지키는지는 validate() 가 결정론으로 검사한다.
+        kwargs = {"model": self.model,
+                  "messages": [{"role": "system", "content": SYSTEM_WITH_FORMAT},
+                               {"role": "user", "content": json.dumps(inp, ensure_ascii=False)}],
                   "timeout": self.timeout_s}
         if self.temperature is not None:
             kwargs["temperature"] = self.temperature
         self.calls += 1
         t0 = time.monotonic()
         try:
-            resp = self._get_client().responses.create(**kwargs)
-            raw = resp.output_text
+            resp = self._get_client().chat.completions.create(**kwargs)
+            raw = _strip_code_fence(resp.choices[0].message.content)
         except Exception as e:  # noqa: BLE001 — 모델 실패는 규칙 fallback 으로 회수한다
             return {**base, "status": "ERROR", "reason": type(e).__name__, "error": str(e)[:300],
                     "latency_s": round(time.monotonic() - t0, 3), "input": inp}
@@ -225,3 +263,73 @@ class LlmPlanner:
                 "orders": {g["group_index"]: g["order"] for g in out["groups"]},
                 "rationales": {g["group_index"]: g["rationale"] for g in out["groups"]},
                 "input_refs": {g["group_index"]: g["input_refs"] for g in out["groups"]}}
+
+    # ------------------------------------------------------------------
+    # 관측 계획 (사용자 결정 2026-10-07): 예상 지역과 자원 분담을 LLM 이 고른다.
+    # 형식·참조 오류면 오류 목록을 주고 한 번 고쳐 달라고 한다 (계획서 §7). 그래도 틀리면 INVALID → 규칙 대체.
+    # 두 번째 호출도 같은 호출 한도를 쓴다.
+    # ------------------------------------------------------------------
+    def _chat(self, messages) -> str:
+        kwargs = {"model": self.model, "messages": messages, "timeout": self.timeout_s}
+        if self.temperature is not None:
+            kwargs["temperature"] = self.temperature
+        while True:
+            self.calls += 1
+            try:
+                resp = self._get_client().chat.completions.create(**kwargs)
+            except Exception as e:  # noqa: BLE001
+                # 쓰던 키의 예산이 떨어졌으면 다음 키로 한 번 더 (키가 남아 있고 호출 한도 안일 때만)
+                if self._injected or not self._is_budget_exceeded(e):
+                    raise
+                self.exhausted_keys.append(self.key_index)
+                self.key_index += 1
+                self._client = None
+                if self.status():
+                    raise
+                continue
+            return _strip_code_fence(resp.choices[0].message.content)
+
+    def plan_observations(self, inp: dict) -> dict:
+        from . import observation_planner as op
+        base = {"provider": config.LLM_PROVIDER, "model": self.model, "timeout_s": self.timeout_s,
+                "kind": "OBSERVATION_PLAN"}
+        why = self.status()
+        if why:
+            return {**base, "status": "DISABLED", "reason": why, "attempts": []}
+        system = (op.SYSTEM + "\n" + op.LEGEND
+                  + "\n답은 아래 JSON Schema 를 따르는 JSON 객체 하나만 출력한다 (설명·코드블록 없이).\n"
+                  + json.dumps(op.OUTPUT_SCHEMA, ensure_ascii=False))
+        # 짧은 형태로 보낸다 (토큰 절약, 2026-10-07). 검증은 원래 입력(inp)으로 한다
+        messages = [{"role": "system", "content": system},
+                    {"role": "user", "content": json.dumps(op.llm_view(inp), ensure_ascii=False, separators=(",", ":"))}]
+        attempts, t0 = [], time.monotonic()
+        for n in range(2):
+            if n and self.status():
+                attempts.append({"status": "NOT_RETRIED", "reason": self.status()})
+                break
+            t1 = time.monotonic()
+            try:
+                raw = self._chat(messages)
+            except Exception as e:  # noqa: BLE001 — 모델 실패는 규칙 대체로 회수한다
+                attempts.append({"status": "ERROR", "reason": type(e).__name__, "error": str(e)[:300]})
+                return {**base, "status": "ERROR", "reason": type(e).__name__, "attempts": attempts,
+                        "latency_s": round(time.monotonic() - t0, 3)}
+            try:
+                out = json.loads(raw)
+                violations = op.validate(out, inp)
+            except (TypeError, ValueError):
+                out, violations = None, ["NOT_JSON"]
+            except (KeyError, AttributeError) as e:
+                out, violations = None, [f"VALIDATOR_ERROR:{type(e).__name__}"]
+            attempts.append({"status": "INVALID" if violations else "OK", "violations": violations,
+                             "raw_output": out if out is not None else str(raw)[:2000],
+                             "latency_s": round(time.monotonic() - t1, 3)})
+            if not violations:
+                return {**base, "status": "OK", "plan": out, "attempts": attempts, "repaired": n == 1,
+                        "latency_s": round(time.monotonic() - t0, 3)}
+            messages = messages + [{"role": "assistant", "content": str(raw)[:8000]},
+                                   {"role": "user", "content": "검증 실패. 다음 오류를 고쳐 같은 형식의 JSON 하나만 다시 "
+                                                               "출력하라: " + json.dumps(violations, ensure_ascii=False)}]
+        last = [a for a in attempts if a["status"] == "INVALID"][-1]
+        return {**base, "status": "INVALID", "violations": last["violations"], "attempts": attempts,
+                "latency_s": round(time.monotonic() - t0, 3)}

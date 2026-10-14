@@ -65,8 +65,17 @@ ENV_STATE_DIR = os.getenv("ORCH_ENV_STATE_DIR", str(Path(__file__).resolve().par
 # 외부 자원 주소 — 통합 config 를 그대로 따른다 (단일 출처)
 # ---------------------------------------------------------------------------
 UAV_ENDPOINTS = dict(team_config.UAV_ENDPOINTS)
-UGV_SERVER_URL = team_config.UGV_SERVER_URL
-HTTP_TIMEOUT_S = float(os.getenv("ORCH_HTTP_TIMEOUT_S", "10"))   # PROVISIONAL (실제 시계)
+# 실행별 덮어쓰기 (예: 트윈이 원통 예비 드론 C-uav1·2 주소를 준다). "C-uav1=http://127.0.0.1:8002,C-uav2=..."
+if os.getenv("ORCH_UAV_ENDPOINTS_REPLACE") == "1":      # 실행에 실제로 띄운 드론만 등록 (예비·mock 주소가 후보로 보이지 않게 — 통합 시연)
+    UAV_ENDPOINTS = {}
+UAV_ENDPOINTS.update(p.split("=", 1) for p in os.getenv("ORCH_UAV_ENDPOINTS", "").split(",") if "=" in p)
+UGV_SERVER_URL = os.getenv("ORCH_UGV_SERVER_URL") or team_config.UGV_SERVER_URL   # 실행별 덮어쓰기 (통합 건식 예행연습은 다른 포트)
+HTTP_TIMEOUT_S = float(os.getenv("ORCH_HTTP_TIMEOUT_S", "10"))
+# UGV 복귀를 총괄이 관리 (2026-10-11 통합 시연 요청): 목적지 정차·READY 확인 뒤 바로 반납하지 않고 소속 거점 대기 지점으로
+# 복귀 실행을 보내 그 임무 완료 + READY 일 때 반납한다 (복귀 중 점유 유지 = 재배정 없음). 기본 끔 (기존 계약 시험과 같은 동작)
+UGV_RETURN_HOME = os.getenv("ORCH_UGV_RETURN_HOME", "0") == "1"
+# 계획 밖 UAV 임무(자동 초기 정찰)의 관측 체류 초 (UAV API 10~600). 비우면 UAV 기본값 — 통합 시연은 화재 감시 시간으로 쓴다
+RECON_OBSERVE_S = int(os.getenv("ORCH_RECON_OBSERVE_S", "0")) or None   # PROVISIONAL (실제 시계)
 
 # ---------------------------------------------------------------------------
 # 자원 상태 신선도 (PROVISIONAL, 사용자 결정 2026-09-29, 실제 시계 기준)
@@ -123,23 +132,6 @@ SENSOR_PROFILES = {
         "reference_payload": "H20T_CLASS_EXAMPLE",
         "basis": "IDEALIZED_DIAGONAL_FOV_GEOMETRY",
     },
-    # 지상(UGV) 열화상 — 순찰 차량 마스트의 열화상 카메라가 차 주변을 둘러본다고 가정 (2026-10-05).
-    # 차 위치 중심 정사각형(기본 450 m = 90 m 칸 5×5). 수평 시야라 지형 가림은 반영하지 않는다 (가정임을 결과에 남긴다).
-    # 바꾸기: ORCH_GROUND_THERMAL_VIEW_M
-    "ASSUMED_GROUND_VIEW_V1": {
-        "source": "SIMULATED",
-        "status": "TEST_ONLY",
-        "sensor_type": "THERMAL",
-        "platform": "GROUND",
-        "agl_m": None,
-        "scale_with_agl": False,
-        "view_direction": "HORIZONTAL_360",
-        "footprint_shape": "RECTANGLE",
-        "footprint_width_m": float(os.getenv("ORCH_GROUND_THERMAL_VIEW_M", "450")),
-        "footprint_height_m": float(os.getenv("ORCH_GROUND_THERMAL_VIEW_M", "450")),
-        "reference_payload": "VEHICLE_MAST_THERMAL_EXAMPLE",
-        "basis": "ASSUMED_GROUND_VIEW_SQUARE_AROUND_VEHICLE (지형 가림 미반영)",
-    },
     # 임시 가정 (사용자 결정 2026-09-30): 드론이 목표에 도착해 그 칸 위를 원으로 한 바퀴 돌았다고 보고
     # 관측 범위를 90m × 90m 로 둔다. 실제 드론은 아직 제자리 비행만 한다 (원 비행은 UAV-08 계약 대기) —
     # 이 범위는 실제로 본 범위가 아니라 가정이다. 높이에 따라 늘리거나 줄이지 않는다.
@@ -160,18 +152,26 @@ SENSOR_PROFILES = {
 }
 # 원래 관측 범위(한 프레임)는 TEST_THERMAL_90M_V1 로 남겨 둔다. 되돌리기: ORCH_SENSOR_PROFILE=TEST_THERMAL_90M_V1
 DEFAULT_SENSOR_PROFILE_ID = os.getenv("ORCH_SENSOR_PROFILE", "ASSUMED_ORBIT_90M_V1")
-GROUND_SENSOR_PROFILE_ID = os.getenv("ORCH_GROUND_SENSOR_PROFILE", "ASSUMED_GROUND_VIEW_V1")   # UGV 열화상
+# UGV 열화상 시야 (사용자 결정 2026-10-08): 반지름 600 m ~ 2 km, 지형에 따라 다르다.
+#   600 m 안은 항상 보임. 600 m ~ 2 km 는 카메라(지면 위 3 m)에서 그 칸까지 지면 높이(지도 90 m 칸)가 시선을 막지 않으면 보임.
+#   카메라 높이·600 m 안 항상 보임은 시험용 가정 (TEST_ONLY) — 실제 값이 정해지면 숫자만 바꾼다.
+UGV_VIEW = {"sensor_profile_id": "ASSUMED_GROUND_LOS_V1", "source": "SIMULATED", "status": "TEST_ONLY",
+            "sensor_type": "THERMAL", "min_m": 600.0, "max_m": 2000.0,
+            "mast_m": float(os.getenv("ORCH_UGV_MAST_M", "3.0")),
+            "basis": "RADIUS_600M_ALWAYS_TO_2KM_TERRAIN_LINE_OF_SIGHT (카메라 높이 3 m 가정, 나무·건물 가림 미반영)"}
 
 # ---------------------------------------------------------------------------
 # 현장 환경 측정 (사용자 결정 2026-09-30: 2019 재현 필수 기능)
 # 드론·UGV·소방차에 기상 센서가 아직 없어 총괄 쪽 모의 센서로 측정한다 (TEST_ONLY).
 # 모의 센서는 도착 위치의 환경 값을 읽을 뿐이며, 환경이 주지 않은 항목은 만들지 않는다.
 # ---------------------------------------------------------------------------
-# UGV 지상 열화상 (모의, 2026-10-05): UGV 에 THERMAL 을 붙인다. 기본 켜짐 (2026-10-09 팀 합의), 끄려면 ORCH_UGV_THERMAL=0.
-# 켜면 UAV·UGV 를 함께 허용한 열화상 임무에서 직선거리가 가까운 UGV 가 먼저 평가된다.
+# 지상 자원 열화상 (모의): 켜면 UGV 가 열화상 임무 후보가 된다. 관측은 지상 시선 모델 config.UGV_VIEW
+# (observation.simulate_ground_los). 끄기: ORCH_UGV_THERMAL=0
 UGV_THERMAL_ENABLED = os.getenv("ORCH_UGV_THERMAL", "1") == "1"   # 사용자 결정 2026-10-07: 관측 계획 시연용으로 켬
-SIMULATED_CAPABILITIES = {"UAV": ("WEATHER",), "UGV": ("WEATHER",) + (("THERMAL",) if UGV_THERMAL_ENABLED else ()),
-                          "FIRE_ENGINE": ("WEATHER",)}
+_UGV_SIM_SENSORS = ("WEATHER", "THERMAL") if UGV_THERMAL_ENABLED else ("WEATHER",)
+SIMULATED_CAPABILITIES = dict(UAV=("WEATHER",), UGV=_UGV_SIM_SENSORS, FIRE_ENGINE=("WEATHER",))
+GROUND_RESOURCE_TYPES = ("UGV", "FIRE_ENGINE")          # 지상 자원 (관측을 지상 모델로 계산)
+GROUND_SIMULATED_SENSORS = ("WEATHER", "THERMAL")       # 지상 자원도 총괄 모의 센서로 재는 관측
 WEATHER_SENSOR_PROFILE = {
     "sensor_profile_id": "TEST_WEATHER_POINT_V1", "source": "SIMULATED", "status": "TEST_ONLY",
     "sensor_type": "WEATHER", "measures": ("wind_ms", "wind_dir_deg", "temperature_c", "humidity_pct"),
@@ -187,8 +187,8 @@ LOCAL_OBSERVATION_TYPE = {"THERMAL": "THERMAL", "RGB": "RGB", "WEATHER": None}
 # - 항목마다 값·단위·출처·관측시각·유효성을 따로 본다. 유효한 현장 측정 우선, 만료되면 관측소 값으로 바꾸고
 #   재측정을 요청한다. 쓸 값이 없으면 UNKNOWN (임의 값으로 채우지 않음).
 # - 관측소 유효시간: 그 자료의 제공 간격 (기상청 ASOS 시간자료 = 3600초, knowledge.KmaAsosReplay).
-# - 현장 측정 유효시간: 근거가 되는 자료 계약이 아직 없다 → 기본값을 두지 않는다 (TBD).
-#   미설정이면 현장 측정은 POLICY_NOT_SET 으로 표시되고 판단에 쓰이지 않는다 (관측소 값 사용).
+# - 현장 측정 유효시간: 사용자 결정 2026-10-07 = 35분 (시뮬레이션 2,100초, 모든 항목. 트윈 환경 한 단계와 같음).
+#   값을 비우면(ORCH_FIELD_WEATHER_MAX_AGE_S="") POLICY_NOT_SET 으로 표시되고 판단에 쓰이지 않는다 (관측소 값 사용).
 #   ORCH_FIELD_WEATHER_MAX_AGE_S = "600"  (모든 항목, 시뮬레이션 초)  또는
 #                                  '{"wind_ms": 600, "wind_dir_deg": 600}'  (항목별 JSON)
 # ---------------------------------------------------------------------------
@@ -220,7 +220,8 @@ def parse_field_weather_max_age(raw) -> dict:
     return out
 
 
-FIELD_WEATHER_MAX_AGE_S = parse_field_weather_max_age(os.getenv("ORCH_FIELD_WEATHER_MAX_AGE_S"))
+# 사용자 결정 2026-10-07: 현장 측정은 관측 시각부터 35분(시뮬레이션 2,100초) 유효 — 모든 항목
+FIELD_WEATHER_MAX_AGE_S = parse_field_weather_max_age(os.getenv("ORCH_FIELD_WEATHER_MAX_AGE_S", "2100"))
 # 현장 측정이 만료되면 같은 칸의 재측정을 요청한다 (모의 측정 계약 사용, 같은 만료 측정에 대해 한 번)
 WEATHER_REMEASURE_ENABLED = True
 
@@ -234,10 +235,10 @@ ENV_ACK_SUPPORTED_SENSORS = ("THERMAL", "WEATHER")
 # 신고 접수 시 최초 정찰 자동 생성 (사용자 결정 2026-09-30 D01)
 # ---------------------------------------------------------------------------
 AUTO_RECON_ON_REPORT = True
-# 신고 접수 시 자동 초기 정찰. 기본은 드론·UGV 모두 후보 (2026-10-09 팀 합의), ORCH_AUTO_RECON_GROUND=0 이면 드론만.
-# UGV 가 실제로 뽑히려면 ORCH_UGV_THERMAL 도 켜져 있어야 한다 (꺼져 있으면 능력 부족으로 후보에서 빠진다)
-AUTO_RECON_REQUIREMENTS = {"resource_types": ["UAV", "UGV"] if os.getenv("ORCH_AUTO_RECON_GROUND", "1") == "1" else ["UAV"],
-                           "sensor": "THERMAL", "needs_env_ack": True}
+# 자동 초기 정찰에 지상 자원도 넣을지. 기본은 드론·UGV 모두 후보 (2026-10-09 팀 합의 유지), ORCH_AUTO_RECON_GROUND=0 이면 드론만.
+# 지상 자원은 열화상 능력(ORCH_UGV_THERMAL)이 있어야 실제 후보가 된다
+_AUTO_RECON_TYPES = ["UAV"] + (["UGV"] if os.getenv("ORCH_AUTO_RECON_GROUND", "1") == "1" else [])
+AUTO_RECON_REQUIREMENTS = dict(resource_types=_AUTO_RECON_TYPES, sensor="THERMAL", needs_env_ack=True)
 
 # ---------------------------------------------------------------------------
 # 확산 예측 활용 (사용자 결정 2026-09-30)
@@ -253,12 +254,130 @@ KMA_ASOS_CSV = Path(os.getenv("ORCH_KMA_ASOS_CSV", str(ROOT / "data/weather/kma_
 KMA_ASOS_STATIONS = Path(os.getenv("ORCH_KMA_ASOS_STATIONS", str(ROOT / "data/weather/kma_asos_stations.json")))
 
 # ---------------------------------------------------------------------------
+# 관측 계획 (사용자 결정 2026-10-07, docs/common/총괄_관측계획_개편_계획서_완성본.md)
+#   신고 → 드론이 불 테두리를 따라 날며 불 좌표 보고 → LLM 이 다음 예상 지역(구역)과 보낼 자원을 고름 → 반복.
+#   켜져 있으면 신고가 와도 최초 정찰 Task 를 바로 만들지 않고 관측 계획이 자원을 배정한다.
+# ---------------------------------------------------------------------------
+OBS_PLANNER_ENABLED = os.getenv("ORCH_OBS_PLANNER", "1") == "1"
+OBS_REPORT_DELAY_S = 120.0            # 점화 후 신고 시각 (시뮬레이션 초)
+# 시연 종료: 2019-04-05 06:00 KST = 시작(04-04 14:45) 후 15시간 15분. 이후 새 관측 계획을 세우지 않는다
+OBS_DEMO_END_SIM_S = float(os.getenv("ORCH_OBS_DEMO_END_SIM_S", str(15 * 3600 + 15 * 60)))
+OBS_CANDIDATE_RADIUS_M = 1000.0       # 알려진 불에서 이 거리 안의 칸만 후보 (LLM 입력)
+OBS_BLOCK_CELLS = 3                   # 후보 칸을 3×3 칸 구역으로 묶어 LLM 에 준다
+# LLM 에 주는 후보 구역 상한 (사용자 결정 2026-10-07: 토큰 절약, 30 → 10). 진행 방향 앞쪽 → 테두리 바깥 미관측 → 가까운 순.
+# 빠진 구역은 버리지 않고 다음 계획에서 다시 후보가 된다
+OBS_MAX_CANDIDATE_BLOCKS = 10        # 2026-10-07: 30 → 10 (실제 배정은 계획당 2~4개, 예상 구역 포함 10개 이하)
+# 환경 한 단계(트윈 35분) 안에서는 관측 계획을 한 번만 세운다 (사용자 결정 2026-10-07). 그 뒤 돌아온 자원은 다음 단계에
+# 모아서 계획한다. 같은 계획 중 자원 거절로 다시 짜는 것은 허용. 관측 반영·첫 출동·앞질러 보내기는 기다리지 않는다
+OBS_ONE_PLAN_PER_ENV_STEP = True
+OBS_STALE_S = None                    # 오래된 관측 기준 — 미정. 관측 시각만 넘기고 오래됨 표시는 하지 않는다
+# 둘레 고르게 보기 (사용자 결정 2026-10-08, run 20261008_183847: 불 머리(북)만 보고 남·남동 테두리 26칸 중 1칸만 찾음)
+#   ① 다시 보기: '불 없음(일부만 봄 포함)'으로 본 지 OBS_RECHECK_CLEAR_S 가 지난 칸이 아는 불 바로 옆이면 다시 볼 후보
+#      (frontier)로 되돌린다. 전에는 한 번 본 칸이 영영 후보에서 빠져, 뒤에 꼬리·옆구리로 번져도 보지 않았다.
+#      기본 = 환경 한 단계(트윈 35분) — 그 사이에 불이 한 칸 번질 수 있다
+OBS_RECHECK_CLEAR_S = float(os.getenv("ORCH_RECHECK_CLEAR_S", "2100"))
+#   ② LLM 후보 구역을 불 중심 기준 8방위에 고르게 나눠 고른다 (방위마다 가장 급한 구역부터 돌아가며).
+#      전에는 진행 방향 앞쪽부터 10개를 골라 꼬리·옆구리 구역이 입력에 거의 들어가지 않았다
+OBS_CANDIDATE_SECTORS = 8
+#   ③ 회의 사이 규칙: 불 머리를 따라가는 드론은 이 수까지. 나머지 드론은 가장 오래 안 본 방위의 테두리 바깥으로
+OBS_HEAD_FOLLOWERS_MAX = int(os.getenv("ORCH_HEAD_FOLLOWERS_MAX", "1"))
+#   ④ 불 머리는 UGV 가 본다 (사용자 결정 2026-10-08, run 20261008_185335: UGV 한 번 관측 평균 약 188칸, 드론 1칸 미만).
+#      관측을 마친 UGV 가 할 일이 없고 머리를 맡은 UGV 가 없으면 불 머리 칸을 보러 간다(가까운 도로에서, 지형 시선).
+#      머리 칸이 보였으면 그 UGV 가 머리를 맡는다 — 회의 배정에서 빼고, 새 환경 단계마다 다시 본다.
+#      머리를 맡은 UGV 가 있으면 드론은 머리로 가지 않고 둘레(③)로 간다. 지형에 가려 안 보이면 내려놓고 드론이 맡는다
+OBS_UGV_HEAD_WATCH = os.getenv("ORCH_UGV_HEAD_WATCH", "1") == "1"
+OBS_UGV_HEAD_WATCH_VALID_S = 4200.0   # 머리 칸을 마지막으로 본 뒤 이 시간(환경 두 단계)까지 '머리를 맡음'으로 본다
+#      머리 감시 UGV 는 불 머리 칸이 아니라 진행 방향 앞쪽으로 이만큼 떨어진 곳(가까운 도로)에 서서 머리를 바라본다
+#      (UGV 시야 600 m~2 km 안. 사용자 결정 2026-10-08: "진행 방향을 바라보며 멀리서 차량 하나가 감시")
+#      다른 노는 UGV 는 도로에서 가장 오래 안 본 방위를 감시하고, 드론은 그 빈 곳을 정찰한다
+OBS_UGV_HEAD_STANDOFF_M = float(os.getenv("ORCH_UGV_HEAD_STANDOFF_M", "1000"))
+OBS_RATIONALE_MAX_CHARS = 400
+# 첫 출동 (사용자 결정 2026-10-07): 신고가 오면 LLM 을 기다리지 않고 신고 칸에서 가장 가까운 드론을 바로 보낸다.
+# 그 드론의 첫 관측(불 좌표)이 들어온 뒤에 LLM 이 나머지 자원을 계획한다 (첫 관측이 LLM 입력에 들어가도록).
+OBS_INITIAL_NEAREST_UAV = True
+# 첫 드론은 테두리를 따라가지 않고 신고 지점 둘레를 원으로 돌며 불 전체를 본다 (사용자 결정 2026-10-07, 120초).
+# 7 m/s × 120 s = 840 m 를 '중심 → 원 위로 나가기 + 한 바퀴'에 쓴다 → 반지름 = 840 / (1 + 2π) ≈ 116 m
+OBS_INITIAL_ORBIT_DURATION_S = 120.0
+# 다 타고 꺼짐(추정) (사용자 결정 2026-10-07): 화재 모델에서 한 칸은 3단계 동안 타고 BURNED 가 된다
+# (environment/config/environment_config.yaml fire_ca.burn_duration_steps = 3). 그래서 '불타는 중'으로 마지막 확인한
+# 시각부터 3 × 환경 단계 길이(tick_s)가 지나면 '다 타고 꺼짐(추정)'으로 표시한다. 트윈(2,100초)이면 1시간 45분.
+# 관측으로 확인한 '탄 곳'(BURNED)과 구분한다. 환경 단계 길이를 모르면 추정하지 않는다.
+OBS_BURN_OUT_STEPS = 3
+# 예비 드론 (사용자 결정 2026-10-07, 기지 변경 2026-10-08): C 기지(원통119) 드론 C-uav1·2 는 대기하다가,
+#   불이 C 쪽으로 다가온다고 판단되면 투입한다. (전에는 B 기린119 — 발화점 약 18 km 로 항속 반경 약 12.5 km 밖이라 뺌)
+#   물리 판단: 관측으로 본 불의 이동 방향(fire_progress)이 '불 → 예비 기지' 방향과 ±45° 이내이고 한 칸(90 m) 이상 움직였을 때
+#   LLM 판단: 계획 답변의 request_reserve_uavs=true (이유 필수)
+#   한 번 투입하면 그 run 동안 계속 쓴다. 기지 좌표는 팀 공통 config (fire_stations.json)
+OBS_RESERVE_UAVS = tuple(r for r in os.getenv("ORCH_RESERVE_UAVS", "C-uav1,C-uav2").split(",") if r)
+OBS_RESERVE_BASE = os.getenv("ORCH_RESERVE_BASE", "C")
+OBS_RESERVE_TRIGGER_DEG = 45.0
+OBS_RESERVE_MIN_MOVE_M = 90.0
+# 앞질러 보내기 (사용자 결정 2026-10-07): 드론이 도착했는데 테두리·불타는 곳·안 본 꺼진 자리가 모두 없으면
+# (전에는 신고 지점 쪽으로 날았다 — 없앰) 처음 발화 지점(첫 신고 칸) → 가장 마지막 불 위치로 진행 방향·속도를 구해
+# 1시간·2시간 뒤 예상 지점에 드론을 새로 출동시킨다 (각 지점에 가장 가까운 가용 드론). 같은 '마지막 불 위치'로는 한 번만.
+OBS_ADVANCE_HORIZONS_S = (3600.0, 7200.0)
+# UGV 가장자리 따라가기 (사용자 결정 2026-10-07): UGV 관측에 다 탄 곳만 있고 불타는 곳이 없으면, 관측으로 본 불의
+# 진행 방향 쪽으로 450 m 떨어진 지점에 같은 UGV 를 바로 다시 보낸다. 불을 찾거나 다 탄 곳도 안 보이면 멈춘다
+OBS_UGV_FOLLOW_STEP_M = 450.0
+# 드론 테두리 추적 관측 (모의, TEST_ONLY). 드론팀 순찰 기능(UAV-08) 전까지 총괄 모의 센서로 만든다.
+#   도착 지점에서 불 테두리를 찾아 신고 지점에서 멀어지는 쪽으로 따라 난다. 테두리가 없으면 신고 지점 쪽으로 직선.
+#   카메라 한 장 52×42 m(지면 위 90 m) 중 진행 방향에 수직인 52 m 를 띠 폭으로 쓴다.
+EDGE_SWEEP_PROFILE = {
+    "sensor_profile_id": "ASSUMED_EDGE_SWEEP_V1", "source": "SIMULATED", "status": "TEST_ONLY",
+    # duration 60 s (사용자 결정 2026-10-07: 20 → 60, 한 번 가면 60초 둘러봄) → 7 m/s × 60 s = 420 m
+    "sensor_type": "THERMAL", "speed_ms": 7.0, "duration_s": 60.0, "swath_m": 52.0,
+    "basis": "ASSUMED_EDGE_FOLLOWING_SWEEP (드론 순찰 코드 대기, UAV-08)",
+}
+# 드론은 불 바로 위를 날지 않는다 (사용자 결정 2026-10-08): 불 테두리(불타는 칸과 안 탄 칸의 경계)에서
+# 다 탄 쪽으로 20 m 들어간 선을 따라 난다. 카메라 띠 폭 52 m 의 절반(26 m)이라 테두리와 그 바깥 6 m 가 보인다.
+# 불이 보이면 불 머리(바람이 불어 가는 쪽 맨 앞) 쪽으로 테두리를 따라간다.
+OBS_EDGE_OFFSET_M = 20.0
+
+# ---------------------------------------------------------------------------
+# 작업 지시서 (사용자 결정 2026-10-08) — LLM 호출을 줄이기 위해 회의(계획) 한 번에 자원마다 구역 순서 목록을 준다.
+#   - 회의는 환경 단계(35분)마다 한 번 (OBS_ONE_PLAN_PER_ENV_STEP). 지시서도 그 길이. 새 회의는 덜 끝난 지시서를 바꾼다.
+#   - 자원은 지시서대로 돌며 발견은 장부에만 적는다 (LLM 을 부르지 않는다).
+#   - 지시서를 일찍 끝내면(또는 드론 배터리 30% 미만): 지시서 동안 새로 찾은 불 칸이 있으면 불 머리를 계속 따라가고
+#     (배터리는 드론의 복귀 안전선 15% 까지 — 드론이 거절하면 멈춤), 없으면 드론은 기지로 복귀해 충전, UGV 는 대기.
+#   - 마지막으로 하늘에 남은 드론은 새 불이 없어도 배터리 30% 이상이면 복귀하지 않고 불 머리를 본다 (한꺼번에 충전 방지).
+#   - 인명피해 예상(환경 확산 예측이 주거지·사람 있는 보호대상에 닿음)이 새로 생기면 회의를 바로 연다 (장소마다 한 번).
+# ---------------------------------------------------------------------------
+OBS_ORDER_MAX_STOPS = 3
+OBS_ORDER_BATTERY_MIN_PCT = 30.0
+# 새 불이 없어도 배터리가 이만큼 남았으면 충전하러 가지 않고 불 머리를 계속 본다 (사용자 결정 2026-10-08, run2 뒤)
+OBS_KEEP_WATCH_BATTERY_PCT = 50.0
+# LLM 계획 한 번을 기다리는 최대 시간 (벽시계). 넘으면 규칙 계획으로 (2026-10-08 run2: 연결이 357초 멈춤)
+OBS_LLM_WALL_MAX_S = 120.0
+# 기지 충전 30분 — 시험용 가정 (TEST_ONLY, 사용자 결정 2026-10-08). 드론팀에 실제 방식(교체·도킹 충전) 확인 필요.
+# 드론 mock 은 착륙하면 배터리를 바로 100% 로 바꾸므로 총괄이 착륙 뒤 이 시간 동안 일을 주지 않는다.
+OBS_DRONE_CHARGE_S = float(os.getenv("ORCH_DRONE_CHARGE_S", "1800"))
+OBS_DRONE_CHARGE_BASIS = "TEST_ONLY_ASSUMED_DOCK_CHARGE_30MIN"
+OBS_MIN_AIRBORNE_UAVS = 1
+OBS_EMERGENCY_ON_HUMAN_RISK = True
+# 돌아가는 중에 새 임무 받기 (드론팀 UAV-06, 사용자 결정 2026-10-08: 이 브랜치에서 켬). 드론 서버도
+# UAV_RETASK_WHILE_RETURNING=1 로 띄워야 한다 (run_servers.py). 끄면 다음 지점은 착륙·반납 뒤에 보낸다.
+OBS_RETASK_WHILE_RETURNING = os.getenv("ORCH_RETASK_WHILE_RETURNING", "1") == "1"
+# 가는 중인 드론에 새 임무 (사용자 결정 2026-10-08): 새 회의가 지시서를 바꿨는데 드론이 앞 지점으로 가는 중(관측 전)이면
+# 드론 중단 요청(UAV-09 abort)으로 끊고 → 복귀 중 재배정(UAV-06)으로 바로 새 지점에 보낸다. 관측 중이면 끝까지 본다.
+# 드론팀 코드는 바꾸지 않는다 (abort·복귀 중 재배정 모두 기존 기능). OBS_RETASK_WHILE_RETURNING 도 켜져 있어야 한다
+OBS_RETASK_AIRBORNE = os.getenv("ORCH_RETASK_AIRBORNE", "1") == "1"
+# 지시서를 배터리에 맞게 자르기 위한 드론 값 — 드론팀 uav/uav-agent/config.py 값을 옮겨 적음 (드론팀 '실측 보정 필요')
+UAV_ASSUMED_CRUISE_MS = 10.0
+UAV_ASSUMED_DRAIN_PCT_S = 0.033
+UAV_ASSUMED_RETURN_RESERVE_PCT = 15.0
+UAV_ASSUMED_OBSERVE_S = 60.0
+
+# ---------------------------------------------------------------------------
 # LLM (요청서 §9: 모델·timeout·호출/비용 한도는 설정값. 임의 기본값 금지)
 # ---------------------------------------------------------------------------
 LLM_PROVIDER = "openai"
-LLM_MODEL = os.getenv("ORCH_LLM_MODEL", "gpt-5.6-luna")   # 사용자 결정 2026-09-30
+LLM_MODEL = os.getenv("ORCH_LLM_MODEL", "gpt-5.5")   # 사용자 결정 2026-10-07 (copa 게이트웨이에 gpt-5.6-luna 없음)
 LLM_API_KEY_ENV = "OPENAI_API_KEY"                         # 키 값은 코드·로그에 남기지 않는다
-LLM_TIMEOUT_S = float(os.getenv("ORCH_LLM_TIMEOUT_S", "30"))     # 사용자 결정 2026-09-30 (실제 초)
+# 예비 키 (사용자 결정 2026-10-07): .env 에 OPENAI_API_KEY_2 … _9 를 더 넣으면, 쓰던 키의 예산이 떨어졌을 때
+# (게이트웨이 429 code=budget_exceeded) 다음 키로 넘어간다. 기록에는 키 순번만 남긴다
+LLM_EXTRA_KEY_ENVS = tuple(f"OPENAI_API_KEY_{i}" for i in range(2, 10))
+LLM_BASE_URL = os.getenv("OPENAI_BASE_URL") or "https://copa.codyssey.kr/v1"  # 사용자 결정 2026-10-07
+LLM_TIMEOUT_S = float(os.getenv("ORCH_LLM_TIMEOUT_S", "60"))     # 사용자 결정 2026-10-07: 30→60 (gpt-5.5 관측 계획 응답 20~42초 실측)
 LLM_MAX_CALLS_PER_RUN = int(os.getenv("ORCH_LLM_MAX_CALLS", "50"))  # 사용자 결정 2026-09-30 (서버 1회 실행당)
 LLM_TEMPERATURE = None           # TBD — 모델이 지원하는 경우에만 전달
 

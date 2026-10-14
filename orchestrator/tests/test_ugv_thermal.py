@@ -60,32 +60,11 @@ def test_ugv_excluded_for_thermal_when_off(world):
     assert out["excluded"] == {"A-ugv1": "REQUIRED_CAPABILITY_UNAVAILABLE"}
 
 
-def test_ugv_thermal_detects_fire_within_ground_view(world, ugv_thermal):
-    orch, lg = world["orch"], world["ledger"]
-    _arrive_at(world["ugv"], TARGET["lat"] - 0.0015, TARGET["lon"])      # 불난 칸 남쪽 약 170 m 도로
-    task = submit(orch, requirements=THERMAL_UGV)
-    out = orch.dispatch(task.task_id)
-    assert out["resource_id"] == "A-ugv1"
-    _poll(orch)
-    obs = _thermal_obs(lg, task.task_id)
-    assert len(obs) == 1
-    o = obs[0]
-    assert o["sensor_profile_id"] == "ASSUMED_GROUND_VIEW_V1" and o["sensor_status"] == "TEST_ONLY"
-    assert o["result"] == "DETECTED" and o["target_covered"]
-    assert o["footprint"]["agl_m"] is None and o["footprint"]["width_m"] == 450.0
-    assert o["footprint_center"] == {"lat": TARGET["lat"] - 0.0015, "lon": TARGET["lon"]}
-    assert lg.get_task(task.task_id).purpose_status == "COMPLETED"
-
-
-def test_ugv_thermal_out_of_view_does_not_complete(world, ugv_thermal):
-    orch, lg = world["orch"], world["ledger"]
-    _arrive_at(world["ugv"], TARGET["lat"] - 0.01, TARGET["lon"])        # 약 1.1 km 떨어진 도로
-    task = submit(orch, requirements=THERMAL_UGV)
-    orch.dispatch(task.task_id)
-    _poll(orch)
-    o = _thermal_obs(lg, task.task_id)[0]
-    assert o["result"] == "NO_COVERAGE" and not o["target_covered"] and o["detections"] == []
-    assert lg.get_task(task.task_id).purpose_status != "COMPLETED"
+# 2026-10-14 총괄 동기화: 사각형 지상 시야 모델 (ASSUMED_GROUND_VIEW_V1) 전제의 두 시험
+# (test_ugv_thermal_detects_fire_within_ground_view, test_ugv_thermal_out_of_view_does_not_complete) 은
+# 지형 가시선 모델 ASSUMED_GROUND_LOS_V1 로 바뀌어 삭제 — 같은 내용은 test_ugv_ground_thermal.py 의
+# test_unplanned_ugv_thermal_uses_ground_line_of_sight_model (가까운 거리 탐지) ·
+# test_unplanned_ugv_thermal_beyond_max_range_sees_nothing (최대 거리 밖 미탐지) 가 격자 지도 시험 환경으로 검사.
 
 
 def test_ugv_thermal_without_position_fails_without_inventing(world, ugv_thermal):
