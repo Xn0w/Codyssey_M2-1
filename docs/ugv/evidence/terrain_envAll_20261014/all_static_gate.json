@@ -1,0 +1,62 @@
+{
+ "n_tiles": 616,
+ "tile_check_fail": [],
+ "n_edges": 1182,
+ "edge_gap_abs_max_m": 0.0,
+ "edge_height_diff_max_m": 0.0084,
+ "edge_height_diff_p99_of_max": 0.0069,
+ "worst_edges": [
+  [
+   "x",
+   "T19_20",
+   "T20_20",
+   0.0084
+  ],
+  [
+   "x",
+   "T20_20",
+   "T21_20",
+   0.0079
+  ],
+  [
+   "y",
+   "T19_19",
+   "T19_20",
+   0.0075
+  ],
+  [
+   "x",
+   "T26_20",
+   "T27_20",
+   0.0074
+  ],
+  [
+   "y",
+   "T20_19",
+   "T20_20",
+   0.0074
+  ],
+  [
+   "x",
+   "T18_20",
+   "T19_20",
+   0.0073
+  ],
+  [
+   "x",
+   "T19_18",
+   "T20_18",
+   0.0073
+  ],
+  [
+   "x",
+   "T17_01",
+   "T18_01",
+   0.0071
+  ]
+ ],
+ "n_corners": 567,
+ "corner_spread_max_m": 0.0062,
+ "rule": "PASS = \ud0c0\uc77c \uac80\uc0ac \uc2e4\ud328 0\u00b7\ud2c8 |\u00b7| < 1e-9\u00b7\uac00\uc7a5\uc790\ub9ac \ub192\uc774 \ucc28 \u2264 0.01\u00b7\ubaa8\uc11c\ub9ac \u2264 0.01",
+ "status": "PASS"
+}

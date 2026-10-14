@@ -1,0 +1,221 @@
+[
+ {
+  "tag": "tb3_segB_all_a",
+  "kind": "acc3",
+  "checks": {
+   "1_evidence": true,
+   "8_arrived_to_dest_le_1m": true,
+   "2_service_dest_le_1m": true,
+   "4_judge3": true,
+   "5_hold_le_0.1m_30s": true,
+   "3_seq_complete_monotonic": true,
+   "6_px4_self_stop": true,
+   "7b": true,
+   "7c": true,
+   "7d_server_policy": true,
+   "7e_no_runaway_no_cutdrive": true,
+   "0e_imu500_applied": true,
+   "0h_no_stop_path": true,
+   "0i_server_flags": true
+  },
+  "wrapper_rc": {
+   "tag": "tb3_segB_all_a",
+   "test_rc": 0,
+   "copy_logs_rc": 0,
+   "stop_post_rc": "0",
+   "invalid_stop": false,
+   "time": "2026-10-14T12:15:55+09:00"
+  },
+  "validity": {
+   "rc_file": true,
+   "test_rc": 0,
+   "copy_logs_rc": 0,
+   "stop_post_rc": "0",
+   "invalid_stop": false,
+   "markers": []
+  },
+  "end_extension": {
+   "sim_time_s": 71.19,
+   "timestamp": "2026-10-14T03:12:59.334699+00:00",
+   "event": "END_EXTENSION",
+   "resource_id": "A-ugv1",
+   "task_id": null,
+   "offset_m": 3.0,
+   "driver_info": {
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0,
+    "offset_m": 3.0,
+    "basis": "RA_ACC_RAD_MAX ≥ NAV_ACC_RAD — 끝 지점 반경 경계 정지"
+   },
+   "road_id": "682500726",
+   "remaining_m": 20.62,
+   "service_dest_xy": [
+    4182.5,
+    5783.27
+   ],
+   "px4_end_xy": [
+    4180.29,
+    5781.25
+   ],
+   "applied": true,
+   "check": {
+    "worst_excess_m": -2.496
+   }
+  },
+  "driver_evidence": {
+   "end_stop": {
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0,
+    "offset_m": 3.0,
+    "basis": "RA_ACC_RAD_MAX ≥ NAV_ACC_RAD — 끝 지점 반경 경계 정지"
+   },
+   "park_policy": {
+    "after_s": 1.0,
+    "test_hook": false,
+    "requested": null,
+    "basis": "운영 기본"
+   },
+   "park_last": {
+    "mission_seq": 1,
+    "run_id": "tb3_segB_all_a",
+    "reason": "NORMAL_STILL",
+    "cond_cap": false,
+    "cond_still": true,
+    "after_s": 1.0,
+    "decide_mono": 361415.171,
+    "decide_wall": 1791947640.787,
+    "finished_first_mono": 361413.671,
+    "still_since_mono": 361414.171,
+    "still_resets": [],
+    "speed_in": 0.135,
+    "tel_age_s": 0.031,
+    "fresh": true,
+    "poll_s": 0.5,
+    "lock_mono": 361415.171,
+    "disarm_req_mono": 361415.171,
+    "disarm_call": "OK",
+    "disarm_ret_mono": 361415.171,
+    "disarmed_seen_mono": 361415.578
+   }
+  },
+  "arrived_to_dest_m": 0.1,
+  "final_stop_to_service_dest_m": 0.3,
+  "judge3": {
+   "arrived": true,
+   "inside": true,
+   "outside_max_m": -2.39,
+   "stop": "확인",
+   "final_pass": true
+  },
+  "hold": {
+   "drift_m": 0.0,
+   "confirm_sim_t": 156.752,
+   "arrival_event_sim_idx": 1202,
+   "z": 27.3984
+  },
+  "ulog": {
+   "params": {
+    "MAV_SYS_ID": 2,
+    "NAV_ACC_RAD": 3.0,
+    "RA_ACC_RAD_MAX": 3.0
+   },
+   "seq_total": 18,
+   "seq_reached": [
+    -1,
+    1,
+    3,
+    5,
+    7,
+    9,
+    11,
+    13,
+    15,
+    17
+   ],
+   "finished_t": 144.33,
+   "speed_sp_zero_after_finished_t": 144.314,
+   "disarm_t": 145.868,
+   "cmd400_t": [
+    145.866
+   ],
+   "acceptance_radius_values": [
+    3.0
+   ]
+  },
+  "seq_missing": [
+   2,
+   4,
+   6,
+   8,
+   10,
+   12,
+   14,
+   16
+  ],
+  "align": {
+   "offset_s": -9.252,
+   "rms_mps": 0.072
+  },
+  "e2_3": {
+   "3b_t": 144.77299999999997,
+   "slow_run_until_t": 145.853,
+   "disarm_t": 145.868,
+   "after_s": 1.0,
+   "gz_stop_to_disarm_s_record_only": 1.095,
+   "gz_max_gap_s": 0.054,
+   "align_offset_s": -9.252,
+   "align_rms_mps": 0.072,
+   "align_note": "rms 는 속도 일치도이지 시각 정렬 불확실성이 아니다 (Codex 0130 P2)"
+  },
+  "park_server": {
+   "mission_seq": 1,
+   "run_id": "tb3_segB_all_a",
+   "reason": "NORMAL_STILL",
+   "cond_cap": false,
+   "cond_still": true,
+   "after_s": 1.0,
+   "decide_mono": 361415.171,
+   "decide_wall": 1791947640.787,
+   "finished_first_mono": 361413.671,
+   "still_since_mono": 361414.171,
+   "still_resets": [],
+   "speed_in": 0.135,
+   "tel_age_s": 0.031,
+   "fresh": true,
+   "poll_s": 0.5,
+   "lock_mono": 361415.171,
+   "disarm_req_mono": 361415.171,
+   "disarm_call": "OK",
+   "disarm_ret_mono": 361415.171,
+   "disarmed_seen_mono": 361415.578,
+   "still_to_disarm_req_s": 1.0,
+   "lock_wait_s": 0.0
+  },
+  "limits": [
+   "seq: ULog mission_result 기록 주기로 솎임 — 끝 도달·단조만 확인, 경유점 누락 없음과 동등하지 않음 (미확인)",
+   "Gazebo 속도 = 0.2 s 창 위치 차분 (창 중심 시각, 필터 지연 ≈ 0.1 s)"
+  ],
+  "imu_rate": {
+   "accel_rate_hz_median": 500.0,
+   "dv_dt_us_median": 4000.0,
+   "dv_clip_values": [
+    0
+   ]
+  },
+  "server_env": {
+   "UGV_STOP_CAP_FIRST": "1",
+   "UGV_STOP_ITEMS_RAMP": "1",
+   "UGV_PX4_END_EXTEND": "1",
+   "UGV_PX4_PARK_AFTER_S": null,
+   "UGV_MODEL_VARIANT": "susp_a_acc3_imu500",
+   "UGV_TEST_HOOKS": "0",
+   "ADAIR_RUN_ID": "tb3_segB_all_a",
+   "UGV_PX4_STALL_DETECT": "1",
+   "UGV_STOP_SPEED_CMD": "0",
+   "UGV_STOP_GRADE": "0",
+   "UGV_SPEED_TERRAIN": "0",
+   "UGV_SPEED_TERRAIN_CMD": "0"
+  },
+  "status": "PASS"
+ }
+]
