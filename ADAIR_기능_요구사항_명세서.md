@@ -254,7 +254,8 @@ UAV·UGV 실행 계층
   </tbody>
 </table>
 
-> 피드백 개선 구현 후 이 표의 상태를 `구현`으로 갱신하고 관련 커밋 또는 화면 캡처를 증빙으로 연결한다.
+개선 반영 커밋: 4849ce3 web/app.py 좌표·기상값 소수점 표시 정리
+개선 전·후 화면: docs/intergration/media/fb-6_compare.png
 
 ## 8. 검증 계획과 증빙
 
