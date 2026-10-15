@@ -27,6 +27,8 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 | `UGV_ENV_URL` | `http://127.0.0.1:8300` | 환경 서버. UGV 시계가 환경 시각(`/health` simulation_time_s)을 따라가고, 상황판은 시나리오 시각(scenario_start_kst + 초)으로 보인다. 처음 연결하면 환경 시각에 멈춰 있다가 환경이 한 스텝 나아가거나 차가 처음 출발하면 흐른다. 비우면 혼자 (서버 시작 = 0) |
 | `UGV_TARGET_MODE` | `node` | `road_point` 이면 `target`(좌표)을 노드 대신 가장 가까운 **도로 위 점**에 붙여 거기 선다. 요청마다 `target_mode` 로도 고른다 |
 | `UGV_APPROACH_MAX_M` | `500` | fallback 접근 노드의 화재 거리 상한 |
+| `UGV_COUNTER` | `0` | `1` 이면 목표가 도로에서 `UGV_TARGET_SNAP_M` 보다 멀지만 `UGV_COUNTER_MAX_M` 안일 때 거절 대신 `COUNTER` (evaluate 참고) |
+| `UGV_COUNTER_MAX_M` | `3000` | 역제안을 낼 목표~도로 거리 상한 (m) |
 | `UGV_TIME_SCALE` | `1` | 시뮬레이션 초 / 벽시계 초. PX4 쪽 `PX4_SIM_SPEED_FACTOR`(px4-start.sh 의 `SPEED`)와 같은 값. sim 차량도 이 배율로 달린다 |
 | `UGV_SECONDS_PER_ENV_STEP` | `60` | 환경 CA 1스텝이 몇 시뮬레이션 초인가. **잠정값 (INT-05 미정)** |
 | `UGV_ORCH_URL` | `http://127.0.0.1:8200` | 총괄 주소. 상황판 출동 요청을 여기 `POST /tasks` 로 전달 |
@@ -102,6 +104,7 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 | `fault` | string \| null | `UNAVAILABLE` 일 때 이상 내용 `CODE: 설명` |
 | `current_road_id` | string \| null | 주행 중 지금 달리는 도로 |
 | `sim_time_s` | float | 응답 시점 시뮬레이션 초 |
+| `station` | object \| null | 소속 거점 `{base, node_id, lat, lon, access_point}`. `access_point` = 거점 앞 도로 위 지점 `{road_id, s_m, node_id, lat, lon}` — 복귀 목적지 `RP:<road_id>:<s_m>` 로 쓴다 |
 
 없는 자원이면 `404`.
 
@@ -116,7 +119,8 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 | `task_id` | string | ✅ | |
 | `decision_id` | string | ✅ | 재평가마다 새 값 |
 | `target.lat` / `target.lon` | float | | 화재 좌표 (권장) |
-| `target_node` | string | | 도로 노드 id 를 이미 알 때 |
+| `target_node` | string | | 도로 노드 id 를 이미 알 때. 도로 위 지점은 `RP:<도로ID>:<도로 node_a 에서 m>` (거점 복귀 등) |
+| `max_snap_m` | float | | 목표~도로 허용 거리. `COUNTER` 의 `counter_offer.max_snap_m` 을 그대로 실어 다시 요청할 때 (최대 `UGV_COUNTER_MAX_M`) |
 
 ```json
 {"task_id": "task-101", "decision_id": "dec-001", "target": {"lat": 38.0444, "lon": 128.2028}}
@@ -127,12 +131,13 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `task_id`, `decision_id`, `resource_id` | string | 요청값 그대로 |
-| `verdict` | string | `ACCEPT` / `REJECT` (COUNTER 없음) |
-| `eta_sec` | int \| null | ACCEPT 일 때 도로망 기준 도착 예상 시간. REJECT 는 `null` |
+| `verdict` | string | `ACCEPT` / `REJECT` / `COUNTER` (`UGV_COUNTER=1` 일 때만) |
+| `eta_sec` | int \| null | ACCEPT 일 때 도로망 기준 도착 예상 시간. REJECT·COUNTER 는 `null` |
 | `reason` | string \| null | 아래 표 |
 | `detail` | string \| null | 사람이 읽는 설명 |
 | `target_node` | object \| null | 실제 목적지 도로 노드 `{node_id, lat, lon, snap_m}`. `snap_m` = 요청 좌표와의 거리 |
-| `path` | string[] \| null | ACCEPT 일 때 경유 노드 id (출발 노드 포함) |
+| `path` | string[] \| null | ACCEPT 일 때 경유 노드 id (출발 노드 포함). COUNTER 면 제안 지점까지의 경로 |
+| `counter_offer` | object \| null | COUNTER 일 때만 `{max_snap_m, eta_sec, note}`. `max_snap_m` 을 요청에 실으면 같은 지점으로 ACCEPT. 그 지점에서 목표가 보이는지는 판단하지 않는다 |
 
 ```json
 {"task_id": "task-101", "decision_id": "dec-001", "resource_id": "A-ugv1",
@@ -186,7 +191,8 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 {"task_id": "task-101", "decision_id": "dec-001", "target": {"lat": 38.0444, "lon": 128.2028}}
 ```
 
-`target_node` 는 노드 id 를 직접 지정할 때만 쓴다 (시험·시연용).
+`target_node` 는 노드 id 를 직접 지정할 때만 쓴다 (시험·시연용). `RP:<도로ID>:<m>` 이면 그 도로 위 지점으로 간다 — 거점 복귀는 상태의 `station.access_point` 로 이 형식을 만든다. 이미 그 지점에 서 있으면 `eta_sec: 0` 으로 바로 완료.
+`max_snap_m` 은 evaluate 와 같다 (COUNTER 를 받아들인 뒤 실행).
 
 **응답 200**
 
@@ -199,9 +205,9 @@ UAV 와 같이 **화재 좌표(`target`)** 를 받는다. 목적지 도로 노�
 
 | 코드 | 의미 |
 |---|---|
-| 404 | 자원 또는 도로 노드 없음 |
+| 404 | 자원, 도로 노드 또는 `RP:` 의 도로 없음 |
 | 409 | 다른 task 수행 중, 같은 task 진행 중, 또는 판단 결과 REJECT (`detail` 에 reason) |
-| 422 | `target`·`target_node` 둘 다 없음 |
+| 422 | `target`·`target_node` 둘 다 없음, 또는 `RP:` 형식 오류 |
 | 500 | 드라이버가 주행을 시작하지 못함 (PX4 arm·미션 거부 등) |
 
 ## POST /ugv/{resource_id}/stop
