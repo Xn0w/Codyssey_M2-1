@@ -254,8 +254,8 @@ UAV·UGV 실행 계층
   </tbody>
 </table>
 
-개선 반영 커밋: 4849ce3 web/app.py 좌표·기상값 소수점 표시 정리
-개선 전·후 화면: docs/intergration/media/fb-6_compare.png
+- 개선 반영 커밋: 4849ce3 web/app.py 좌표·기상값 소수점 표시 정리
+- 개선 전·후 화면: docs/intergration/media/fb-6_compare.png
 
 ## 8. 검증 계획과 증빙
 
