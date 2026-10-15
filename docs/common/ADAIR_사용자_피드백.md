@@ -191,7 +191,5 @@ ADAIR는 팀원 5명이 각각 서로 다른 사용자 2명에게 테스트 및 
 - 원문 보관: 본 문서
 - 수집일: 2026/10/06
 - 테스트 방식: 대면시 직접시연
-- 개선 반영 커밋: 4849ce3
-- 개선 전·후 화면: /intergration/media/fb-6_compare.png
-- 개선 반영 커밋: `web/app.py` 좌표·기상값 소수점 표시 정리
+- 개선 반영 커밋: 4849ce3 `web/app.py` 좌표·기상값 소수점 표시 정리
 - 개선 전·후 화면: `docs/intergration/media/fb-6_compare.png`
