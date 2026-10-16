@@ -154,7 +154,7 @@ class FakeUgv:
                 return r
         if path == "/ugv":
             return httpx.Response(200, json=[{
-                "resource_id": rid, "resource_type": "UGV", "base": "A", "state": u["state"],
+                "resource_id": rid, "resource_type": u.get("resource_type", "UGV"), "base": "A", "state": u["state"],
                 "position": {"lat": u["lat"], "lon": u["lon"]}, "fuel_pct": 90.0, "current_node": "A",
                 "current_task_id": u["current_task_id"], "driver": "sim", "driver_status": "IDLE",
                 "updated_at": time.time(), **({"station": self.station} if self.station else {})}

@@ -153,6 +153,7 @@ python run_servers.py status               # 모두 ✅ 확인
 | `python run_servers.py stop dispatch` | 지상 지원 자동 요청만 끄기 |
 | `$env:TWIN_DISPATCH_ARGS="--trigger sunset"` | 지상 지원을 일몰(19:06) 이후에 요청 (2019 실제 기록과 같은 시점) |
 | `ORCH_UGV_THERMAL`, `ORCH_AUTO_RECON_GROUND` | UGV 열화상·지상 정찰 후보 (10/9 합의로 기본 켜짐, `0`이면 끔) |
+| `ORCH_UGV_RETURN_HOME` | UGV 임무 후 소속 거점 귀소 (2026-10-16부터 `run_servers.py` 기본 `1`). UGV만 귀소하고 귀소 완료까지 점유, 소방차는 도착지(마을회관 방어 등) 유지. 귀소 거절·실패는 FAULTED, 결과 불명은 UNKNOWN으로 점유 유지 → 운용자 `CONFIRM_RESOURCE_IDLE`로 해제. `0`이면 끔. `run_twin_ugv.sh thermal`(UGV 방어 구성)은 기본 `0` |
 
 ---
 

@@ -317,3 +317,23 @@ def test_confirm_on_return_home_unknown_does_not_touch_other_hold(world, monkeyp
     assert out["status"] == "RELEASED" and not _held(orch, aid)
     t = orch.ledger.get_task(task.task_id)
     assert t.purpose_status == "HOLD" and t.hold_reason == "OTHER_ATTEMPT_OFFLINE"
+
+
+def test_fire_engine_does_not_return_home(world, monkeypatch):
+    """귀소는 UGV 만 (2026-10-16): 소방차는 도착 위치에 머물고(마을회관 방어 등) READY 확인으로 반납된다."""
+    monkeypatch.setattr(config, "UGV_RETURN_HOME", True)
+    orch, ugv = world["orch"], world["ugv"]
+    ugv.default_script = _script
+    ugv.station = STATION
+    ugv.units["A-ugv1"]["resource_type"] = "FIRE_ENGINE"
+    task = submit(orch, request_id="FE1", kind="GROUND_SUPPORT",
+                  requirements={"resource_types": ["FIRE_ENGINE"], "sensor": None, "needs_env_ack": False})
+    out = orch.dispatch(task.task_id)
+    assert out["status"] == "STARTED", out
+    aid = out["attempt_id"]
+    assert orch.ledger.get_attempt(aid)["command"]["resource_type"] == "FIRE_ENGINE"
+    for _ in range(8):
+        orch.poll()
+    att = orch.ledger.get_attempt(aid)
+    assert att["substatus"] == "RELEASED" and "return_home" not in (att["detail"] or {})
+    assert not _home_execs(ugv, aid) and not _held(orch, aid)

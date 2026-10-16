@@ -87,6 +87,8 @@ def server_defs(opts: dict) -> dict:
     # 드론 서버 기본은 꺼짐(복귀 중 BUSY 거절)이라 총괄 값을 그대로 넘겨 짝을 맞춘다 — 안 넘기면 총괄이 다시 보내도 드론이 거절한다
     uav_retask = "1" if os.environ.get("ORCH_RETASK_WHILE_RETURNING", "1") == "1" else "0"
     orch_env = {**tw, "ORCH_ENV_MODE": "team_http", "ORCH_DB_PATH": str(run / "orchestrator.sqlite3")} if tw else {}
+    # UGV 임무 후 거점 귀소 (사용자 결정 2026-10-16: 발표 시연에서 켬, 소방차는 제외 — orchestrator/config.py UGV_RETURN_HOME)
+    orch_env["ORCH_UGV_RETURN_HOME"] = os.environ.get("ORCH_UGV_RETURN_HOME", "1")
     speed = str(opts.get("twin_speed") or 100)
     uv = [PY, "-m", "uvicorn"]
     return {
