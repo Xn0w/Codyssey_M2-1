@@ -88,8 +88,11 @@ RESOURCE_OFFLINE_S = 30.0
 # ---------------------------------------------------------------------------
 COUNTER_ROUNDS_PER_RESOURCE = 2
 # COUNTER 수정안 중 총괄이 재평가 요청에 실어 보낼 수 있는 필드.
-# 현재 UAV EvaluateRequest 가 받을 수 있는 수정 필드는 target_agl_m 뿐이다
-# (observe_duration_s 는 요청에 넣을 칸이 없어 재평가 불가 — UAV팀 계약 대기).
+# UAV EvaluateRequest 는 observe_duration_s 도 받고 UAV 는 복귀 여유가 모자라면 더 짧은 체류를 COUNTER 로
+# 제안하지만, 관측시간(총괄이 보내는 값 — 초기 원 비행 OBS_INITIAL_ORBIT_DURATION_S=120 s 등, 보내지 않으면 UAV 기본 60 s)은
+# 임무에 필요한 값이다.
+# 그보다 짧게 머무르면 관측 목적을 채우지 못해 갈 이유가 없으므로 받지 않는다
+# (사용자 결정 2026-10-15: 설계 의도 → COUNTER_FIELD_UNSUPPORTED 로 다음 후보).
 COUNTER_SUPPORTED_FIELDS = {"UAV": {"target_agl_m"}, "UGV": set()}
 
 # ---------------------------------------------------------------------------
