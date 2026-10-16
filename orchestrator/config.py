@@ -93,7 +93,10 @@ COUNTER_ROUNDS_PER_RESOURCE = 2
 # 임무에 필요한 값이다.
 # 그보다 짧게 머무르면 관측 목적을 채우지 못해 갈 이유가 없으므로 받지 않는다
 # (사용자 결정 2026-10-15: 설계 의도 → COUNTER_FIELD_UNSUPPORTED 로 다음 후보).
-COUNTER_SUPPORTED_FIELDS = {"UAV": {"target_agl_m"}, "UGV": set()}
+# COUNTER 는 이번 범위에서 구현하지 않는다 (사용자 결정 2026-10-16): 모든 COUNTER 를 거절로 보고 다음 후보로 넘긴다
+# (재평가 없음, 장부 사유 COUNTER_FIELD_UNSUPPORTED:<필드> / COUNTER_NOT_ACTIONABLE). 이전 값 {"UAV": {"target_agl_m"}}.
+# 협상 규칙(negotiation.decide_counter)은 남겨 두었다 — 다시 받으려면 여기에 필드를 넣는다.
+COUNTER_SUPPORTED_FIELDS = {"UAV": set(), "UGV": set()}
 
 # ---------------------------------------------------------------------------
 # 우선순위 (사용자 결정 2026-09-30, 기본값은 같은 날 자동으로 변경)

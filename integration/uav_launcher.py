@@ -115,11 +115,18 @@ def wait_idle(uav_ids, timeout_s: float = 60.0) -> dict:
         out[uav_id] = None
         if not url or url == "TBD":
             continue
+        refused = 0
         while True:       # 기한이 지나도 한 번은 조회한다 (앞 드론이 기한을 다 써도 뒤 드론을 시간 초과로 잘못 보고하지 않게)
             try:
-                s = requests.get(f"{url}/uav/{uav_id}/state", timeout=3).json()
+                r = requests.get(f"{url}/uav/{uav_id}/state", timeout=3)
+                refused = 0           # 연결은 됐다 (응답 형식이 이상해도 서버는 살아 있다)
+                s = r.json()
                 if s.get("current_task_id") is None and s.get("returning_task_id") is None and not s.get("armed"):
                     out[uav_id] = round(time.time() - t0, 1)
+                    break
+            except requests.ConnectionError:
+                refused += 1          # 서버가 죽었으면 기한을 다 쓰지 않는다 (스텝마다 60 s 씩 멈추지 않게) → 시간 초과(None)로 보고
+                if refused >= 3:
                     break
             except Exception:
                 pass

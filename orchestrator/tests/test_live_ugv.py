@@ -2,9 +2,9 @@
 """실제 UGV Local Agent(ugv/server.py, UGV_DRIVER=sim) 와의 HTTP 계약 시험.
 
 실행 전 (저장소 루트):
-  UGV_DRIVER=sim UGV_TIME_SCALE=20 python -m uvicorn ugv.server:app --port 8100
-  (UGV_TIME_SCALE=1 실시간이면 짐 싣기 60 s 만으로 반납 대기 시간을 넘는다.
-   환경 서버 없이 돌리는 UGV 서버 판이면 UGV_ALLOW_NO_FIRE_DATA=1 도 준다 — 없으면 FIRE_DATA_UNAVAILABLE 로 거절)
+  UGV_DRIVER=sim UGV_TIME_SCALE=20 UGV_ALLOW_NO_FIRE_DATA=1 python -m uvicorn ugv.server:app --port 8100
+  (UGV_TIME_SCALE=1 실시간이면 약 2.5 km 주행만으로 반납 대기(30 s)를 넘는다.
+   UGV_ENV_URL 없이 돌리므로 UGV_ALLOW_NO_FIRE_DATA=1 이 없으면 FIRE_DATA_UNAVAILABLE 로 거절된다)
   ORCH_LIVE_UGV=1 python -m pytest orchestrator/tests/test_live_ugv.py -s
 
 PX4 주행이 아니다. UGV 서버의 SimDriver(시연 속도)와 실제 도로망 판단을 검증한다.
@@ -67,6 +67,14 @@ def idle_vehicles():
     yield
 
 
+def _position(rid):
+    return httpx.get(f"{URL}/ugv/{rid}/state", timeout=5).json()["position"]
+
+
+def _moved_m(a, b):
+    return math.hypot((b["lat"] - a["lat"]) * 111_320, (b["lon"] - a["lon"]) * 111_320 * math.cos(math.radians(a["lat"])))
+
+
 def _orch(tmp_path, name):
     return Orchestrator(Ledger(str(tmp_path / f"{name}.db")), FixtureEnv(), ugv=UgvClient(URL))
 
@@ -92,10 +100,27 @@ def _run_until_released(orch, attempt_id, timeout=30):
 def test_live_ugv_road_status_closed_loop(tmp_path):
     orch = _orch(tmp_path, "ugv1")
     task = _submit(orch, "UGV-1", ROAD_OK)
+    start = _position("A-ugv1")
     out = orch.dispatch(task.task_id)
     print("\ndispatch:", out)
     assert out["status"] == "STARTED" and out["resource_id"] == "A-ugv1"
     assert _run_until_released(orch, out["attempt_id"])
+    # 실제로 달렸는지 (이미 목표에 서 있으면 경로 0 으로 도착 처리돼 시험이 거짓 통과한다): 위치 변화와 서버 경로 길이
+    # 도착 위치는 임무 기록의 관측 위치로 잰다 (반납 시점 위치는 ORCH_UGV_RETURN_HOME=1 이면 거점 복귀 뒤라 0 에 가깝다)
+    r = httpx.get(f"{URL}/ugv/A-ugv1/task/{out['attempt_id']}", timeout=5)
+    r.raise_for_status()
+    t = r.json()
+    assert t["status"] == "COMPLETED", f"임무 상태 {t['status']}: {t.get('error')}"
+    approach = t.get("approach") or {}
+    total = (t.get("progress") or {}).get("total", 0)
+    moved = _moved_m(start, t["observation"]["position"])
+    print(f"moved {moved:.0f} m, route {approach.get('route_length_m')} m, progress total {total}")
+    if "route_length_m" in approach:
+        # ADAIR UGV 서버: 계획 경로 길이를 준다. progress.total 은 주행하면 드라이버 경로 점 수로 바뀌지만 경로 0 이면 1 로 남는다
+        assert approach["route_length_m"] > 0, f"계획 경로 0 m — 주행 없이 도착 처리됨 (mode {approach.get('mode')}, point {approach.get('point')})"
+    else:
+        assert total > 0, f"서버 경로 waypoint 0 — 주행 없이 도착 처리됨: {t.get('progress')}"
+    assert moved > 100, f"출발 위치에서 {moved:.0f} m 만 움직였다 — 주행 없이 도착 처리됨"
     ev = orch.ledger.events(task.task_id)
     for e in ev:
         print(" ", e["event_type"], e["resource_id"] or "", e["result"] or "", e["reason"] or "")
