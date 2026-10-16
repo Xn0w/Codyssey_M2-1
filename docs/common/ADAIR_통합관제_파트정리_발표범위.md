@@ -212,7 +212,7 @@ UAV·UGV 자체의 거절(강풍·도달 불가 등)은 각 파트 문서에 있
 
 ## 7. 테스트 결과와 로그·영상 위치
 
-### 7-1. 자동 시험 (GitHub Actions와 같은 목록, 10/12 PR #42 기준)
+### 7-1. 자동 시험 (GitHub Actions와 같은 목록, 10/12 PR #42 기준 — `pytest orchestrator` 는 2026-10-16 `feat/orchestrator-final` 기준으로 갱신)
 
 | 시험 | 내용 | 결과 |
 |---|---|---|
@@ -222,7 +222,7 @@ UAV·UGV 자체의 거절(강풍·도달 불가 등)은 각 파트 문서에 있
 | `tests.int03_orch_panel_check` | 총괄 판단 패널, 읽기 전용 | 7/7 통과 |
 | `tests.log_coverage_check` | 폐루프 기록(decision_id·자원) | 7/7 통과 |
 | `tests.int04_05_check` | 거점 좌표 단일 출처, 시계 하나, 트윈 구성 | 13/13 통과 |
-| `pytest orchestrator` | 총괄 (+ UGV 열화상 기본 켜짐 반영) | 341 passed, 8 skipped |
+| `pytest orchestrator` | 총괄 (+ UGV 열화상 기본 켜짐 반영) | 443 passed, 8 skipped (2026-10-16. 10/12 PR #42 당시 341 passed, 8 skipped) |
 
 ### 7-2. 트윈 통합 확인 (10/12, PR #39·#41 반영 후)
 
