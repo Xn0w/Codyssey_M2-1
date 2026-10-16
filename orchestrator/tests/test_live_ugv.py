@@ -106,12 +106,16 @@ def test_live_ugv_road_status_closed_loop(tmp_path):
     assert out["status"] == "STARTED" and out["resource_id"] == "A-ugv1"
     assert _run_until_released(orch, out["attempt_id"])
     # 실제로 달렸는지 (이미 목표에 서 있으면 경로 0 으로 도착 처리돼 시험이 거짓 통과한다): 위치 변화와 서버 경로 길이
-    moved = _moved_m(start, _position("A-ugv1"))
-    prog = httpx.get(f"{URL}/ugv/A-ugv1/task/{out['attempt_id']}", timeout=5).json().get("progress") or {}
-    print(f"moved {moved:.0f} m, waypoints {prog.get('total')}")
+    # 도착 위치는 임무 기록의 관측 위치로 잰다 (반납 시점 위치는 ORCH_UGV_RETURN_HOME=1 이면 거점 복귀 뒤라 0 에 가깝다)
+    r = httpx.get(f"{URL}/ugv/A-ugv1/task/{out['attempt_id']}", timeout=5)
+    r.raise_for_status()
+    t = r.json()
+    assert t["status"] == "COMPLETED", f"임무 상태 {t['status']}: {t.get('error')}"
+    total = (t.get("progress") or {}).get("total", 0)
+    moved = _moved_m(start, t["observation"]["position"])
+    print(f"moved {moved:.0f} m, waypoints {total}")
+    assert total > 0, f"서버 경로 waypoint 0 — 주행 없이 도착 처리됨: {t.get('progress')}"
     assert moved > 100, f"출발 위치에서 {moved:.0f} m 만 움직였다 — 주행 없이 도착 처리됨"
-    if "total" in prog:
-        assert prog["total"] > 0, f"서버 경로 waypoint 0: {prog}"
     ev = orch.ledger.events(task.task_id)
     for e in ev:
         print(" ", e["event_type"], e["resource_id"] or "", e["result"] or "", e["reason"] or "")
