@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """디지털 트윈 시계 — 진짜 세계(환경 계약 서버)를 진행시키는 **유일한** 주체 (INT-05: 시계 소유자 하나).
 
-    python tools/twin_clock.py                # 100배속: CA 한 스텝(2100 s)마다 실제 21초
+    python tools/twin_clock.py                # 100배속: /advance 한 번 = subtick_s(트윈 60 s) → 실제 0.6초 (끄면 CA 2100 s → 21초)
     python tools/twin_clock.py --speed 1      # 실시간 (PX4 real 비행과 같은 시간 축)
 
 배속은 드론 쪽 시간과 맞춰야 한다. uav-agent mock 은 MOCK_TIME_SCALE=100 배속으로 날기 때문에 기본값도 100.
@@ -32,21 +32,27 @@ def main():
     tick = h["assumptions"].get("subtick_s") or h["assumptions"]["tick_s"]
     print(f"run {h['run_id']} · 한 번 진행 {tick:.0f}s (CA 단계 {h['assumptions']['tick_s']:.0f}s) · "
           f"{a.speed:g}배속 → 실제 {tick / a.speed:.1f}s 마다 진행")
-    while True:
-        s = cx.get(f"{a.env}/snapshot").json()
-        if s["simulation_time_s"] >= a.until_h * 3600:
-            print("시나리오 끝"); break
-        time.sleep(tick / a.speed)
+    # 다음 진행 시각을 시작 시각 기준으로 정한다 — 매번 tick/speed 를 쉬면 조회·진행에 쓴 시간만큼 늦어져
+    # 1분 진행(0.6 s 간격)에서 실제 배속이 약 94배로 떨어진다 (2026-10-16). LLM 대기로 멈춘 시간은 기준에서 뺀다
+    t0, n = time.monotonic(), 0
+    s = cx.get(f"{a.env}/snapshot").json()
+    while s["simulation_time_s"] < a.until_h * 3600:
+        n += 1
+        time.sleep(max(0.0, t0 + n * tick / a.speed - time.monotonic()))
         if not a.no_llm_pause:
-            _wait_llm(cx, a.orch)
+            t0 += _wait_llm(cx, a.orch)        # 실제로 멈춘 시간만 뺀다 (상태 조회 시간은 다음 대기에서 흡수)
+        late = time.monotonic() - (t0 + n * tick / a.speed)
+        if late > 10 * tick / a.speed:        # 10번 넘게 밀리면(절전·오래 멈춤) 몰아서 진행하지 않고 기준을 다시 잡는다
+            t0 += late
         s = cx.post(f"{a.env}/advance", json={"steps": 1}).json()
         burning = sum(1 for c in s["fire_cells"] if c["fire_state"] == "BURNING")
         print(f"  sim {s['simulation_time_s'] / 3600:5.2f}h  v{s['state_version']}  타는 칸 {burning:4d}  "
               f"바람 {s['wind_ms']} m/s {s['wind_dir_deg']:.0f}°")
+    print("시나리오 끝")
 
 
-def _wait_llm(cx, orch):
-    """총괄이 LLM 을 기다리는 동안 진행하지 않는다. 총괄이 응답하지 않으면 바로 진행."""
+def _wait_llm(cx, orch) -> float:
+    """총괄이 LLM 을 기다리는 동안 진행하지 않는다. 총괄이 응답하지 않으면 바로 진행. 돌려주는 값: 멈춘 초 (안 멈췄으면 0)."""
     paused = None
     while True:
         try:
@@ -54,9 +60,11 @@ def _wait_llm(cx, orch):
         except (httpx.HTTPError, ValueError):
             busy = 0
         if not busy:
-            if paused is not None:
-                print(f"  LLM 응답 — 시계 다시 진행 (멈춘 시간 {time.monotonic() - paused:.0f}s)")
-            return
+            if paused is None:
+                return 0.0
+            waited = time.monotonic() - paused
+            print(f"  LLM 응답 — 시계 다시 진행 (멈춘 시간 {waited:.0f}s)")
+            return waited
         if paused is None:
             paused = time.monotonic()
             print("  총괄 LLM 대기 중 — 시계 멈춤")

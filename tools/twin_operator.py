@@ -48,6 +48,7 @@ def main():
     # 총괄이 LLM 응답을 기다리는 동안(최대 60초)에는 POST /tasks 가 늦게 돌아온다 → 넉넉히 기다리고, 실패하면 다음 바퀴에 다시
     slow = httpx.Client(timeout=180)
     done = set()
+    first_step = {}
     said = False
     while True:
         if _planner_on(cx, a.orch):
@@ -63,7 +64,8 @@ def main():
         t, k = s["simulation_time_s"], s["step_count"]
         if reps and NIGHT_FROM_S <= t < NIGHT_TO_S and (s["run_id"], k) not in done:
             c0, r0 = map(int, reps[0]["cell_id"].split("_"))
-            r = 1 + int((t - NIGHT_FROM_S) // s["tick_s"]) % 6         # 1~6칸 고리를 반복 (진짜 불 위치를 쓰지 않음)
+            k0 = first_step.setdefault(s["run_id"], k)               # 첫 순찰 단계 (1분 진행이면 일몰 직후에 시작)
+            r = 1 + (k - k0) % 6                                      # 1~6칸 고리를 반복 (진짜 불 위치를 쓰지 않음)
             toward, basis = _head(cx, a.orch)
             if toward is None:
                 toward, basis = (s["wind_dir_deg"] + 180) % 360, "DOWNWIND_STATION"

@@ -25,7 +25,7 @@ d = json.load(open("web/static/inje2019/scenario.json", encoding="utf-8"))["twin
 for k, v in d.items(): print(f'export {k}="{v}"')
 PYX
 )"
-export ENV_STATE_DIR="$LOG/env" ENV_RESUME=0
+export ENV_STATE_DIR="$LOG/env" ENV_RESUME=0 ENV_REPORT_DELAY_S="${ENV_REPORT_DELAY_S:-120}" ENV_SUBTICK_S="${ENV_SUBTICK_S:-60}"   # 신고 발화 후 120 s, 시계 1분 단위 (run_servers 와 같음)
 UAV_HOME_ENV=""
 if [[ $LAUNCH == forward && $MODE == mock ]]; then
   UAV_HOME_ENV="$("$PY" - <<'PYX'
