@@ -2,7 +2,9 @@
 """
 UGV 서버(ugv/server.py) ↔ 공통 커넥터 real 모드 연결 확인 (통합 점검용)
 
-사전: 다른 터미널에서  python -m uvicorn ugv.server:app --port 8100   (UGV_DRIVER 기본값 sim, PX4 불필요)
+사전: 다른 터미널에서  UGV_ALLOW_NO_FIRE_DATA=1 UGV_TIME_SCALE=20 python -m uvicorn ugv.server:app --port 8100   (UGV_DRIVER 기본값 sim, PX4 불필요)
+      UGV_ALLOW_NO_FIRE_DATA=1: 환경 서버(UGV_ENV_URL) 없이 화재 없음으로 판단. 없으면 FIRE_DATA_UNAVAILABLE 로 거절된다
+      UGV_TIME_SCALE=20: 커넥터는 도착을 실제 시간 120 s(UGV_TASK_TIMEOUT_S) 기다린다. 기본 1배속이면 시간 초과 (2026-10-16 확인)
 실행: python -m tests.ugv_server_check
 """
 
