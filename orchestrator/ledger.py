@@ -30,7 +30,7 @@ import uuid
 from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
-from .models import MISSION_OPEN_SUBSTATUSES, TERMINAL_PURPOSES, Task, can_transition
+from .models import MISSION_OPEN_SUBSTATUSES, RETURN_HOME_UNKNOWN_PREFIX, TERMINAL_PURPOSES, Task, can_transition
 
 SCHEMA_USER_VERSION = 2
 LEGACY_RUN = "LEGACY-UNSCOPED"
@@ -526,10 +526,16 @@ class Ledger:
 
     def open_mission_attempts(self, task_id: str) -> List[dict]:
         """임무가 아직 열린 실행시도 (R01). 점유 중인 시도는 '임무 종료 근거'(detail.mission_end)가 있고
-        상태가 불명(UNKNOWN)이 아닐 때만 닫힌 것으로 본다. RETURNING 같은 상태 이름만으로는 닫혔다고 보지 않는다."""
-        return [a for a in self.list_attempts(task_id)
-                if a["substatus"] in OCCUPYING_SUBSTATUSES
-                and (a["substatus"] in MISSION_OPEN_SUBSTATUSES or not (a["detail"] or {}).get("mission_end"))]
+        상태가 불명(UNKNOWN)이 아닐 때만 닫힌 것으로 본다. RETURNING 같은 상태 이름만으로는 닫혔다고 보지 않는다.
+        예외: 임무 종료 근거가 있고 귀소 명령만 불명인 UGV 시도(RETURN_HOME_UNKNOWN_PREFIX)는 닫힌 것으로 본다 (점유는 유지)."""
+        def open_(a):
+            d = a["detail"] or {}
+            if not d.get("mission_end"):
+                return True
+            if a["substatus"] == "UNKNOWN" and str(d.get("unknown_reason") or "").startswith(RETURN_HOME_UNKNOWN_PREFIX):
+                return False
+            return a["substatus"] in MISSION_OPEN_SUBSTATUSES
+        return [a for a in self.list_attempts(task_id) if a["substatus"] in OCCUPYING_SUBSTATUSES and open_(a)]
 
     # ------------------------------------------------------------------
     # 환경 반영 기록 (R04). 기체 반납과 별개로 남는다. 두 단계를 따로 기록한다:
