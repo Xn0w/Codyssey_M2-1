@@ -67,6 +67,14 @@ def idle_vehicles():
     yield
 
 
+def _position(rid):
+    return httpx.get(f"{URL}/ugv/{rid}/state", timeout=5).json()["position"]
+
+
+def _moved_m(a, b):
+    return math.hypot((b["lat"] - a["lat"]) * 111_320, (b["lon"] - a["lon"]) * 111_320 * math.cos(math.radians(a["lat"])))
+
+
 def _orch(tmp_path, name):
     return Orchestrator(Ledger(str(tmp_path / f"{name}.db")), FixtureEnv(), ugv=UgvClient(URL))
 
@@ -92,10 +100,18 @@ def _run_until_released(orch, attempt_id, timeout=30):
 def test_live_ugv_road_status_closed_loop(tmp_path):
     orch = _orch(tmp_path, "ugv1")
     task = _submit(orch, "UGV-1", ROAD_OK)
+    start = _position("A-ugv1")
     out = orch.dispatch(task.task_id)
     print("\ndispatch:", out)
     assert out["status"] == "STARTED" and out["resource_id"] == "A-ugv1"
     assert _run_until_released(orch, out["attempt_id"])
+    # 실제로 달렸는지 (이미 목표에 서 있으면 경로 0 으로 도착 처리돼 시험이 거짓 통과한다): 위치 변화와 서버 경로 길이
+    moved = _moved_m(start, _position("A-ugv1"))
+    prog = httpx.get(f"{URL}/ugv/A-ugv1/task/{out['attempt_id']}", timeout=5).json().get("progress") or {}
+    print(f"moved {moved:.0f} m, waypoints {prog.get('total')}")
+    assert moved > 100, f"출발 위치에서 {moved:.0f} m 만 움직였다 — 주행 없이 도착 처리됨"
+    if "total" in prog:
+        assert prog["total"] > 0, f"서버 경로 waypoint 0: {prog}"
     ev = orch.ledger.events(task.task_id)
     for e in ev:
         print(" ", e["event_type"], e["resource_id"] or "", e["result"] or "", e["reason"] or "")
