@@ -83,6 +83,9 @@ def server_defs(opts: dict) -> dict:
     if opts.get("twin"):
         web_env["WEB_ENV_URL"] = "http://127.0.0.1:8300"
     uav_extra = {**tw, "UAV_STATE_DIR": str(run / "uav"), "UAV_HOME": twin_uav_home(opts)} if tw else {}
+    # 복귀 중 재배정 (드론팀 UAV-06): 총괄은 기본으로 켠다 (orchestrator/config.py OBS_RETASK_WHILE_RETURNING·OBS_RETASK_AIRBORNE).
+    # 드론 서버 기본은 꺼짐(복귀 중 BUSY 거절)이라 총괄 값을 그대로 넘겨 짝을 맞춘다 — 안 넘기면 총괄이 다시 보내도 드론이 거절한다
+    uav_retask = "1" if os.environ.get("ORCH_RETASK_WHILE_RETURNING", "1") == "1" else "0"
     orch_env = {**tw, "ORCH_ENV_MODE": "team_http", "ORCH_DB_PATH": str(run / "orchestrator.sqlite3")} if tw else {}
     speed = str(opts.get("twin_speed") or 100)
     uv = [PY, "-m", "uvicorn"]
@@ -92,10 +95,10 @@ def server_defs(opts: dict) -> dict:
                  "env": tw, "desc": "환경 계약 서버 (멘토 패치)"},
         "uav1": {"cwd": ROOT / "uav" / "uav-agent", "port": 8000, "health": "/health",
                  "cmd": uv + ["main:app", "--host", "127.0.0.1", "--port", "8000"],
-                 "env": {"UAV_ID": "A-uav1", "UAV_MODE": "mock", **uav_extra}, "desc": "UAV A-uav1 (mock)"},
+                 "env": {"UAV_ID": "A-uav1", "UAV_MODE": "mock", "UAV_RETASK_WHILE_RETURNING": uav_retask, **uav_extra}, "desc": "UAV A-uav1 (mock)"},
         "uav2": {"cwd": ROOT / "uav" / "uav-agent", "port": 8001, "health": "/health",
                  "cmd": uv + ["main:app", "--host", "127.0.0.1", "--port", "8001"],
-                 "env": {"UAV_ID": "A-uav2", "UAV_MODE": "mock", **uav_extra}, "desc": "UAV A-uav2 (mock)"},
+                 "env": {"UAV_ID": "A-uav2", "UAV_MODE": "mock", "UAV_RETASK_WHILE_RETURNING": uav_retask, **uav_extra}, "desc": "UAV A-uav2 (mock)"},
         "ugv":  {"cwd": ROOT, "port": 8100, "health": "/health",
                  "cmd": uv + ["ugv.server:app", "--host", "127.0.0.1", "--port", "8100"],
                  "env": {"UGV_DRIVER": os.environ.get("UGV_DRIVER", "sim"), **({"UGV_STATE_DIR": str(run / "ugv")} if tw else {}),
