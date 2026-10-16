@@ -2,7 +2,9 @@
 """
 UGV 서버(ugv/server.py) ↔ 공통 커넥터 real 모드 연결 확인 (통합 점검용)
 
-사전: 다른 터미널에서  python -m uvicorn ugv.server:app --port 8100   (UGV_DRIVER 기본값 sim, PX4 불필요)
+사전: 다른 터미널에서  UGV_TIME_SCALE=20 python -m uvicorn ugv.server:app --port 8100   (UGV_DRIVER 기본값 sim, PX4 불필요)
+      UGV_TIME_SCALE=20: 커넥터는 도착을 실제 시간 120 s(UGV_TASK_TIMEOUT_S) 기다린다. 기본 1배속이면 근처 목표도
+      ETA 가 약 125 s 라 도착 대기 시간 초과로 끝난다 (2026-10-16 확인)
 실행: python -m tests.ugv_server_check
 """
 
