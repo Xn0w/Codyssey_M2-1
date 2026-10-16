@@ -243,7 +243,7 @@ ETA = 경로에 있는 도로 비용의 합
 |---|---|
 | `orchestrator/` | 관측 계획(PROBE·불 따라가기). UGV 출동 횟수를 정함 |
 | `environment/`, `web/static/inje2019/scenario.json` | 불 확산 설정. 불이 번져 UGV가 계속 불림 |
-| `run_servers.py`, `tools/` (`twin_clock.py`, `twin_operator.py` 등) | 트윈 실행 설정 (신고 시점, 총괄 AI가 생각하는 동안 시계 멈춤, 순찰 요청) |
+| `run_servers.py`, `tools/` (`twin_clock.py`, `twin_operator.py` 등) | 트윈 실행 설정 (신고 시점, 순찰 요청. 총괄 AI가 생각하는 동안 시계 멈춤은 개인 저장소 ADAIR에만 있음) |
 | `config.py`, `uav/uav-agent/config.py` | 거점·드론 설정 |
 | `.env` | 총괄 AI 모델 (로컬에서만 copa `claude-sonnet-4`, 팀 기본은 `gpt-5.5`) |
 
@@ -261,7 +261,7 @@ bash ugv/tools/run_twin_ugv.sh dispatch
 
 ### 5-2. 시연 시나리오와 구성
 
-**팀 시연 시나리오 (2019 인제 트윈, `run_servers.py start --twin`)** — 2019-04-04 14:45 인제 남전리 산불을 환경 모델로 재현한 것입니다. 환경은 35분 단위(CA 한 단계)로 불을 계산하고, 신고가 들어오면 총괄이 자동으로 초기 정찰(드론·UGV 허용)을 보냅니다. 드론 2대와 소방차가 총괄 요청으로 움직이고, 운용자 도구 2개(사람 대신 총괄 `/tasks`에 요청을 넣는 스크립트: `twin_operator.py`는 일몰 뒤 드론 순찰, `twin_ground_dispatch.py`는 불 확인 시 소방차의 남전1리 마을회관 방어 출동)가 함께 뜹니다. 배속 100, 도로 통제·혼잡 없음.
+**팀 시연 시나리오 (2019 인제 트윈, `run_servers.py start --twin`)** — 2019-04-04 14:45 인제 남전리 산불을 환경 모델로 재현한 것입니다. 환경은 35분 단위(CA 한 단계)로 불을 계산하고(시계는 1분씩 진행하며 단계 사이를 채움), 신고는 발화 120초 뒤에 나며, 신고가 들어오면 총괄이 자동으로 초기 정찰(드론·UGV 허용)을 보냅니다. 드론 2대와 소방차가 총괄 요청으로 움직이고, 운용자 도구 2개(사람 대신 총괄 `/tasks`에 요청을 넣는 스크립트: `twin_operator.py`는 일몰 뒤 드론 순찰, `twin_ground_dispatch.py`는 불 확인 시 소방차의 남전1리 마을회관 방어 출동)가 함께 뜹니다. 배속 100, 도로 통제·혼잡 없음.
 
 **네 구성** — 같은 트윈을 `bash ugv/tools/run_twin_ugv.sh <구성>` 한 줄로 켭니다. **모두 팀 저장소만으로 돌아갑니다.**
 

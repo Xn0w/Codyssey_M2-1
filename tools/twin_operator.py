@@ -39,6 +39,7 @@ def main():
     a = ap.parse_args()
     cx = httpx.Client(timeout=30)
     done = set()
+    first_step = {}
     while True:
         try:
             s = cx.get(f"{a.env}/snapshot").json()
@@ -48,7 +49,8 @@ def main():
         t, k = s["simulation_time_s"], s["step_count"]
         if reps and NIGHT_FROM_S <= t < NIGHT_TO_S and (s["run_id"], k) not in done:
             c0, r0 = map(int, reps[0]["cell_id"].split("_"))
-            r = 1 + int((t - NIGHT_FROM_S) // s["tick_s"]) % 6         # 1~6칸 고리를 반복 (진짜 불 위치를 쓰지 않음)
+            k0 = first_step.setdefault(s["run_id"], k)               # 첫 순찰 단계 (1분 진행이면 일몰 직후에 시작)
+            r = 1 + (k - k0) % 6                                      # 1~6칸 고리를 반복 (진짜 불 위치를 쓰지 않음)
             cells = [f"{c}_{rr}" for c, rr in ring(c0, r0, r, a.cells, s["wind_dir_deg"])]
             body = {"request_id": f"OPERATOR-PATROL:{s['run_id']}:{k}", "incident_id": "INC-NIGHT-PATROL",
                     "kind": "MONITOR",

@@ -48,7 +48,12 @@ def twin_env(opts: dict) -> dict:
     d = json.loads((ROOT / "web" / "static" / "inje2019" / "scenario.json").read_text(encoding="utf-8"))
     env = {k: str(v) for k, v in d["twin_env"].items()}
     run = Path(opts.get("twin_dir") or RUN_DIR)
-    env.update({"ENV_STATE_DIR": str(run / "env"), "ENV_RESUME": "0"})
+    env.update({"ENV_STATE_DIR": str(run / "env"), "ENV_RESUME": "0",
+                # 신고: 발화 후 시뮬레이션 120 s 고정 (실제 사례 기준, 사용자 확정). 환경 서버 기본값은 0 이라 여기서 준다.
+                # 밖에서 주면 그 값 (개인 저장소 ADAIR run_servers 와 같은 방식)
+                "ENV_REPORT_DELAY_S": os.environ.get("ENV_REPORT_DELAY_S", "120"),
+                # 시계를 1분 단위로 진행 (CA 35분 단계 사이를 채움) — 없으면 120 s 신고가 첫 CA 단계(2100 s)에야 접수된다
+                "ENV_SUBTICK_S": os.environ.get("ENV_SUBTICK_S", "60")})
     return env
 
 
