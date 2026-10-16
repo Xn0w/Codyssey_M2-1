@@ -2,12 +2,15 @@
 """실제 UGV Local Agent(ugv/server.py, UGV_DRIVER=sim) 와의 HTTP 계약 시험.
 
 실행 전 (저장소 루트):
-  UGV_DRIVER=sim python -m uvicorn ugv.server:app --port 8100
+  UGV_DRIVER=sim UGV_TIME_SCALE=20 python -m uvicorn ugv.server:app --port 8100
+  (UGV_TIME_SCALE=1 실시간이면 짐 싣기 60 s 만으로 반납 대기 시간을 넘는다.
+   환경 서버 없이 돌리는 UGV 서버 판이면 UGV_ALLOW_NO_FIRE_DATA=1 도 준다 — 없으면 FIRE_DATA_UNAVAILABLE 로 거절)
   ORCH_LIVE_UGV=1 python -m pytest orchestrator/tests/test_live_ugv.py -s
 
 PX4 주행이 아니다. UGV 서버의 SimDriver(시연 속도)와 실제 도로망 판단을 검증한다.
 """
 
+import math
 import os
 import time
 
@@ -26,13 +29,41 @@ ROAD_OK = {"lat": 38.07, "lon": 128.20, "cell_id": "ROAD_OK"}            # 도�
 FAR_RIDGE = {"lat": 38.05, "lon": 128.25, "cell_id": "RIDGE"}            # 가장 가까운 노드가 2km 초과
 
 
+def _wait_idle(timeout):
+    deadline = time.time() + timeout
+    while True:
+        fleet = httpx.get(f"{URL}/ugv", timeout=5).json()
+        busy = [u["resource_id"] for u in fleet if u["current_task_id"] is not None]
+        if not busy:
+            return fleet
+        if time.time() >= deadline:
+            pytest.fail(f"UGV 가 아직 임무 중이다: {busy} (UGV_TIME_SCALE 확인, 또는 서버 재시작)")
+        time.sleep(0.5)
+
+
+def _off_station_m(u):
+    st, pos = u.get("station") or {}, u.get("position") or {}
+    st = st.get("access_point") or st                    # 차량은 거점 좌표가 아니라 그 앞 도로 위 대기 지점에 선다
+    if st.get("lat") is None or pos.get("lat") is None:
+        return 0.0
+    return math.hypot((pos["lat"] - st["lat"]) * 111_320, (pos["lon"] - st["lon"]) * 111_320 * math.cos(math.radians(st["lat"])))
+
+
 @pytest.fixture(autouse=True)
 def idle_vehicles():
-    deadline = time.time() + 30
-    while time.time() < deadline:
-        if all(u["current_task_id"] is None for u in httpx.get(f"{URL}/ugv", timeout=5).json()):
-            break
-        time.sleep(0.5)
+    # 앞 시험(또는 앞 실행)의 차량이 아직 달리거나 목표 지점에 서 있으면 판정이 남은 상태에 좌우된다
+    # (총괄 UGV 복귀는 기본 꺼짐 — 다시 돌리면 이미 그 자리라 주행 없이 도착으로 통과한다).
+    # → 끝날 때까지 기다리고, 거점 밖 차량은 거점 대기 지점(station.access_point)으로 돌려보낸 뒤 시작한다.
+    for u in _wait_idle(120):
+        acc = (u.get("station") or {}).get("access_point") or {}
+        if _off_station_m(u) > 30 and acc.get("road_id"):
+            key = f"LIVE-HOME-{u['resource_id']}-{int(time.time() * 1000)}"
+            httpx.post(f"{URL}/ugv/{u['resource_id']}/execute", timeout=10,
+                       json={"task_id": key, "decision_id": key,
+                             "target_node": f"RP:{acc['road_id']}:{float(acc['s_m']):.1f}"}).raise_for_status()
+    off = [u["resource_id"] for u in _wait_idle(300) if _off_station_m(u) > 30]
+    if off:
+        pytest.fail(f"거점으로 돌아오지 못한 차량: {off}")
     yield
 
 
@@ -80,7 +111,7 @@ def test_live_ugv_unreachable_target_holds(tmp_path):
     print("\n", out)
     assert out["status"] == "HOLD"
     assert out["excluded"]["A-ugv1"] == "LOCAL_REJECT:TARGET_UNREACHABLE"
-    # UGV 서버 기본 차량은 A-ugv1 하나다 (소방차를 함께 띄우면 그 차는 자원 종류가 맞지 않아 빠진다)
+    # 소방차(A-fire1·B-fire1)는 자원 종류가 맞지 않아 빠진다
     assert out["excluded"].get("A-fire1", "TYPE_NOT_ALLOWED") == "TYPE_NOT_ALLOWED"
 
 
@@ -100,6 +131,8 @@ def test_live_two_tasks_do_not_share_vehicle(tmp_path):
     print("\n", a, "\n", b)
     assert a["resource_id"] == "A-ugv1"
     assert b.get("resource_id") != "A-ugv1"          # 점유 중인 차는 두 번째 Task 후보에서 빠진다
+    # 두 번째 Task 는 다른 거점 UGV(B-ugv1)가 멀리서 오거나, 그 차가 없는 서버 구성이면 HOLD 다
+    assert b.get("resource_id") in (None, "B-ugv1")
     for r in (a, b):
         if r.get("attempt_id"):
-            assert _run_until_released(orch, r["attempt_id"], timeout=60)
+            assert _run_until_released(orch, r["attempt_id"], timeout=180)
