@@ -73,6 +73,7 @@ UGV_SERVER_URL = os.getenv("ORCH_UGV_SERVER_URL") or team_config.UGV_SERVER_URL 
 HTTP_TIMEOUT_S = float(os.getenv("ORCH_HTTP_TIMEOUT_S", "10"))
 # UGV 복귀를 총괄이 관리 (2026-10-11 통합 시연 요청): 목적지 정차·READY 확인 뒤 바로 반납하지 않고 소속 거점 대기 지점으로
 # 복귀 실행을 보내 그 임무 완료 + READY 일 때 반납한다 (복귀 중 점유 유지 = 재배정 없음). 기본 끔 (기존 계약 시험과 같은 동작)
+# 대상은 UGV 만 (소방차 제외, 사용자 결정 2026-10-16). 발표 실행(run_servers.py)은 1 로 켠다
 UGV_RETURN_HOME = os.getenv("ORCH_UGV_RETURN_HOME", "0") == "1"
 # 계획 밖 UAV 임무(자동 초기 정찰)의 관측 체류 초 (UAV API 10~600). 비우면 UAV 기본값 — 통합 시연은 화재 감시 시간으로 쓴다
 RECON_OBSERVE_S = int(os.getenv("ORCH_RECON_OBSERVE_S", "0")) or None   # PROVISIONAL (실제 시계)

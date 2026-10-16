@@ -1218,7 +1218,7 @@ class Orchestrator:
             return {"attempt_id": aid, "substatus": sub, "reason": reason}
 
         rh0 = detail.get("return_home") or {}
-        if att["command"]["resource_type"] != "UAV" and rh0 and detail.get("mission_end") is not None or (
+        if att["command"]["resource_type"] == "UGV" and rh0 and detail.get("mission_end") is not None or (
                 att["substatus"] == "UNKNOWN" and str(detail.get("unknown_reason") or "").startswith(RETURN_HOME_UNKNOWN)):
             # 귀소 단계 (원 임무는 끝났다): 원 임무 응답으로 판단하지 않는다 — 원 임무 응답 형식 오류·조회 불가로
             # 귀소 상태가 바뀌거나, 원 임무 COMPLETED 로 불명 시도가 되살아나 관측을 다시 하는 일을 막는다.
@@ -1955,7 +1955,9 @@ class Orchestrator:
                 (x for x in client.states() if x.resource_id == att["resource_id"]), None)
         except Unreachable:
             v = None
-        if att["command"]["resource_type"] != "UAV" and (config.UGV_RETURN_HOME or detail.get("return_home")):
+        # 귀소는 UGV 만 (사용자 결정 2026-10-16). 소방차(FIRE_ENGINE)는 도착 위치에서 임무(마을회관 방어 등)를 이어 가므로
+        # 거점으로 돌려보내지 않고 기존처럼 READY 확인으로 반납한다
+        if att["command"]["resource_type"] == "UGV" and (config.UGV_RETURN_HOME or detail.get("return_home")):
             out = self._ugv_return_home(att, client, v, detail, move)
             if out is not False:
                 return out
