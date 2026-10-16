@@ -47,6 +47,9 @@ ATTEMPT_SUBSTATUSES = (
 # 실행시도의 "임무 부분"이 아직 열려 있는 상태. 이 상태의 시도가 있으면 같은 Task 에 새 시도를 만들지 않는다.
 # OBSERVED/APPLIED/RETURNING/FAULTED 는 임무 부분이 끝났고 기체만 점유 중인 상태다 (인계 배정은 가능).
 MISSION_OPEN_SUBSTATUSES = ("PREPARED", "REQUESTED", "STARTED", "ARRIVED", "UNKNOWN")
+# UGV 귀소 단계의 불명 사유 접두어 (2026-10-16). 임무는 이미 끝났고(mission_end) 귀소 명령만 불명이다 →
+# 점유는 유지하되 임무가 열린 시도로 보지 않는다 (같은 Task 의 인계·재배정을 막지 않게)
+RETURN_HOME_UNKNOWN_PREFIX = "UGV_RETURN_HOME_UNKNOWN:"
 
 # ---------------------------------------------------------------------------
 # Task 목적 상태 허용 전이 (2026-09-30 B01/B02). 장부(save_task)가 이 표로 검증한다.

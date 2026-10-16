@@ -141,12 +141,17 @@ class FakeUgv:
         self.scripts = {}
         self.calls = []
         self.station = None          # 주면 상태에 station.access_point 를 싣는다 (총괄 UGV 복귀 관리 시험)
+        self.hook = None             # hook(method, path, body) -> httpx.Response | None (귀소 실패 시험: 거절·불명·조회 불가)
 
     def handler(self, request):
         import time
         path = request.url.path
         body = json.loads(request.content) if request.content else None
         self.calls.append((request.method, path, body))
+        if self.hook:
+            r = self.hook(request.method, path, body)
+            if r is not None:
+                return r
         if path == "/ugv":
             return httpx.Response(200, json=[{
                 "resource_id": rid, "resource_type": "UGV", "base": "A", "state": u["state"],
