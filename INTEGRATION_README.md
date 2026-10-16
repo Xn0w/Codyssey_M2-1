@@ -31,6 +31,7 @@ python run_integrated.py            # 기본 8스텝 (python run_integrated.py 1
 실행하면 다음이 순서대로 보입니다:
 1. UAV 서버 2대 기동 → 준비 완료 로그
 2. 폐루프 8스텝: 화재 셀 수가 **매 스텝 늘어나고**(stateful), 각 Task가 UAV 판단→Safety→실행→환경갱신을 거침
+   - UAV는 복귀 중 재배정을 하지 않으므로(총괄 방침) 스텝마다 앞 드론의 착륙을 기다린다(`uav_launcher.wait_idle`). 전체 약 3분.
 3. **재평가 시연**: step 2에서 A-uav1 배터리를 낮춰 → A-uav1 거절 → **A-uav2가 인계**(실제 HTTP 재평가)
 4. UGV 경로탐색 시연: `A→B` 정상 → 도로 차단 시 우회 → 단일 도로 차단 시 도달 불가 + 원인 도로 역추적
 5. 커넥터 경유 UGV 판단: 마지막 Task 화재 좌표로 ACCEPT/REJECT

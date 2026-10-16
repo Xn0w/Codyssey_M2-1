@@ -24,9 +24,13 @@ from orchestrator.resources import UavClient
 pytestmark = pytest.mark.skipif(os.getenv("ORCH_LIVE_UAV") != "1", reason="실제 UAV 서버 필요")
 
 ENDPOINTS = {"A-uav1": "http://127.0.0.1:8000", "A-uav2": "http://127.0.0.1:8001"}
-# uav/uav-agent/README.md 의 관측 목표(능선). 좌표는 근사이며 새 인제 맵 전 시험용이다.
+# 복귀 여유 부족 COUNTER(observe_duration_s) 시험용 능선 목표 (uav/uav-agent/README.md 의 관측 목표, 좌표 근사).
+#   A 기지가 인제119(environment/config/fire_stations.json)라 배터리 95% 고정이면 이 목표(약 7.8 km)는 ACCEPT 가 된다.
+#   COUNTER 가 나오는 배터리 구간은 좁다 (2026-10-16 확인 약 82~84%). 그래서 좌표·배터리 짝에 기대지 않는다:
+#   시험이 UAV 자신의 /evaluate 로 COUNTER 가 나오는 배터리 구간을 찾아 그 가운데로 맞춘 뒤 출동시킨다
+#   (_calibrate_counter_battery). 항속 반경 안이기만 하면 되고, 배터리 100% 로도 COUNTER 가 안 나오면 원인을 적어 실패한다.
 RIDGE = {"lat": 38.0425, "lon": 128.2541, "ground_amsl_m": 804.0, "cell_id": "RIDGE"}
-# 원통 홈(38.1205,128.2018) 에서 약 3km. 지면고도 400m 는 시험 가정값 (DEM 조회 아님)
+# 인제119 기지에서 약 6 km. 지면고도 400m 는 시험 가정값 (DEM 조회 아님)
 NEAR = {"lat": 38.1000, "lon": 128.2150, "ground_amsl_m": 400.0, "cell_id": "NEAR"}
 
 
@@ -90,13 +94,93 @@ def test_live_normal_recon(tmp_path):
     assert lg.get_attempt(out["attempt_id"])["substatus"] == "RELEASED"
 
 
+def _verdict_at(orch, task, battery_pct):
+    """두 드론 배터리를 battery_pct 로 맞추고, 출동 때와 같은 평가 요청(Orchestrator._payload)으로 각자의 판정을 받는다."""
+    import httpx
+    snap = orch.view_for(task)
+    out = {}
+    for rid, url in ENDPOINTS.items():
+        httpx.post(f"{url}/mock/set", params={"battery_pct": battery_pct}, timeout=5).raise_for_status()
+        view = orch.uav.state(rid)
+        local = orch.uav.evaluate(rid, orch._payload(task, view, snap, "CALIBRATE", task.task_id, {}))
+        out[rid] = local
+    return out
+
+
+def _calibrate_counter_battery(orch, task, step=0.01):
+    """COUNTER(RETURN_MARGIN_INSUFFICIENT, observe_duration_s) 가 나오는 배터리 구간을 UAV 에게 물어 찾는다.
+
+    UAV 판정은 배터리에 단조롭다: 낮으면 REJECT, 복귀 여유는 모자라도 체류를 줄이면 되면 COUNTER, 넉넉하면 ACCEPT.
+    UAV 의 상수(소모율·여유·속도)·기지·DEM 을 시험이 다시 계산하지 않는다 — 이분 탐색으로 구간 양 끝을 찾아 가운데를 쓴다.
+    """
+    def kind(b):
+        res = _verdict_at(orch, task, b)
+        vs = {(r["verdict"], r.get("reason"), tuple(sorted((r.get("counter_offer") or {}).keys())))
+              for r in res.values()}
+        assert len(vs) == 1, f"두 드론 판정이 다르다 (같은 기지·배터리여야 함): {res}"
+        v, reason, fields = vs.pop()
+        if v == "COUNTER":
+            assert (reason, fields) == ("RETURN_MARGIN_INSUFFICIENT", ("observe_duration_s",)), \
+                f"예상과 다른 COUNTER: {reason} {fields}"
+            return "C"
+        if v == "ACCEPT":
+            return "A"
+        assert reason in ("RETURN_MARGIN_INSUFFICIENT", "LOW_BATTERY"), \
+            f"배터리와 무관한 거절 {reason} — 시험 조건(바람·센서·고도)부터 확인: {res}"
+        return "R"
+
+    lo, hi = 0.0, 100.0
+    k_hi = kind(hi)
+    assert k_hi != "R", "배터리 100% 로도 복귀 여유 부족 — 목표가 항속 반경 밖이다 (RIDGE 또는 UAV 기지 확인)"
+    if k_hi == "C":
+        c = hi
+    else:
+        c = None
+        while hi - lo > step:          # REJECT(lo) / ACCEPT(hi) 사이에서 COUNTER 를 찾는다
+            mid = (lo + hi) / 2
+            k = kind(mid)
+            if k == "C":
+                c = mid
+                break
+            lo, hi = (mid, hi) if k == "R" else (lo, mid)
+        assert c is not None, f"COUNTER 구간이 {step}% 보다 좁다 — UAV 가 observe_duration_s COUNTER 를 내지 않는다"
+    a, b = lo, c                        # 아래 끝: kind(a) != C, kind(b) == C
+    while b - a > step:
+        m = (a + b) / 2
+        a, b = (a, m) if kind(m) == "C" else (m, b)
+    low = b
+    a, b = c, hi                        # 위 끝: kind(a) == C, kind(b) != C (hi=100 이 C 면 100 이 위 끝)
+    if kind(b) == "C":
+        high = b
+    else:
+        while b - a > step:
+            m = (a + b) / 2
+            a, b = (m, b) if kind(m) == "C" else (a, m)
+        high = a
+    target = round((low + high) / 2, 2)
+    assert kind(target) == "C"
+    return target, (round(low, 2), round(high, 2))
+
+
 def test_live_ridge_counter_not_executable_holds(tmp_path):
-    """요청서 §4.2 예시: 능선 목표는 복귀 여유 부족 COUNTER(observe_duration_s) → 실어 보낼 칸이 없어 보류"""
+    """요청서 §4.2 예시: 능선 목표는 복귀 여유 부족 COUNTER(observe_duration_s) → 보류.
+    총괄이 정한 관측시간보다 짧게 머무르면 관측 목적을 채우지 못하므로 받지 않는다 (config.COUNTER_SUPPORTED_FIELDS).
+
+    배터리는 고정값(95%) 대신 UAV 가 COUNTER 를 내는 구간의 가운데로 맞춘다 (_calibrate_counter_battery).
+    출동 직전 같은 요청으로 COUNTER 를 다시 확인해, 구간이 어긋나면 '시험 조건이 틀어졌다'로 실패한다."""
     lg = Ledger(str(tmp_path / "live3.db"))
     orch = _orch(lg, _env(3.0))
-    out = orch.dispatch(_submit(orch, "LIVE-3", RIDGE).task_id)
-    print("\n", out)
+    task = _submit(orch, "LIVE-3", RIDGE)
+    battery, window = _calibrate_counter_battery(orch, task)
+    pre = _verdict_at(orch, task, battery)
+    print(f"\nCOUNTER 배터리 구간 {window} → {battery}%:",
+          {r: (v["verdict"], v.get("reason"), v.get("counter_offer")) for r, v in pre.items()})
+    for rid, v in pre.items():
+        assert v["verdict"] == "COUNTER", f"시험 조건 틀어짐: {rid} 가 배터리 {battery}% 에서 {v['verdict']}/{v.get('reason')}"
+    out = orch.dispatch(task.task_id)
+    print(out)
     assert out["status"] == "HOLD"
+    assert set(out["excluded"]) == set(ENDPOINTS)
     assert all(v == "COUNTER_FIELD_UNSUPPORTED:observe_duration_s" for v in out["excluded"].values())
 
 
