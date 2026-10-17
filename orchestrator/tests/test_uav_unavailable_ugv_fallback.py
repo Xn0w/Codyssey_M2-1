@@ -68,6 +68,60 @@ def test_ugv_stopping_far_from_target_does_not_complete(world):
                for e in lg.events(t.task_id))
 
 
+def _ugv_exec_count(world):
+    return sum(1 for c in world["ugv"].calls if c[1].endswith("/execute"))
+
+
+def test_ugv_off_target_is_not_resent_to_same_task(world):
+    """목표 칸 밖에서 잰 UGV 는 같은 임무에 다시 보내지 않는다. 다른 후보가 없으면 보류 (끝없는 재출동 방지)."""
+    orch, lg = world["orch"], world["ledger"]
+    _setup(world)
+    _ugv_far_and_arrives(world, arrive_at=FAR_ROAD)
+    _all_uavs_reject(world)
+    t = submit(orch, "FALLBACK-4", kind="ENV_SENSE", target=dict(TARGET), requirements=BOTH)
+    assert orch.dispatch(t.task_id)["resource_id"] == "A-ugv1"
+    _run(orch)
+    assert lg.get_task(t.task_id).purpose_status == "PENDING"
+    orch.dispatch(t.task_id)
+    task = lg.get_task(t.task_id)
+    assert task.purpose_status == "HOLD" and task.hold_reason == "NO_FEASIBLE_CANDIDATE"
+    assert task.resume_condition == "NEW_RESOURCE_OR_INPUT"      # 수동 잠금이 아니라 새 자원이 생기면 다시 평가
+    filtered = [e for e in lg.events(t.task_id) if e["event_type"] == "CANDIDATES_FILTERED"]
+    assert filtered[-1]["detail"]["excluded"]["A-ugv1"] == "PRIOR_ATTEMPT_TARGET_NOT_COVERED"
+    assert _ugv_exec_count(world) == 1
+
+
+def test_ugv_off_target_hands_over_to_uav(world):
+    """목표 칸 밖에서 잰 UGV 대신, 보류 뒤 드론이 갈 수 있게 되면 같은 임무를 드론에게 보낸다."""
+    orch, uav, lg = world["orch"], world["uav"], world["ledger"]
+    _setup(world)
+    _ugv_far_and_arrives(world, arrive_at=FAR_ROAD)
+    _all_uavs_reject(world)
+    t = submit(orch, "FALLBACK-5", kind="ENV_SENSE", target=dict(TARGET), requirements=BOTH)
+    assert orch.dispatch(t.task_id)["resource_id"] == "A-ugv1"
+    _run(orch)
+    orch.dispatch(t.task_id)
+    assert lg.get_task(t.task_id).purpose_status == "HOLD"
+    uav.verdicts.update({rid: {"verdict": "ACCEPT", "eta_sec": 600} for rid in uav.ids})
+    out = orch.dispatch(t.task_id)
+    assert out["status"] == "STARTED" and out["resource_id"] in uav.ids
+    assert _ugv_exec_count(world) == 1
+
+
+def test_ugv_off_target_exclusion_is_per_task(world):
+    """제외는 그 임무 안에서만이다. 다른 칸의 새 측정 임무에는 같은 UGV 가 정상 후보다."""
+    orch, lg = world["orch"], world["ledger"]
+    _setup(world)
+    _ugv_far_and_arrives(world, arrive_at=FAR_ROAD)
+    _all_uavs_reject(world)
+    t = submit(orch, "FALLBACK-6", kind="ENV_SENSE", target=dict(TARGET), requirements=BOTH)
+    assert orch.dispatch(t.task_id)["resource_id"] == "A-ugv1"
+    _run(orch)
+    other = submit(orch, "FALLBACK-7", kind="ENV_SENSE", target={**TARGET, "cell_id": "C2"}, requirements=BOTH)
+    assert orch.dispatch(other.task_id)["resource_id"] == "A-ugv1"
+    assert _ugv_exec_count(world) == 2
+
+
 def test_uavs_accept_so_ugv_not_needed(world):
     """대조군: 드론이 갈 수 있으면 같은 임무에 드론이 간다."""
     orch, uav = world["orch"], world["uav"]

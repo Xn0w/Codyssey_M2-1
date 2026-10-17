@@ -642,7 +642,7 @@ class Orchestrator:
         views, unreachable, client_of = self._collect(task.requirements.resource_types)
         ranked, excluded = filter_candidates(
             task, snap, views, unreachable, self.ledger.reservations(),
-            age_of=lambda v: client_of[v.resource_id].source_age_s(v))
+            age_of=lambda v: client_of[v.resource_id].source_age_s(v), excluded=self._prior_uncovered(task))
         if self._charging:
             # 기지 충전 중인 드론 (총괄 쪽 시험용 가정, 사용자 결정 2026-10-08) — 어떤 출동에도 쓰지 않는다
             for _, v in ranked:
@@ -721,8 +721,22 @@ class Orchestrator:
     def _candidate_ids(self, task: Task, snap) -> set:
         views, unreachable, client_of = self._collect(task.requirements.resource_types)
         ranked, _ = filter_candidates(task, snap, views, unreachable, self.ledger.reservations(),
-                                      age_of=lambda v: client_of[v.resource_id].source_age_s(v))
+                                      age_of=lambda v: client_of[v.resource_id].source_age_s(v),
+                                      excluded=self._prior_uncovered(task))
         return {v.resource_id for _, v in ranked}
+
+    def _prior_uncovered(self, task: Task) -> dict:
+        """기상 측정 임무에서 이미 목표 칸 밖에서 잰 자원은 이 임무 후보에서 뺀다. 빼지 않으면 도로 지점이 칸 밖인
+        자원이 같은 자리에서 즉시 다시 재고 또 미달 → 끝없이 반복 (2026-10-17 트윈 전체 실행). 다른 후보(UAV 등)를
+        평가하고, 남은 후보가 없으면 기존처럼 NO_FEASIBLE_CANDIDATE 보류. 장부에서 계산하므로 재시작 뒤에도 같다."""
+        if task.kind != "ENV_SENSE" or task.requirements.sensor != "WEATHER":
+            return {}
+        out = {}
+        for a in self.ledger.list_attempts(task.task_id):
+            o = self.ledger.get_observation(a["attempt_id"], "MAIN")
+            if o and o.get("result") != "FAILED" and not o.get("target_covered"):
+                out[a["resource_id"]] = "PRIOR_ATTEMPT_TARGET_NOT_COVERED"
+        return out
 
     def set_priority_mode(self, mode: str, reason: str = "") -> dict:
         if mode not in config.PRIORITY_MODES:
