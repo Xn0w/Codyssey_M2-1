@@ -127,7 +127,7 @@ class SimClock:
 
     def follow_env(self, sim_time_s: float) -> dict:
         """환경 서버의 시뮬레이션 초를 그대로 받는다 (스텝 번호가 아니라 초). 값이 바뀔 때마다 부른다.
-        환경은 스텝 단위로만 움직이므로(트윈: 2100초씩) 그 사이는 벽시계 × TIME_SCALE 로 이어 간다."""
+        환경은 진행 단위로만 움직이므로(트윈: 1분씩, 채우기 끄면 2100초씩) 그 사이는 벽시계 × TIME_SCALE 로 이어 간다."""
         before = self.now()
         self._held = None
         self._rebase(float(sim_time_s), self._read_source())

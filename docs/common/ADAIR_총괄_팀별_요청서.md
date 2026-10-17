@@ -140,7 +140,7 @@
 | 재전송 | 응답을 못 받으면 **같은 `event_id`·같은 내용**으로 다시 보낸다 (총괄이 한 번만 반영). 내용을 바꿔 같은 ID 로 보내면 409 |
 | `/events` 응답 | 202 접수·반영 / 200 같은 `event_id`·같은 내용 재전송 / **409** 같은 `event_id`·다른 내용(`EVENT_ID_CONFLICT`), `run_id` 불일치 / **422** 잘못된 요청(예: `cell_id` 없음, 시뮬레이션 시각이 미래) — 422 는 `event_id` 를 쓰지 않으므로 고쳐서 같은 ID 로 다시 보낼 수 있다 |
 | 총괄 처리 | 신고를 받으면 총괄이 최초 정찰(RECON)을 한 번 만든다. `incident_id` 가 없으면 대체키 `INC-AUTO:{run}:{cell}:{n}`: 그 칸을 볼 정찰이 이미 열려 있으면 중복 신고, 이미 불이 확인된 칸이면 새 임무 없음, 그 밖에는 새 사건. 신고 칸이 지도에 없으면 좌표를 만들지 않고 보류 (`TARGET_LOCATION_UNKNOWN`). 접수만 되고 반영 전에 멈춘 이벤트는 재시작 때 마저 반영한다 |
-| 근거 | 백서 140~146쪽 (발화·신고·대피·헬기 불가·대응 2단계 시각). 시연의 14:45 신고는 시험값이며 백서 대조 필요 |
+| 근거 | 백서 140~146쪽 (발화·신고·대피·헬기 불가·대응 2단계 시각). 시나리오 0초(14:45)를 발화로 두고 신고는 120초 뒤(트윈 14:47). 실제 보도의 발화→신고 간격 2분(14:43→14:45)을 반영, 사용자 확정 (`ENV_REPORT_DELAY_S=120`, 2026-10-16) |
 | 총괄 상태 | L·M (HTTP 시험 포함). 환경·통합 쪽 전송은 C. `payload.incident_id` 를 받아 쓰는 처리는 계약 후 추가 |
 
 ### ENV-08 현장 기상 측정의 유효시간 근거
@@ -164,7 +164,7 @@
 | ID | 현재 코드 | 요청 | 총괄 쪽 현재 처리 |
 |---|---|---|---|
 | UAV-01 | 실행 상태가 메모리(`_tasks`)에만 있어 재시작하면 404. 중복 키 없음. 상태 조회 응답(`TaskStatus`)에 자원 ID 가 없음 | ① `ExecuteRequest` 에 실행 키(`execution_attempt_id` 또는 idempotency key). ② **같은 키·같은 내용** 재요청 → 새로 출동하지 않고 기존 실행 상태 반환. **같은 키·다른 내용** → 충돌로 거절 (409, 기존 실행 유지). ③ **상태 영속**: 에이전트 재시작 후에도 같은 키로 `/task/{id}` 조회·재요청이 같은 결과. ④ `TaskStatus` 에 `uav_id` 포함. ⑤ 완료 보고 시 `observation.position` 의 `lat`·`lon`·`alt_m_amsl`(기상 측정은 `lat`·`lon`) 필수 — 없으면 총괄은 관측을 만들지 않고 불명 처리. 이동 중 보고와 관측 뒤 복귀 보고에는 위치를 요구하지 않음 | `task_id` 칸에 총괄 `attempt_id` 를 넣어 보냄. 응답의 실행 식별자·자원 ID·상태 값·필수 위치를 검증하고, 맞지 않으면 그 응답을 쓰지 않고 불명(점유 유지). 총괄 재시작 시 송신 직전·직후 시도(`PREPARED`)를 `/task/{attempt_id}` 로 대조: 같은 시도를 보고하면 추적 재개, **404·조회 불가는 UNKNOWN**(재송신·재출동 없음, 수동 해소). 제공자 멱등성 없이는 **물리 명령 최대 1회를 보장하지 않음** |
-| UAV-02 | `RETURN_MARGIN_INSUFFICIENT` COUNTER 가 `observe_duration_s` 를 제안하지만 `EvaluateRequest` 에 그 칸이 없음. `MODERATE_WIND` 는 note 만 | COUNTER 는 재평가 요청에 실을 수 있는 필드만 제안하거나, `observe_duration_s` 를 요청 필드로 추가 | 구체 수정값만 재평가(드론당 2회). 실제 서버 COUNTER 는 모두 "실행 불가"로 다음 후보 (2026-09-30, UAV Agent `UAV_MODE=mock`, 능선 목표 시험 — `01b2b33` 이전 작업 시점) |
+| UAV-02 | `RETURN_MARGIN_INSUFFICIENT` COUNTER 가 `observe_duration_s` 를 제안하지만 `EvaluateRequest` 에 그 칸이 없음. `MODERATE_WIND` 는 note 만 | COUNTER 는 재평가 요청에 실을 수 있는 필드만 제안하거나, `observe_duration_s` 를 요청 필드로 추가 | **2026-10-16 이후: COUNTER 는 이번 범위에서 구현하지 않아 모두 거절로 보고 다음 후보로 넘긴다** (재평가 없음, `orchestrator/config.py` `COUNTER_SUPPORTED_FIELDS` 비움. 후보가 없으면 HOLD). 이전 기록: 구체 수정값만 재평가(드론당 2회), 실제 서버 COUNTER 는 모두 "실행 불가"로 다음 후보 (2026-09-30, UAV Agent `UAV_MODE=mock`, 능선 목표 시험 — `01b2b33` 이전 작업 시점) |
 | UAV-03 | DEM 경로 미구현 (책임은 드론팀 확정) | 평가 응답에 `route_id, route_version, route_hash`, 실행은 같은 해시만 | Safety 에 평가·실행 조건 동일성 검사 있음. 경로 해시 칸은 계약 후 추가 |
 | UAV-04 | `deadline` 을 현재 UTC 와 비교 | `remaining_time_s`(시뮬레이션 초) | 기한을 보내지 않음 |
 | UAV-05 | 관측값이 항상 `312.5℃ / hotspot` | 모의임을 명시하거나 제거. 기상 센서(`WEATHER`) 지원 여부·형식 | 고정값 무시(`uav_reported_values_ignored` 로 원문만 보관), 총괄 모의 센서 사용 |

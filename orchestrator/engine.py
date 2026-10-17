@@ -35,6 +35,7 @@ from .knowledge import Knowledge
 from .ledger import (ACTIVE, OCCUPYING_SUBSTATUSES, AttemptConflict, IllegalTransition, Ledger,
                      ReservationConflict, RunClosed, RunNotActive, RunSwitchBlocked, content_hash, new_id)
 from .models import (AREA_KINDS, COMPLETION_AREA_ALL, COMPLETION_TARGET_POINT, MISSION_OPEN_SUBSTATUSES,
+                     RETURN_HOME_UNKNOWN_PREFIX,
                      TERMINAL_PURPOSES, Requirements, ResourceView, Target, Task, can_transition)
 from .prefilter import filter_candidates
 from .resources import Unreachable
@@ -43,6 +44,7 @@ from .resources import Unreachable
 ACTIVE_ATTEMPT = ("PREPARED", "REQUESTED", "STARTED", "ARRIVED", "OBSERVED", "APPLIED", "RETURNING", "UNKNOWN", "FAULTED")
 # 임무 부분이 끝났고 기체만 점유 중인 상태 (불명에서 다시 연락되면 이 상태로 되돌린다)
 POST_MISSION = ("OBSERVED", "APPLIED", "RETURNING", "FAULTED")
+RETURN_HOME_UNKNOWN = RETURN_HOME_UNKNOWN_PREFIX     # 귀소 단계 불명 사유 접두어 (원 임무 응답으로 되살리지 않는다)
 MANUAL = "MANUAL_RESOLUTION"
 MAX_SNAPSHOT_RESTARTS = 2
 _KEEP = object()
@@ -640,7 +642,7 @@ class Orchestrator:
         views, unreachable, client_of = self._collect(task.requirements.resource_types)
         ranked, excluded = filter_candidates(
             task, snap, views, unreachable, self.ledger.reservations(),
-            age_of=lambda v: client_of[v.resource_id].source_age_s(v))
+            age_of=lambda v: client_of[v.resource_id].source_age_s(v), excluded=self._prior_uncovered(task))
         if self._charging:
             # 기지 충전 중인 드론 (총괄 쪽 시험용 가정, 사용자 결정 2026-10-08) — 어떤 출동에도 쓰지 않는다
             for _, v in ranked:
@@ -719,8 +721,22 @@ class Orchestrator:
     def _candidate_ids(self, task: Task, snap) -> set:
         views, unreachable, client_of = self._collect(task.requirements.resource_types)
         ranked, _ = filter_candidates(task, snap, views, unreachable, self.ledger.reservations(),
-                                      age_of=lambda v: client_of[v.resource_id].source_age_s(v))
+                                      age_of=lambda v: client_of[v.resource_id].source_age_s(v),
+                                      excluded=self._prior_uncovered(task))
         return {v.resource_id for _, v in ranked}
+
+    def _prior_uncovered(self, task: Task) -> dict:
+        """기상 측정 임무에서 이미 목표 칸 밖에서 잰 자원은 이 임무 후보에서 뺀다. 빼지 않으면 도로 지점이 칸 밖인
+        자원이 같은 자리에서 즉시 다시 재고 또 미달 → 끝없이 반복 (2026-10-17 트윈 전체 실행). 다른 후보(UAV 등)를
+        평가하고, 남은 후보가 없으면 기존처럼 NO_FEASIBLE_CANDIDATE 보류. 장부에서 계산하므로 재시작 뒤에도 같다."""
+        if task.kind != "ENV_SENSE" or task.requirements.sensor != "WEATHER":
+            return {}
+        out = {}
+        for a in self.ledger.list_attempts(task.task_id):
+            o = self.ledger.get_observation(a["attempt_id"], "MAIN")
+            if o and o.get("result") != "FAILED" and not o.get("target_covered"):
+                out[a["resource_id"]] = "PRIOR_ATTEMPT_TARGET_NOT_COVERED"
+        return out
 
     def set_priority_mode(self, mode: str, reason: str = "") -> dict:
         if mode not in config.PRIORITY_MODES:
@@ -1214,6 +1230,17 @@ class Orchestrator:
                             result=sub, reason=reason, detail={"provider_status": status, "provider": data})
             att["substatus"] = sub
             return {"attempt_id": aid, "substatus": sub, "reason": reason}
+
+        rh0 = detail.get("return_home") or {}
+        if att["command"]["resource_type"] == "UGV" and rh0 and detail.get("mission_end") is not None or (
+                att["substatus"] == "UNKNOWN" and str(detail.get("unknown_reason") or "").startswith(RETURN_HOME_UNKNOWN)):
+            # 귀소 단계 (원 임무는 끝났다): 원 임무 응답으로 판단하지 않는다 — 원 임무 응답 형식 오류·조회 불가로
+            # 귀소 상태가 바뀌거나, 원 임무 COMPLETED 로 불명 시도가 되살아나 관측을 다시 하는 일을 막는다.
+            # 귀소 임무(<시도>-HOME) 상태로만 판단하고, 같은 귀소 명령은 다시 보내지 않는다
+            if att["substatus"] == "FAULTED" and rh0.get("failure"):
+                return None                  # 귀소 실패 확인 — 운용자 확인(CONFIRM_RESOURCE_IDLE)까지 그대로 점유
+            if att["substatus"] == "UNKNOWN" or (att["substatus"] == "RETURNING" and rh0.get("exec_task_id")):
+                return self._maybe_release(att, client, None, detail, move)
 
         if status == "OK":
             why = self._response_problem(att, data, task)
@@ -1953,7 +1980,9 @@ class Orchestrator:
                 (x for x in client.states() if x.resource_id == att["resource_id"]), None)
         except Unreachable:
             v = None
-        if att["command"]["resource_type"] != "UAV" and config.UGV_RETURN_HOME:
+        # 귀소는 UGV 만 (사용자 결정 2026-10-16). 소방차(FIRE_ENGINE)는 도착 위치에서 임무(마을회관 방어 등)를 이어 가므로
+        # 거점으로 돌려보내지 않고 기존처럼 READY 확인으로 반납한다
+        if att["command"]["resource_type"] == "UGV" and (config.UGV_RETURN_HOME or detail.get("return_home")):
             out = self._ugv_return_home(att, client, v, detail, move)
             if out is not False:
                 return out
@@ -1977,9 +2006,26 @@ class Orchestrator:
         """총괄이 관리하는 UGV 복귀 (config.UGV_RETURN_HOME). 돌려주는 값: False = 복귀 단계 끝(반납 판단은 호출 쪽 READY 확인),
         None·dict = 아직 복귀 중(점유 유지).
         1) 목적지 정차·READY(현재 임무 없음) 확인 → 소속 거점 대기 지점(UGV 상태의 station.access_point)으로 실행 (실행 키 <시도>-HOME)
-        2) 그 복귀 임무가 COMPLETED 이고 차량 READY → False (호출 쪽이 RELEASED). FAILED·거절이면 반납하지 않고 운용자 확인 대기."""
+        2) 그 복귀 임무가 COMPLETED 이고 차량 READY → False (호출 쪽이 RELEASED).
+        예외 (2026-10-16, 점유는 모두 유지 — 반납은 운용자 CONFIRM_RESOURCE_IDLE):
+          대기 지점 없음·복귀 실행 거절(REFUSED)·복귀 임무 FAILED/CANCELLED → FAULTED (실패 확인)
+          복귀 송신 결과 불명·복귀 임무 조회 불가(NOT_FOUND, UNREACHABLE 이 RESOURCE_OFFLINE_S 이상) → UNKNOWN
+            (복귀 명령이 갔는지 모른다 → 재전송하지 않고 같은 실행 키로 조회만 계속. 다시 보고되면 추적 재개)"""
         rid, aid = att["resource_id"], att["attempt_id"]
+        task = self.ledger.get_task(att["task_id"])
         rh = detail.get("return_home")
+
+        def fault(why, rh_new):
+            detail["return_home"] = {**rh_new, "failure": why}
+            self.ledger.log("UGV_RETURN_HOME_FAILED", task_id=att["task_id"], attempt_id=aid, resource_id=rid,
+                            reason=why, detail={"return_home": detail["return_home"], "occupancy_kept": True,
+                                                "release": "MANUAL_CONFIRM_RESOURCE_IDLE"})
+            return move("FAULTED", f"UGV_RETURN_HOME_{why}", extra={"return_home": detail["return_home"]})
+
+        def unknown(why, rh_new):
+            detail["return_home"] = rh_new
+            return self._unknown(att, task, detail, f"{RETURN_HOME_UNKNOWN}{why}", hold_task=False)
+
         if rh is None and config.OBS_PLANNER_ENABLED and self._queued_stop(rid):
             # 작업 지시서의 다음 지점이 기다린다 → 거점에 들르지 않고 반납해 다음 지점으로 (2026-10-11 건식: 지점마다 거점 왕복)
             if v is not None and v.ready and v.current_task_id is None:
@@ -1993,7 +2039,7 @@ class Orchestrator:
             if not acc.get("road_id"):
                 self.ledger.log("UGV_RETURN_HOME_UNAVAILABLE", task_id=att["task_id"], attempt_id=aid, resource_id=rid,
                                 reason="NO_ACCESS_POINT_IN_STATE")
-                return move("RETURNING", "UGV_RETURN_HOME_UNAVAILABLE", extra={"return_home": {"status": "NO_ACCESS_POINT"}})
+                return fault("NO_ACCESS_POINT", {"status": "NO_ACCESS_POINT"})
             key = f"{aid}-HOME"
             payload = {"task_id": key, "decision_id": f"{att['decision_id']}-HOME",
                        "target_node": f"RP:{acc['road_id']}:{float(acc['s_m']):.1f}"}
@@ -2002,21 +2048,50 @@ class Orchestrator:
                   "response": resp if kind != "ACK" else {k: resp.get(k) for k in ("status", "eta_sec", "task_id")}}
             self.ledger.log("UGV_RETURN_HOME_SENT", task_id=att["task_id"], attempt_id=aid, resource_id=rid, result=kind,
                             detail=rh)
+            if kind == "REFUSED":
+                return fault("EXECUTE_REFUSED", rh)
+            if kind != "ACK":
+                return unknown("SEND_UNKNOWN", rh)
             return move("RETURNING", "UGV_RETURN_HOME_SENT", extra={"return_home": rh})
-        if rh.get("status") == "NO_ACCESS_POINT":
-            return None
-        if rh.get("send") == "REFUSED":
-            return None                                       # 복귀 거절 — 점유 유지, 운용자 확인 (장부에 기록됨)
+        if rh.get("failure") or rh.get("status") == "NO_ACCESS_POINT" or rh.get("send") == "REFUSED":
+            return None                                       # 실패 확인됨 — 점유 유지, 운용자 확인 (장부에 기록됨)
         st, d = client.task_status(rid, rh["exec_task_id"])
-        hs = (d or {}).get("status") if st == "OK" else None
-        if hs != rh.get("last_status"):
-            rh["last_status"] = hs
+        if st == "OK" and isinstance(d, dict) and d.get("task_id") not in (None, rh["exec_task_id"]):
+            st = "MISMATCH"                                   # 다른 실행의 응답 — 근거로 쓰지 않는다
+        hs = d.get("status") if st == "OK" and isinstance(d, dict) else None
+        if hs != rh.get("last_status") or st != rh.get("last_query"):
+            rh["last_status"], rh["last_query"] = hs, st
             self.ledger.log("UGV_RETURN_HOME_PROGRESS", task_id=att["task_id"], attempt_id=aid, resource_id=rid,
                             result=hs or st, detail={"provider": d if isinstance(d, dict) else None})
-            move("RETURNING", f"UGV_RETURN_HOME_{hs or st}", extra={"return_home": rh})
+        if st != "OK" or hs is None:
+            if att["substatus"] == "UNKNOWN":
+                detail["return_home"] = rh
+                self.ledger.set_attempt_status(aid, "UNKNOWN", detail)
+                return None                                   # 불명 유지 — 조회만 계속 (재전송 없음)
+            if st == "UNREACHABLE":
+                last = rh.get("last_contact_wall") or rh.get("sent_wall") or att["created_wall"]
+                if time.time() - last < config.RESOURCE_OFFLINE_S:
+                    detail["return_home"] = rh
+                    self.ledger.set_attempt_status(aid, att["substatus"], detail)
+                    return None                               # 잠깐 끊김 — 다른 추적과 같은 기준(RESOURCE_OFFLINE_S)으로 기다린다
+            return unknown(st if st != "OK" else "STATUS_INVALID", rh)
+        rh["last_contact_wall"] = time.time()
+        if att["substatus"] == "UNKNOWN":
+            # 복귀 임무가 다시 보고됨 → 추적 재개 (명령은 이미 가 있었다)
+            detail.pop("unknown_reason", None)
+            detail.pop("pre_unknown_substatus", None)
+            self.ledger.log("UGV_RETURN_HOME_RECONTACTED", task_id=att["task_id"], attempt_id=aid, resource_id=rid,
+                            result=hs)
+            move("RETURNING", "UGV_RETURN_HOME_RECONTACTED", extra={"return_home": rh})
+        if hs in ("FAILED", "CANCELLED"):
+            return fault(f"TASK_{hs}", rh)
         if hs == "COMPLETED" and v is not None and v.ready and v.current_task_id is None:
             detail["return_home"] = {**rh, "completed_wall": time.time()}
             return False
+        if att["substatus"] != "RETURNING":
+            return move("RETURNING", f"UGV_RETURN_HOME_{hs}", extra={"return_home": rh})
+        detail["return_home"] = rh
+        self.ledger.set_attempt_status(aid, "RETURNING", detail)
         return None
 
     # ------------------------------------------------------------------
@@ -2027,7 +2102,8 @@ class Orchestrator:
         """action
           RETRY                  실패·보류 뒤 재평가 (종료된 Task·임무가 열린 시도가 있는 Task 는 거절)
           CANCEL                 목적 취소. 진행 중 기체의 추적·점유는 그대로 이어진다
-          CONFIRM_RESOURCE_IDLE  사람이 기체 정지 확인 → 불명 시도의 점유 해제 (종료된 목적은 되살리지 않음)
+          CONFIRM_RESOURCE_IDLE  사람이 기체 정지 확인 → 불명(UNKNOWN)·실패 확인(FAULTED) 시도의 점유 해제
+                                 (RETURNING 등 움직이는 중일 수 있는 시도는 거절, 종료된 목적은 되살리지 않음)
           RECHECK                종료된 Task 의 대상을 다시 관측할 새 Task 생성 (이전 Task 는 그대로 둠)
         """
         task = self.ledger.get_task(task_id)
@@ -2044,11 +2120,21 @@ class Orchestrator:
 
         if action == "CONFIRM_RESOURCE_IDLE":
             att = self.ledger.get_attempt(attempt_id) if attempt_id else None
-            if not att or att["task_id"] != task_id or att["substatus"] != "UNKNOWN":
-                return refuse("ATTEMPT_NOT_UNKNOWN")
-            self.ledger.set_attempt_status(attempt_id, "FAILED", {**(att["detail"] or {}), "manual_reason": reason},
-                                           release=True)
-            if task.purpose_status == "HOLD" and self.ledger.pending_applies(task_id=task_id):
+            if not att or att["task_id"] != task_id or att["substatus"] not in ("UNKNOWN", "FAULTED"):
+                # 정상 RETURNING 등 실제로 움직이는 중일 수 있는 시도는 사람 확인만으로 풀지 않는다 (재배정 사고 방지)
+                return refuse("ATTEMPT_NOT_UNKNOWN_OR_FAULTED", substatus=att["substatus"] if att else None)
+            self.ledger.set_attempt_status(attempt_id, "FAILED", {
+                **(att["detail"] or {}), "manual_reason": reason, "manual_idle_confirmed": True,
+                "previous_substatus": att["substatus"]}, release=True)
+            self.ledger.log("MANUAL_RESOURCE_RELEASED", task_id=task_id, attempt_id=attempt_id,
+                            resource_id=att["resource_id"], reason=reason,
+                            detail={"previous_substatus": att["substatus"], "purpose_status": task.purpose_status})
+            if att["substatus"] == "FAULTED" or str((att["detail"] or {}).get("unknown_reason") or "").startswith(
+                    RETURN_HOME_UNKNOWN):
+                # 실패 확인·귀소 불명 시도의 정지 확인 — 이 시도는 목적을 보류시키지 않았다(목적은 이미 판정됐거나
+                # 다른 시도가 맡았다). 목적이 HOLD 여도 다른 시도 때문이므로 건드리지 않는다
+                pass
+            elif task.purpose_status == "HOLD" and self.ledger.pending_applies(task_id=task_id):
                 # 관측은 이미 했고 환경 반영 판정만 남았다 → 재대기로 돌리지 않고 판정을 이어 간다
                 self._set_purpose(task, "IN_EXECUTION", basis="MANUAL_IDLE_CONFIRMED_APPLY_OPEN",
                                   attempt_id=attempt_id, hold_reason="ENV_APPLY_PENDING", resume=None)

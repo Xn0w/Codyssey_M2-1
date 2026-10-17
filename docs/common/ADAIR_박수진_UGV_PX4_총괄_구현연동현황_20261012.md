@@ -44,6 +44,8 @@
 
 상태 표기: **코드 구현 / 모의 시험 / PX4·Gazebo 실행 / 최종 시연 준비 중**을 구분한다. 과거 성공은 당시 코드·월드·경로에만 적용한다.
 
+> 아래 표의 **구현 위치는 개인 저장소 [sujinpark50-gif/ADAIR](https://github.com/sujinpark50-gif/ADAIR) 기준**이다. 팀 저장소에는 UGV 재구현 파일(`ugv/vehicle.py`, `ugv/approach.py`, `ugv/fleet_ab.json`, `ugv/traffic.py` 등)이 없고, 팀 저장소의 차량 4대 정의는 `ugv/config.py` `RESOURCES` 에 있다. `orchestrator/*` 와 `ugv/drivers/px4.py` 는 팀 저장소에도 같은 경로로 있다.
+
 | 기능 | 구현 위치 | 확인한 범위와 남은 일 |
 |---|---|---|
 | 차량 모델·airframe | `ugv/gazebo/models/adair_ugv`, `ugv/px4/airframes/51100_gz_adair_ugv` | PX4·Gazebo 주행 기록 있음. 특정 실차·Prius 성능 재현 모델은 아님 |

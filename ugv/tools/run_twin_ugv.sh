@@ -27,7 +27,9 @@ case "$MODE" in
     echo "  reject   ✅ 실행    -    거절 시연 요청 (시뮬레이션 40분에 1건, 기록 logs/twin_reject_request.log)  (PID $!)"
     ;;
   thermal)
-    TWIN_DISPATCH_ARGS="${TWIN_DISPATCH_ARGS:---types UGV --site NAMJEON1_HALL,INJE_REST_AREA}" "$PY" run_servers.py start --twin
+    # 마을회관·휴게소 방어를 UGV 로 보내는 구성 — 방어는 그 자리에 머물러야 하므로 총괄 UGV 귀소는 기본 끔
+    # (run_servers.py 는 기본으로 켠다, 2026-10-16). 귀소까지 보이려면 ORCH_UGV_RETURN_HOME=1 로 실행
+    ORCH_UGV_RETURN_HOME="${ORCH_UGV_RETURN_HOME:-0}" TWIN_DISPATCH_ARGS="${TWIN_DISPATCH_ARGS:---types UGV --site NAMJEON1_HALL,INJE_REST_AREA}" "$PY" run_servers.py start --twin
     mkdir -p logs
     nohup "$PY" ugv/tools/twin_thermal_request.py --auto "${@:2}" > logs/twin_thermal_request.log 2>&1 &
     echo "  thermal  ✅ 실행    -    마을회관·휴게소 방어 출동은 UGV 로 + UGV 열화상 요청 (20분부터 30분마다 최대 6건, 기록 logs/twin_thermal_request.log)  (PID $!)"

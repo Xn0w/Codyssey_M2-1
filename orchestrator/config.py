@@ -73,6 +73,7 @@ UGV_SERVER_URL = os.getenv("ORCH_UGV_SERVER_URL") or team_config.UGV_SERVER_URL 
 HTTP_TIMEOUT_S = float(os.getenv("ORCH_HTTP_TIMEOUT_S", "10"))
 # UGV 복귀를 총괄이 관리 (2026-10-11 통합 시연 요청): 목적지 정차·READY 확인 뒤 바로 반납하지 않고 소속 거점 대기 지점으로
 # 복귀 실행을 보내 그 임무 완료 + READY 일 때 반납한다 (복귀 중 점유 유지 = 재배정 없음). 기본 끔 (기존 계약 시험과 같은 동작)
+# 대상은 UGV 만 (소방차 제외, 사용자 결정 2026-10-16). 발표 실행(run_servers.py)은 1 로 켠다
 UGV_RETURN_HOME = os.getenv("ORCH_UGV_RETURN_HOME", "0") == "1"
 # 계획 밖 UAV 임무(자동 초기 정찰)의 관측 체류 초 (UAV API 10~600). 비우면 UAV 기본값 — 통합 시연은 화재 감시 시간으로 쓴다
 RECON_OBSERVE_S = int(os.getenv("ORCH_RECON_OBSERVE_S", "0")) or None   # PROVISIONAL (실제 시계)
@@ -88,9 +89,15 @@ RESOURCE_OFFLINE_S = 30.0
 # ---------------------------------------------------------------------------
 COUNTER_ROUNDS_PER_RESOURCE = 2
 # COUNTER 수정안 중 총괄이 재평가 요청에 실어 보낼 수 있는 필드.
-# 현재 UAV EvaluateRequest 가 받을 수 있는 수정 필드는 target_agl_m 뿐이다
-# (observe_duration_s 는 요청에 넣을 칸이 없어 재평가 불가 — UAV팀 계약 대기).
-COUNTER_SUPPORTED_FIELDS = {"UAV": {"target_agl_m"}, "UGV": set()}
+# UAV EvaluateRequest 는 observe_duration_s 도 받고 UAV 는 복귀 여유가 모자라면 더 짧은 체류를 COUNTER 로
+# 제안하지만, 관측시간(총괄이 보내는 값 — 초기 원 비행 OBS_INITIAL_ORBIT_DURATION_S=120 s 등, 보내지 않으면 UAV 기본 60 s)은
+# 임무에 필요한 값이다.
+# 그보다 짧게 머무르면 관측 목적을 채우지 못해 갈 이유가 없으므로 받지 않는다
+# (사용자 결정 2026-10-15: 설계 의도 → COUNTER_FIELD_UNSUPPORTED 로 다음 후보).
+# COUNTER 는 이번 범위에서 구현하지 않는다 (사용자 결정 2026-10-16): 모든 COUNTER 를 거절로 보고 다음 후보로 넘긴다
+# (재평가 없음, 장부 사유 COUNTER_FIELD_UNSUPPORTED:<필드> / COUNTER_NOT_ACTIONABLE). 이전 값 {"UAV": {"target_agl_m"}}.
+# 협상 규칙(negotiation.decide_counter)은 남겨 두었다 — 다시 받으려면 여기에 필드를 넣는다.
+COUNTER_SUPPORTED_FIELDS = {"UAV": set(), "UGV": set()}
 
 # ---------------------------------------------------------------------------
 # 우선순위 (사용자 결정 2026-09-30, 기본값은 같은 날 자동으로 변경)

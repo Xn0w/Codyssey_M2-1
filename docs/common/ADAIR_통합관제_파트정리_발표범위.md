@@ -107,7 +107,7 @@ logs/ ── 실행마다 기록을 남긴다
 | 위치 | 서버 간에는 위도·경도(WGS84). 관제판은 지도 좌표(EPSG:5186)로 바꿔 칸으로 그림 |
 | 칸 | 90 m × 90 m, 308 × 236칸. 이름은 `열_줄` (예: `13_101`). 열은 서→동, 줄은 북→남으로 커짐. 환경·총괄과 같은 번호 |
 | 시각 | 시나리오 시각 = 2019-04-04 14:45(KST) + 환경 서버 `simulation_time_s` |
-| 시간 단위 | 환경 한 스텝 2,100초(35분), 트윈 시계 100배속 → 실제 21초마다 한 스텝 |
+| 시간 단위 | CA 한 단계 2,100초(35분). 트윈 시계는 1분(60초)씩 진행해 단계 사이를 채움(`ENV_SUBTICK_S=60`, 2026-10-16) → 100배속이면 실제 0.6초마다 진행 |
 | 단위 | 거리·고도 m, 풍속 m/s, 풍향 °(**불어오는 쪽**, 북=0° 시계방향) |
 | 실행 ID | `RUN-INJE-YYYYMMDDTHHMMSSZ-xxxxxx` (환경 서버가 발급). 바뀌면 관제판 미관측 지역도 처음부터 |
 | 자원 ID | 드론 `A-uav1`·`A-uav2`, 차량 `A-ugv1`·`A-fire1`·`B-ugv1`·`B-fire1` |
@@ -153,6 +153,7 @@ python run_servers.py status               # 모두 ✅ 확인
 | `python run_servers.py stop dispatch` | 지상 지원 자동 요청만 끄기 |
 | `$env:TWIN_DISPATCH_ARGS="--trigger sunset"` | 지상 지원을 일몰(19:06) 이후에 요청 (2019 실제 기록과 같은 시점) |
 | `ORCH_UGV_THERMAL`, `ORCH_AUTO_RECON_GROUND` | UGV 열화상·지상 정찰 후보 (10/9 합의로 기본 켜짐, `0`이면 끔) |
+| `ORCH_UGV_RETURN_HOME` | UGV 임무 후 소속 거점 귀소 (2026-10-16부터 `run_servers.py` 기본 `1`). UGV만 귀소하고 귀소 완료까지 점유, 소방차는 도착지(마을회관 방어 등) 유지. 귀소 거절·실패는 FAULTED, 결과 불명은 UNKNOWN으로 점유 유지 → 운용자 `CONFIRM_RESOURCE_IDLE`로 해제. `0`이면 끔. `run_twin_ugv.sh thermal`(UGV 방어 구성)은 기본 `0` |
 
 ---
 
@@ -212,7 +213,7 @@ UAV·UGV 자체의 거절(강풍·도달 불가 등)은 각 파트 문서에 있
 
 ## 7. 테스트 결과와 로그·영상 위치
 
-### 7-1. 자동 시험 (GitHub Actions와 같은 목록, 10/12 PR #42 기준)
+### 7-1. 자동 시험 (GitHub Actions와 같은 목록, 10/12 PR #42 기준 — `pytest orchestrator` 는 2026-10-16 `feat/orchestrator-final` 기준으로 갱신)
 
 | 시험 | 내용 | 결과 |
 |---|---|---|
@@ -222,7 +223,7 @@ UAV·UGV 자체의 거절(강풍·도달 불가 등)은 각 파트 문서에 있
 | `tests.int03_orch_panel_check` | 총괄 판단 패널, 읽기 전용 | 7/7 통과 |
 | `tests.log_coverage_check` | 폐루프 기록(decision_id·자원) | 7/7 통과 |
 | `tests.int04_05_check` | 거점 좌표 단일 출처, 시계 하나, 트윈 구성 | 13/13 통과 |
-| `pytest orchestrator` | 총괄 (+ UGV 열화상 기본 켜짐 반영) | 341 passed, 8 skipped |
+| `pytest orchestrator` | 총괄 (+ UGV 열화상 기본 켜짐 반영) | 443 passed, 8 skipped (2026-10-16. 10/12 PR #42 당시 341 passed, 8 skipped) |
 
 ### 7-2. 트윈 통합 확인 (10/12, PR #39·#41 반영 후)
 

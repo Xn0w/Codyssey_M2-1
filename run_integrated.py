@@ -66,6 +66,11 @@ def run(total_steps: int = 8):
     try:
         banner("폐루프 (환경→Task→UAV 판단→Safety→실행→환경갱신)")
         for step in range(total_steps):
+            if step > 0 and started_uavs:
+                # 앞 스텝 드론이 복귀·착륙할 때까지 기다린다 (복귀 중 재배정 안 함 — 총괄 방침, uav_launcher.wait_idle)
+                waited = uav_launcher.wait_idle(started_uavs)
+                if any(v is None for v in waited.values()):
+                    print(f"  * [대기] 착륙 대기 시간 초과: {[k for k, v in waited.items() if v is None]} (BUSY 거절 가능)")
             ts = step * config.SIMULATION_TIMESTEP_SEC
             env = fire_connector.get_environment_state(ts)
             logger.log_event("ENVIRONMENT_CHANGE", ts, result="OK")

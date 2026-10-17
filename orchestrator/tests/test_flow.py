@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """요청서 §12 총괄 단독 시험 (fixture 기반 = 상태 B)."""
 
+from orchestrator import config
 from orchestrator.engine import Orchestrator
 from orchestrator.ledger import Ledger
 from orchestrator.resources import UavClient, UgvClient
@@ -98,7 +99,31 @@ def test_counter_with_unsupported_field_is_not_executed(world):
     assert uav.exec_calls() == []
 
 
-def test_concrete_counter_is_reevaluated_and_same_values_executed(world):
+def test_counter_is_rejected_and_next_candidate_used(world):
+    """COUNTER 는 이번 범위에서 받지 않는다 (사용자 결정 2026-10-16) — 재평가 없이 거절로 보고 다음 후보로 간다."""
+    orch, uav = world["orch"], world["uav"]
+    uav.verdicts["A-uav1"] = {"verdict": "COUNTER", "reason": "MODERATE_WIND", "counter_offer": {"target_agl_m": 60}}
+    task = submit(orch, requirements={"resource_types": ["UAV"], "sensor": "THERMAL", "agl_range_m": [50, 100]})
+    out = orch.dispatch(task.task_id)
+    assert out["status"] == "STARTED" and out["resource_id"] == "A-uav2"
+    assert [c[1] for c in uav.eval_calls()].count("A-uav1") == 1          # 수정안으로 다시 묻지 않는다
+    assert [c[1] for c in uav.exec_calls()] == ["A-uav2"]
+
+
+def test_all_counters_rejected_holds(world):
+    orch, uav = world["orch"], world["uav"]
+    for rid in ("A-uav1", "A-uav2"):
+        uav.verdicts[rid] = {"verdict": "COUNTER", "reason": "MODERATE_WIND", "counter_offer": {"target_agl_m": 60}}
+    out = orch.dispatch(submit(orch, requirements={"resource_types": ["UAV"], "sensor": "THERMAL",
+                                                   "agl_range_m": [50, 100]}).task_id)
+    assert out["status"] == "HOLD"
+    assert set(out["excluded"].values()) == {"COUNTER_FIELD_UNSUPPORTED:target_agl_m"}
+    assert len(uav.eval_calls()) == 2 and uav.exec_calls() == []
+
+
+# 아래 둘은 COUNTER 를 다시 받게 될 때(config.COUNTER_SUPPORTED_FIELDS 에 필드를 넣을 때)의 협상 규칙 시험이다.
+def test_concrete_counter_is_reevaluated_and_same_values_executed(world, monkeypatch):
+    monkeypatch.setitem(config.COUNTER_SUPPORTED_FIELDS, "UAV", {"target_agl_m"})
     orch, uav, lg = world["orch"], world["uav"], world["ledger"]
 
     def v(body):
@@ -116,7 +141,8 @@ def test_concrete_counter_is_reevaluated_and_same_values_executed(world):
     assert out["decision_id"] == evals[1][3]["decision_id"]
 
 
-def test_counter_outside_requirement_or_repeated_is_dropped(world):
+def test_counter_outside_requirement_or_repeated_is_dropped(world, monkeypatch):
+    monkeypatch.setitem(config.COUNTER_SUPPORTED_FIELDS, "UAV", {"target_agl_m"})
     orch, uav = world["orch"], world["uav"]
     uav.verdicts["A-uav1"] = {"verdict": "COUNTER", "reason": "MODERATE_WIND", "counter_offer": {"target_agl_m": 30}}
     uav.verdicts["A-uav2"] = {"verdict": "COUNTER", "reason": "MODERATE_WIND", "counter_offer": {"target_agl_m": 60}}
