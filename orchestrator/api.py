@@ -103,6 +103,21 @@ class EventIn(BaseModel):
     run_id: Optional[str] = Field(None, description="이벤트가 속한 실행(run). 주면 활성 run 과 같아야 한다 (다르면 409)")
 
 
+# 화면 표시용 관측 범위. 드론 한 프레임은 가로·세로·높이 그대로, 모양이 다른 관측은 그 모양을 그릴 키를 더한다:
+# 경로 띠 SWATH_ALONG_PATH(폭·길이), UGV 지상 시선 RADIUS_TERRAIN_LOS(항상 보이는 반경·최대 반경·카메라 높이·보인/가린 칸).
+# 예전엔 앞의 셋만 넘겨 UGV 관측이 '0m × 0m (높이 0m)' 로 보였다 (2026-10-18 팀 보고)
+_FP_SHAPE_KEYS = {"SWATH_ALONG_PATH": ("swath_m", "length_m"),
+                  "RADIUS_TERRAIN_LOS": ("min_m", "max_m", "mast_m", "visible_cells", "hidden_cells")}
+
+
+def _footprint_summary(fp: dict) -> dict:
+    out = {k: fp.get(k) for k in ("width_m", "height_m", "agl_m")}
+    extra = _FP_SHAPE_KEYS.get(fp.get("shape"))
+    if extra:
+        out.update(shape=fp["shape"], **{k: fp.get(k) for k in extra})
+    return out
+
+
 def _one_observation(obs: dict, ack: Optional[dict]) -> dict:
     d = obs["detail"] or {}
     fp = d.get("footprint") or {}
@@ -112,7 +127,7 @@ def _one_observation(obs: dict, ack: Optional[dict]) -> dict:
             "cell_coverage": d.get("cell_coverage"), "detections": d.get("detections"),
             "received_after_purpose": d.get("received_after_purpose"),
             "target_covered": d.get("target_covered"), "resource_id": obs["resource_id"],
-            "footprint": {k: fp.get(k) for k in ("width_m", "height_m", "agl_m")} if fp else None,
+            "footprint": _footprint_summary(fp) if fp else None,
             "simulation_time_s": d.get("simulation_time_s"), "observed_wall": d.get("observed_wall"),
             "is_fire_observation": d.get("is_fire_observation", True),
             "values": d.get("values"), "scope": d.get("scope"), "same_visit_as": d.get("same_visit_as"),
