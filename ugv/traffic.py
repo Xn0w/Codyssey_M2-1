@@ -354,15 +354,25 @@ class TrafficManager:
                 self.waits[rid] = {**h, "since_sim": since}
                 if prev and prev.get("reported") and prev["other"] == h["other"]:
                     self.waits[rid]["reported"] = True
+                    self.waits[rid]["reported_at"] = prev.get("reported_at", since)
                 hinfo = {k: x for k, x in h.items() if k != "s"}
                 cmds = [lambda v=v, h=h, hinfo=hinfo: v.set_hold(h["s"], hinfo)]
-                if h["kind"] == "STATIC" and not self.waits[rid].get("reported"):
+                if h["kind"] == "STATIC":
                     other = self.vehicles.get(h["other"])
                     immovable = other is not None and _immovable(other)
                     waited = now - since
-                    if waited > TRAFFIC_BLOCK_REPORT_S or (immovable and waited >= TRAFFIC_BLOCK_IMMOVABLE_S):
-                        # 막힘 처리는 같은 상대에 한 번 — 우회 경로가 있으면 다시 계획, 없으면 임무를 실패로 끝내 총괄이 재판단한다
+                    # 보고한 뒤에도 같은 상대 때문에 계속 서 있으면 (우회 재계획 뒤 또 막힘) 같은 기준으로 다시 보고한다 →
+                    # 차량은 같은 상대 두 번째 막힘을 실패로 끝낸다 (vehicle.blocked_by_vehicle repeated). 다시 보고하지 않으면 임무 중
+                    # 상태로 끝없이 서 있었다 (2026-10-17: 둘 다 우회한 뒤 460 s 동안 IN_PROGRESS·속도 0, 보고 없음)
+                    again = bool(self.waits[rid].get("reported"))
+                    since_last = now - self.waits[rid].get("reported_at", since) if again else waited
+                    # 다시 보고는 차가 실제로 대기 중(hold)이고 임무가 있을 때만 — 막힘 처리가 할 일이 없는 상태(임무 없는 회피 등)에서
+                    # 움직이지 않는 상대 기준(0 s)으로 매 주기 보고가 되풀이되지 않게
+                    can = not again or (getattr(v, "hold", None) is not None and v.current_task() is not None)
+                    if can and (since_last > TRAFFIC_BLOCK_REPORT_S or (immovable and since_last >= TRAFFIC_BLOCK_IMMOVABLE_S)):
+                        # 막힘 처리 — 우회 경로가 있으면 다시 계획, 없거나 같은 상대에 다시 막히면 임무를 실패로 끝내 총괄이 재판단한다
                         self.waits[rid]["reported"] = True
+                        self.waits[rid]["reported_at"] = now
                         v._event("TRAFFIC_BLOCKED_BY_VEHICLE", other=h["other"], waited_s=round(waited, 1),
                                  blocker_immovable=immovable)
                         cmds.append(lambda v=v, o=h["other"], w=round(waited, 1), im=immovable: v.blocked_by_vehicle(o, w, im))

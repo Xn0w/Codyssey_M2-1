@@ -65,10 +65,17 @@ MIN_ROAD_SPEED_KMH = float(os.getenv("UGV_MIN_ROAD_SPEED_KMH", "50"))
 LAT_ACCEL_MPS2 = float(os.getenv("UGV_LAT_ACCEL", "1.5"))     # 곡선 속도 = sqrt(횡가속 × 곡률반경)
 ACCEL_MPS2 = 2.0                            # 가속 계획 (PX4 RO_ACCEL_LIM 2.5 보다 낮게)
 DECEL_MPS2 = 1.5                            # 감속 계획 (PX4 도착 감속 실측 약 2.1 보다 낮게 → 미리 줄인다)
-CURVE_WINDOW_M = 15.0                       # 곡률을 볼 앞뒤 거리
+# 속도 계획 곡률을 볼 앞뒤 거리. 15 m 는 교차로 원호(반경 8~12 m)를 앞뒤 직선과 섞어 완만하게 봤다 — 2026-10-17 통합 B 교차로 494862
+# (원호 R 약 8.2~8.4 m, 곡선 속도 2.86~2.89 m/s) 에서 R 11.6~13.9 m 로 보고 3.41~3.96 m/s 를 PX4 에 실어 항목을 놓치고 이탈(OFF_ROAD).
+# 보정용 곡률(ITEM_CURVE_WINDOW_M)과 같은 5 m 로
+CURVE_WINDOW_M = 5.0
 ITEM_SPACING_M = 40.0                       # PX4 미션 지점 간격 상한
 ITEM_TURN_DEG = 8.0                         # 이보다 꺾이는 곳은 반드시 미션 지점으로
 ITEM_FIRST_MIN_M = 6.0                      # 출발점에서 이 거리 안에는 미션 지점을 두지 않는다 (마지막 지점 제외)
+# PX4 는 미션 지점 도착 반경(NAV_ACC_RAD, ugv/drivers/px4.py ACCEPT_M) 안에 들어오면 바로 다음 지점으로 넘어가 다음 구간 속도를 쓴다.
+# 그래서 지점에 싣는 구간 속도는 앞 지점보다 이만큼 앞(경로상 이전) 위치부터 그 지점까지 계획 속도의 최소로 한다 — 2026-10-17 교차로 494862:
+# 원호 지점 간격 2.2 m < 도착 반경 3 m 라 정점 2 m 앞에서 정점 뒤 구간 속도 3.10 m/s 가 먼저 적용돼 정점 실제 3.09 m/s (곡선 속도 2.89)
+ITEM_SPEED_LEAD_M = float(os.getenv("UGV_PX4_ACCEPT_M", "3.0"))
 ITEM_CHORD_TOL_M = 0.15                     # 미션 지점을 이은 직선이 계획 선형에서 이보다 벗어나지 않게 지점을 넣는다
 # PX4 곡선 안쪽 질러가기 보정: rover 는 미션 지점 NAV_ACC_RAD(3 m) 앞에서 다음 지점으로 넘어가 다음 선분을 따라가므로
 # 곡선에서 계획선보다 안쪽(약 L²/2R, L ≈ 도착 반경)을 달린다 (2026-10-10 Gazebo 4대 분리 주행 603 표본 적합 L = 2.89 m:

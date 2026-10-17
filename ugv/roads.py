@@ -349,7 +349,9 @@ def plan_speeds(route: Route, v0: float = 0.0, *, profile=None, lat_accel=None, 
             max_dev = max(max_dev, chord_dev(last, i))
             # 구간 속도 = 그 구간 계획 속도의 최소. 단 출발 램프(첫 ITEM_FIRST_MIN_M)는 빼고 본다 — 램프 최솟값을 실으면
             # PX4 가 구간 전체를 그 속도로 달린다
-            seg = [v[k] for k in range(last + 1, i + 1) if cum[k] >= config.ITEM_FIRST_MIN_M] or v[last + 1:i + 1]
+            # 앞 지점 도착 반경(ITEM_SPEED_LEAD_M) 안에서 이 구간 속도가 먼저 적용되므로 그 앞 위치부터 본다
+            lo = min(last + 1, bisect.bisect_left(cum, cum[last] - config.ITEM_SPEED_LEAD_M))
+            seg = [v[k] for k in range(lo, i + 1) if cum[k] >= config.ITEM_FIRST_MIN_M] or v[last + 1:i + 1]
             seg_v = min(seg) if i > last else v[i]
             if i == len(pts) - 1:
                 seg_v = min(v[last + 1:i]) if i - 1 > last else 1.0

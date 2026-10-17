@@ -111,6 +111,8 @@ COAST_DECEL_MPS2 = 0.5      # 시동 꺼진 뒤 관성 감속 가정 (Gazebo c23
 COAST_PAD_S = 2.0
 COAST_MIN_MPS = 0.5         # 시동 꺼지기 직전 속도가 이보다 낮으면 보류하지 않는다
 STOP_ROAD_SNAP_MAX_M = 5.0  # 정지 경로를 '진행 방향 도로' 로 만들 수 있는 도로까지 최대 거리 (밖이면 진행 방향 직선 제동)
+STALL_FAULT_S = 1.0         # 드라이버 정체(stall_since: PX4 현재 미션 항목을 놓치고 계속 멀어짐)가 이만큼 이어지면 MISSION_STALL 고장·정지
+                            # (연구 트리 기록 재생: 1 s 에서 정상 주행 오작동 0, 실패 주행은 항목에서 6.6~7.3 m 일 때 감지 — 2026-10-12)
 OFFROAD_STOP_M = 2.0        # 주행 중 실제 차체가 도로 띠 밖으로 이만큼 넘게 나가면 (OFFROAD_CONFIRM_S 지속) 고장·정지
 OFFROAD_CONFIRM_S = 2.0      # 정지 감독: 0.2 m/s 미만(최신 텔레메트리)이 이만큼 이어지면 정차 확인
 # 정지·양보 명령이 이 시간 안에 끝나지 않으면 '전달 여부 불명' 실패로 본다 (실측 명령 교체 지연 최대 CMD_LATENCY_MAX_S 6 s + 여유)
@@ -1000,6 +1002,18 @@ class Vehicle:
                     await self._arrived(tel, to_dest)
                 else:
                     self._fail("ARRIVAL_MISMATCH", f"미션 끝, 목적지까지 {to_dest:.1f} m")
+            return
+        # 미션 정체 (드라이버 감지, ugv/drivers/px4.py STALL_DETECT): 놓친 항목으로 되돌아가려 맴돌다 도로를 벗어나기 전에 고장·정지
+        stl = getattr(self.driver, "stall_since", None)
+        if stl is not None and time.monotonic() - stl >= STALL_FAULT_S:
+            async with self.lock:
+                stl = getattr(self.driver, "stall_since", None)     # 잠금을 기다리는 동안 재계획 미션이 타이머를 지웠을 수 있다
+                if stl is None or time.monotonic() - stl < STALL_FAULT_S or self.state not in ("DRIVING", "EVADING"):
+                    return
+                self._fail("MISSION_STALL", f"PX4 현재 미션 항목을 놓치고 계속 멀어짐 ({STALL_FAULT_S:g} s)")
+                await self._safe_stop()
+                self.state = "FAULT"
+            self.driver.stall_since = None
             return
         # 도로 경계 이탈 (계획 경로 이탈과 따로): 실제 차체가 도로 띠 밖으로 OFFROAD_STOP_M 넘게 OFFROAD_CONFIRM_S 이어지면 고장·정지.
         # 계획 경로 30 m·5 s 기준은 도로 밖 수십 m 를 늦게 잡았다 (2026-10-11 Gazebo 지속 운용: 경로 이탈 확정 전 33 s·260 m, 도로 밖 43.9 m)

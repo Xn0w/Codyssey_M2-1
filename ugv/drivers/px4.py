@@ -34,6 +34,13 @@ LEAD_BASE_M = 5.0           # 선행 지점 = 지금 위치에서 경로를 따�
 LEAD_TIME_S = 2.0           #   (업로드·시작에 걸리는 동안 지나쳐 뒤에 남지 않게. 뒤에 남으면 rover 가 되돌아간다)
 ACCEPT_M = float(os.getenv("UGV_PX4_ACCEPT_M", "3.0"))   # 미션 지점 도착 반경 (airframe NAV_ACC_RAD 와 맞춘다. 환경변수는 시험용)
 START_RETRY_S = 0.5
+# 미션 정체 감지 (연구 트리 ADAIR_wt_hook 6fa7844·060d70c·cf71783 에서 정체 감지만 이식, 건너뛰기는 빼고 — 2026-10-17 사용자 결정).
+# PX4 로버는 도착 반경(ACCEPT_M) 밖으로 지나친 항목을 계속 현재 목표로 두고, 되돌아가려 최대 조향으로 돌다가 멈춘 구간 연장선으로
+# 직진해 도로를 벗어난다 (navigator 의 지나침 판정 passed_curr_wp 는 고정익만). 2026-10-17 통합 B 교차로 494862: 항목 7 을
+# 놓치고 맴돈 뒤 이탈 3.4 m → OFF_ROAD. 현재 항목에서 계속 멀어지면 vehicle.py 가 MISSION_STALL 고장·정지로 끝낸다
+STALL_DETECT = os.getenv("UGV_PX4_STALL_DETECT", "1") == "1"
+STALL_AWAY_M = 1.5          # 정체: PX4 현재 항목이 그대로인데 차가 그 항목에서 (도착 반경 + 0.5 m 밖, 지금까지 최소 거리 + 이만큼) 멀어짐
+STALL_EVERY_S = 0.2
 ARM_RETRIES = 15
 ARM_RETRY_S = 1.0
 
@@ -56,6 +63,12 @@ def mavsdk_plan(items: List[Item], here, v_now: float):
         last = k == len(items) - 1
         out.append((x, y, v if last else items[k + 1][2], not last))
     return out
+
+
+def stall_away(dcur: float, dmin: float) -> bool:
+    """PX4 현재 항목에서 멀어지는 중인가: 도착 반경 + 0.5 m 밖이고, 그 항목이 현재가 된 뒤 최소 거리보다 STALL_AWAY_M 넘게 멀다.
+    (연구 트리 기록 재생 2026-10-12: 정상 주행 5건 0회, 놓친 항목 실패 5건 모두 — 1 s 지속 기준)"""
+    return dcur > ACCEPT_M + 0.5 and dcur > dmin + STALL_AWAY_M
 
 
 def park_due(speed_mps: float, now: float, still_since, finished_since):
@@ -153,6 +166,11 @@ class Px4Driver(Driver):
         self.connected = False
         self.last_error: Optional[str] = None
         self.parked_seq = None                  # 정차 유지(시동 끔)한 미션 번호
+        self._sent = None                       # (미션 번호, 보낸 항목) — 정체 감지용
+        self.stall_since: Optional[float] = None   # 정체 시작 시각 (monotonic): 현재 항목을 놓치고 계속 멀어짐
+        self.stall_events: List[dict] = []      # 정체 시작 기록 (시험 분석용)
+        self._stall_key, self._stall_dmin = None, math.inf
+        self._stall_k0 = 0                      # 이 미션 시작 항목 (업로드 동안 지나쳐 건너뛴 앞 항목은 판정하지 않는다)
 
     async def start(self):
         from mavsdk.asyncio import ComponentType, Configuration, Mavsdk
@@ -181,6 +199,8 @@ class Px4Driver(Driver):
         if not self.connected:
             raise DriverError("PX4_NO_POSITION")
         self._tasks.append(asyncio.create_task(self._park_watch()))
+        if STALL_DETECT:
+            self._tasks.append(asyncio.create_task(self._stall_watch()))
 
     async def test_link(self, cut: bool) -> dict:
         """시험용 (UGV_TEST_HOOKS=1): 이 차량의 MAVLink 연결만 끊거나 잇는다. 끊으면 이 차량의 MAVSDK 인스턴스를 닫아 서버는 이 차에
@@ -223,6 +243,41 @@ class Px4Driver(Driver):
                 raise
             except Exception as e:  # noqa: BLE001
                 self.last_error = f"park: {type(e).__name__}: {e}"
+
+    async def _stall_watch(self):
+        """주행 중 정체 감지. 한 번 분량은 _stall_step."""
+        while True:
+            await asyncio.sleep(STALL_EVERY_S)
+            try:
+                self._stall_step()
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:  # noqa: BLE001
+                self.last_error = f"stall_watch: {type(e).__name__}: {e}"
+
+    def _stall_step(self):
+        sent, prog, tel = self._sent, self._prog, self.telemetry()
+        if (sent is None or tel is None or tel.age_s() > 1.0 or not self._armed or prog.finished
+                or prog.mission_seq != sent[0] or prog.total != len(sent[1]) or not 0 <= prog.current < len(sent[1])
+                or self._cmd.locked() or not self._seen_running or prog.current < self._stall_k0):
+            # 판단할 수 없는 동안(텔레메트리 지연·시동 꺼짐·미션 끝·미션 교체 중)은 정체 타이머를 지운다 —
+            # 재개 직후 이전 타이머로 오작동하지 않게. 미션 업로드·시작 중(_cmd 잠김)과 새 미션 진행 보고를 받기 전, 시작 항목 앞
+            # 항목에서는 판정하지 않는다 — 주행 중 재계획에서 차 뒤에 남은 선행 항목 0 을 기준으로 정체로 보던 오작동 (2026-10-17 검증)
+            self.stall_since, self._stall_key = None, None
+            return
+        key = (sent[0], prog.current)
+        dcur = math.dist((tel.x, tel.y), sent[1][prog.current][:2])
+        if key != self._stall_key:                  # 항목이 바뀌면 다시 센다
+            self._stall_key, self._stall_dmin, self.stall_since = key, dcur, None
+        self._stall_dmin = min(self._stall_dmin, dcur)
+        if not stall_away(dcur, self._stall_dmin):
+            self.stall_since = None
+        elif self.stall_since is None:
+            self.stall_since = time.monotonic()
+            self.stall_events.append({"wall": round(time.time(), 2), "mission_seq": sent[0], "item": prog.current,
+                                      "dist_m": round(dcur, 2), "dmin_m": round(self._stall_dmin, 2),
+                                      "xy": [round(tel.x, 1), round(tel.y, 1)]})
+            del self.stall_events[:-40]
 
     async def _pump(self, name, stream):
         import time
@@ -315,6 +370,9 @@ class Px4Driver(Driver):
             self._expected_total = len(plan)
             self._seen_running = False
             self._prog = Progress(0, len(plan), False, seq)
+            self._sent = (seq, sent)
+            self._stall_k0 = 0
+            self.stall_since = None
             try:
                 await self._mis.upload_mission(MissionPlan(plan))
                 await self._ensure_armed()
@@ -332,6 +390,7 @@ class Px4Driver(Driver):
                     try:
                         await self._mis.set_current_mission_item(k0)
                         self.last_sent["start_item"] = k0
+                        self._stall_k0 = k0
                     except Exception as e:  # noqa: BLE001
                         self.last_error = f"set_current_mission_item({k0}): {e}"
                         self.last_sent["start_item_error"] = str(e)[:120]
