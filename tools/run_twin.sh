@@ -16,6 +16,8 @@ MODE="${UAV_MODE:-mock}"
 LAUNCH="${TWIN_LAUNCH:-forward}"
 SPEED="${TWIN_SPEED:-$([[ $MODE == real ]] && echo 1 || echo 100)}"
 LOG="$ROOT/logs/twin/$(date +%Y%m%d_%H%M%S)"; mkdir -p "$LOG"
+# 불은 3D 재현을 만든 CA 설정으로 (기본 설정이면 발화점 한 칸만 타다 꺼진다 — run_servers.py 와 같음)
+export ENV_CONFIG="${ENV_CONFIG:-environment/config/scenario_whatif_2019_legacy.yaml}"
 # 재현과 같은 진짜 세계 설정 (web/static/inje2019/scenario.json 의 twin_env)
 eval "$("$PY" - <<'PYX'
 import json
