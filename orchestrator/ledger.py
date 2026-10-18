@@ -252,6 +252,7 @@ class Ledger:
         # 동시 읽기에서 sqlite3 InterfaceError('bad parameter or other API misuse')가 났다 (2026-10-07 실제 환경 실행).
         # 모든 실행을 같은 잠금 안에서 하고 결과는 잠금 안에서 다 읽어 둔다.
         self._conn = _LockedConn(raw, self._lock)
+        self._knowledge_cache = {}                 # knowledge() 결과 — (범위, 종류) → ((행 수, 최대 seq), 행)
         self.migrated_from_legacy = self._init_schema()
         row = self._conn.execute("SELECT run_id FROM runs WHERE status='ACTIVE'").fetchone()
         self._active_run = row["run_id"] if row else None
@@ -766,11 +767,25 @@ class Ledger:
             return cur.rowcount == 1
 
     def knowledge(self, kind: str, run_id=ACTIVE) -> List[dict]:
+        """그 run·종류의 지식 행 (sim_time_s, seq 순). body 는 읽기 전용으로 쓴다 (호출끼리 같은 객체를 나눠 쓴다).
+
+        아는 세계 화면(view)이 판단·/health 마다 이 행을 모두 다시 읽어 JSON 을 풀었다 — 실행이 길어질수록 행과 호출이
+        함께 늘어 총괄 응답이 느려졌다 (B37). 지식은 덧붙이기만 하므로(INSERT OR IGNORE) 행 수·최대 seq 가 같으면
+        앞서 읽은 행을 그대로 쓴다 (같은 장부 파일을 다른 연결이 고쳐도 이 값이 바뀌면 다시 읽는다)."""
         where, args = self._scope(run_id)
-        rows = self._conn.execute(f"SELECT * FROM knowledge WHERE {where} AND kind=? ORDER BY sim_time_s, seq",
-                                  args + [kind])
-        return [{"seq": r["seq"], "key": r["key"], "subject": r["subject"], "sim_time_s": r["sim_time_s"],
-                 "source": r["source"], "body": _loads(r["body"])} for r in rows]
+        with self._lock:
+            ver = tuple(self._conn.execute(f"SELECT COUNT(*), MAX(seq) FROM knowledge WHERE {where} AND kind=?",
+                                           args + [kind]).fetchone())
+            key = (where, tuple(args), kind)
+            hit = self._knowledge_cache.get(key)
+            if hit is None or hit[0] != ver:
+                rows = self._conn.execute(
+                    f"SELECT * FROM knowledge WHERE {where} AND kind=? ORDER BY sim_time_s, seq", args + [kind])
+                hit = (ver, [{"seq": r["seq"], "key": r["key"], "subject": r["subject"], "sim_time_s": r["sim_time_s"],
+                              "source": r["source"], "body": _loads(r["body"])} for r in rows])
+                if not self._conn.in_transaction:   # 되돌려질 수 있는 쓰기를 본 결과는 남기지 않는다 (seq 가 다시 쓰일 수 있다)
+                    self._knowledge_cache[key] = hit
+        return [dict(r) for r in hit[1]]
 
     def get_knowledge(self, key: str, run_id=ACTIVE) -> Optional[dict]:
         where, args = self._scope(run_id)
