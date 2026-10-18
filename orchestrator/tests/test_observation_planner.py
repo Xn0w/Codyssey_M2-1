@@ -1545,6 +1545,7 @@ def test_track_does_not_write_over_change_made_while_it_was_processing(pw):
     assert orch._track(lg.get_attempt(aid), orch.uav) is None and fired
     assert lg.get_attempt(aid)["substatus"] == "RELEASED"
     assert lg.get_attempt(aid)["detail"]["released_evidence"] == "other"
+    assert [e["reason"] for e in _events(lg, "TRACK_STALE")] == ["CHANGED_BY_OTHER_THREAD"]
 
 
 def test_abort_confirmed_while_attempt_went_unknown_still_cancels_old_stop(pw):

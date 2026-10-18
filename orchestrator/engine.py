@@ -1239,7 +1239,9 @@ class Orchestrator:
         try:
             with self.ledger.attempt_guard(att["attempt_id"], att["substatus"]):
                 return self._track_guarded(att, client)
-        except StaleAttempt:
+        except StaleAttempt as e:
+            self.ledger.log("TRACK_STALE", task_id=att["task_id"], attempt_id=att["attempt_id"],
+                            resource_id=att["resource_id"], reason="CHANGED_BY_OTHER_THREAD", detail={"error": str(e)})
             return None
 
     def _track_guarded(self, att: dict, client) -> Optional[dict]:
