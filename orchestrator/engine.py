@@ -33,7 +33,8 @@ from . import config, llm as llm_mod, map_evaluation, negotiation, observation, 
 from .env_adapter import ENV_TRANSIENT_ERRORS, missing_snapshot_fields
 from .knowledge import Knowledge
 from .ledger import (ACTIVE, OCCUPYING_SUBSTATUSES, AttemptConflict, IllegalTransition, Ledger,
-                     ReservationConflict, RunClosed, RunNotActive, RunSwitchBlocked, content_hash, new_id)
+                     ReservationConflict, RunClosed, RunNotActive, RunSwitchBlocked, StaleAttempt, content_hash,
+                     new_id)
 from .models import (AREA_KINDS, COMPLETION_AREA_ALL, COMPLETION_TARGET_POINT, MISSION_OPEN_SUBSTATUSES,
                      RETURN_HOME_UNKNOWN_PREFIX,
                      TERMINAL_PURPOSES, Requirements, ResourceView, Target, Task, can_transition)
@@ -1234,6 +1235,14 @@ class Orchestrator:
         return None
 
     def _track(self, att: dict, client) -> Optional[dict]:
+        # 처리하는 동안 다른 스레드(배정 작업자 등)가 이 시도를 바꾸면 그 위에 쓰지 않고 이번 주기를 버린다 (B37 N4)
+        try:
+            with self.ledger.attempt_guard(att["attempt_id"], att["substatus"]):
+                return self._track_guarded(att, client)
+        except StaleAttempt:
+            return None
+
+    def _track_guarded(self, att: dict, client) -> Optional[dict]:
         aid, rid, tid = att["attempt_id"], att["resource_id"], att["task_id"]
         if aid in self._sending:
             return None                      # 이 프로세스가 지금 출동 요청을 보내는 중 — 결과가 기록된 뒤 추적한다
@@ -1398,7 +1407,8 @@ class Orchestrator:
                 return move("FAULTED", reason, extra={"fault": data.get("error")})
             detail["unknown_report"] = [phase, reason]          # 같은 보고가 되풀이되면 불명을 유지한다 (위)
             if att["substatus"] == "UNKNOWN":                   # 이미 불명 (되살릴 단계가 아니었다) — 보고만 적어 둔다
-                keep = {k: (att["detail"] or {}).get(k) for k in ("unknown_reason", "pre_unknown_substatus")}
+                stored = att["detail"] or {}
+                keep = {k: stored[k] for k in ("unknown_reason", "pre_unknown_substatus") if k in stored}
                 self.ledger.set_attempt_status(aid, "UNKNOWN", {**detail, **keep})
                 return None
             return self._unknown(att, task, detail, f"FAILED_POSITION_UNCONFIRMED:{reason}", hold_task=not observed)
@@ -2814,8 +2824,10 @@ class Orchestrator:
             # 지금 장부 값에 중단 결과를 더한다 (추적 쪽 _track 의 다시 읽기와 짝, B37)
             att = self.ledger.get_attempt(aid)
             detail = {**(att["detail"] or {}), "retask_abort": rec}
+            # 출발 단계에서 불명이 된 시도도 드론이 '관측 전 중단'을 확인해 줬으면 출발 단계와 같이 거둔다
+            before = detail.get("pre_unknown_substatus") if att["substatus"] == "UNKNOWN" else att["substatus"]
             if result != "ABORTED_BEFORE_OBSERVATION" or phase not in ("RETURNING", "DONE") \
-                    or att["substatus"] not in ("STARTED", "REQUESTED"):
+                    or before not in ("STARTED", "REQUESTED"):
                 self.ledger.set_attempt_status(aid, att["substatus"], detail)   # 관측까지 간다 — 다시 끊지 않게 기록만
                 return {**att, "detail": detail}
             old = self.ledger.get_task(att["task_id"])
@@ -2823,6 +2835,8 @@ class Orchestrator:
                 self._set_purpose(old, "CANCELLED", basis=f"RETASKED_AIRBORNE:{task.task_id}",
                                   hold_reason=f"RETASKED_AIRBORNE:{task.task_id}", resume=None, sim=sim)
             detail["mission_end"] = {"reason": "ABORTED_FOR_RETASK", "evidence": "PROVIDER_ABORT_BEFORE_OBSERVATION"}
+            for k in ("pre_unknown_substatus", "unknown_reason", "unknown_report"):
+                detail.pop(k, None)              # 중단 응답이 연락 근거다 — 불명 표시를 지운다
             if phase == "DONE":                  # 이륙 전에 끊겼다 — 기체는 그대로 쉬고 있다
                 self.ledger.set_attempt_status(aid, "RELEASED", {**detail, "released_evidence": "ABORTED_BEFORE_TAKEOFF"},
                                                release=True)

@@ -6,6 +6,7 @@
 """
 import json
 import math
+import threading
 
 import pytest
 
@@ -1519,6 +1520,54 @@ def test_failed_report_on_attempt_already_unknown_is_recorded_without_losing_rea
     assert a["substatus"] == "UNKNOWN" and a["detail"]["unknown_report"] == ["RETURN_FAILED", "ABORTED"]
     assert a["detail"]["unknown_reason"] == "PROVIDER_LOST_TASK" and a["detail"]["pre_unknown_substatus"] == "STARTED"
     assert len([e for e in _att_events(lg, aid) if e[0] == "EXECUTION_UNKNOWN"]) == 1
+
+
+def test_track_does_not_write_over_change_made_while_it_was_processing(pw):
+    """추적이 시도를 다시 확인한 뒤 쓰기 전에(목적 상태 저장 등) 배정 작업자가 반납해도 그 위에 RETURNING 을 쓰지 않는다
+    (확인과 쓰기를 한 트랜잭션에서 — Ledger.attempt_guard)"""
+    orch, env, lg, uav = pw["orch"], pw["env"], pw["ledger"], pw["uav"]
+    _to_report_time(env)
+    att, plan, b = _flying_uav1(orch, lg)
+    aid = att["attempt_id"]
+    uav.scripts[att["command"]["payload"]["task_id"]] = [{"status": "FAILED", "reason": "ABORTED",
+                                                          "progress": {"phase": "RETURNING"}}]
+    real, fired = orch._set_purpose, []
+
+    def concurrent_release(*a, **k):                  # 추적이 목적을 재대기로 돌리는 순간 다른 스레드가 반납
+        if not fired:
+            fired.append(1)
+            th = threading.Thread(target=lambda: lg.set_attempt_status(
+                aid, "RELEASED", {**lg.get_attempt(aid)["detail"], "released_evidence": "other"}, release=True))
+            th.start()
+            th.join()
+        return real(*a, **k)
+    orch._set_purpose = concurrent_release
+    assert orch._track(lg.get_attempt(aid), orch.uav) is None and fired
+    assert lg.get_attempt(aid)["substatus"] == "RELEASED"
+    assert lg.get_attempt(aid)["detail"]["released_evidence"] == "other"
+
+
+def test_abort_confirmed_while_attempt_went_unknown_still_cancels_old_stop(pw):
+    """중단 요청을 보내는 사이 추적이 시도를 불명(출발 단계에서)으로 바꿨어도, 드론이 '관측 전 중단'을 확인해 주면 앞 지점은
+    거두고 시도는 복귀 중 + 임무 종료로 (앞 지점이 재대기로 되살아나 같은 드론에 두 지점이 남지 않게)"""
+    orch, env, lg, uav = pw["orch"], pw["env"], pw["ledger"], pw["uav"]
+    _to_report_time(env)
+    att, plan, b = _flying_uav1(orch, lg)
+    aid = att["attempt_id"]
+    real_abort = orch.uav.abort
+
+    def abort_then_unknown(*a, **k):
+        out = real_abort(*a, **k)
+        orch._unknown(lg.get_attempt(aid), lg.get_task(att["task_id"]), dict(lg.get_attempt(aid)["detail"]),
+                      "PROVIDER_OFFLINE")
+        return out
+    orch.uav.abort = abort_then_unknown
+    rows, _ = orch._assign_orders(plan, b["inp"], b["idx"], "PLAN-NEW", "LLM", 120.0)
+    _poll(orch)
+    assert lg.get_task(att["task_id"]).purpose_status == "CANCELLED"
+    assert lg.get_attempt(aid)["substatus"] == "RELEASED"
+    assert not [t for t in lg.list_tasks(["PENDING"]) if t.task_id == att["task_id"]]
+    assert rows[0]["dispatch"] == "STARTED"
 
 
 def test_abort_result_does_not_overwrite_progress_tracked_meanwhile(pw):
