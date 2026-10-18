@@ -24,7 +24,7 @@ import time
 
 
 class SimClock:
-    def __init__(self, time_scale: float = 1.0, seconds_per_env_step: float = 60.0):
+    def __init__(self, time_scale: float = 1.0, seconds_per_env_step: float = 60.0, env_lead_max_s: float | None = None):
         if time_scale <= 0 or seconds_per_env_step <= 0:
             raise ValueError("time_scale, seconds_per_env_step 는 0 보다 커야 한다")
         self.time_scale = time_scale
@@ -41,6 +41,10 @@ class SimClock:
         self.source_switches = 0
         self._last_value = 0.0
         self._held: float | None = None           # 멈춘 시계 (환경 시계를 기다리는 동안). release() 로 다시 흐른다
+        # 환경 시계를 따라갈 때 마지막 환경 시각보다 이만큼(시뮬레이션 초)까지만 앞서 간다. 환경이 멈추면(시나리오 끝 등)
+        # UGV 시계도 거기서 멈춘다. None 이면 예전처럼 벽시계 × TIME_SCALE 로 계속 간다. 환경 없이 단독이면 적용 안 됨
+        self.env_lead_max_s = env_lead_max_s
+        self._env_last: float | None = None
 
     STALE_S = 10.0
 
@@ -109,6 +113,8 @@ class SimClock:
                 self._rebase(base, (key, t))
                 self.source_switches += 1
             v = self._anchor_sim + (t - self._src_anchor)
+        if self._env_last is not None and self.env_lead_max_s is not None:
+            v = min(v, max(self._last_value, self._env_last + self.env_lead_max_s))   # 멈춘 환경보다 너무 앞서지 않는다
         self._last_value = v
         return v
 
@@ -131,6 +137,7 @@ class SimClock:
         before = self.now()
         self._held = None
         self._rebase(float(sim_time_s), self._read_source())
+        self._env_last = float(sim_time_s)
         self.env_synced_at = self._anchor_wall
         self.last_drift_s = round(before - sim_time_s, 1)
         return {"sim_time_s": sim_time_s, "drift_s": self.last_drift_s}
@@ -138,7 +145,7 @@ class SimClock:
     def reset(self, sim_time_s: float = 0.0) -> None:
         self._held = None
         self._rebase(sim_time_s, self._read_source())
-        self.env_step = self.env_synced_at = self.last_drift_s = None
+        self.env_step = self.env_synced_at = self.last_drift_s = self._env_last = None
 
     def info(self) -> dict:
         return {

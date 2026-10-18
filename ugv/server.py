@@ -163,7 +163,7 @@ async def _refresh_loop() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global fleet, roads, clock, scenario, reporter, history
-    clock = SimClock(config.TIME_SCALE, config.SECONDS_PER_ENV_STEP)
+    clock = SimClock(config.TIME_SCALE, config.SECONDS_PER_ENV_STEP, env_lead_max_s=config.ENV_LEAD_MAX_S or None)
     history = History(os.getenv("UGV_HISTORY_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), ".state", "history")),
                       clock, enabled=os.getenv("UGV_HISTORY", "1") != "0",
                       keep=int(os.getenv("UGV_HISTORY_KEEP", "30")))

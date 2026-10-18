@@ -75,7 +75,6 @@ UGV 서버 하나(포트 8100)가 차량 4대(인제119·기린119에 UGV 1대, 
 | 주행 이상 감지 (멈춤·경로 이탈·차량 이상) → 사용 불능(UNAVAILABLE) | PX4/Gazebo |
 | 환경 모듈 시계 따라가기 ([4장 시각 기준](#4-입력과-출력-api)) | 팀 저장소 트윈+통합 환경 |
 | 도로 상황판 (`/view`): 차량·경로·막힌 도로 표시, 실행 기록 다시 보기 (화면에 "AI 생성 화면" 상시 표시) | 모든 환경 |
-| 도로 상황판에서 직접 지시 (차를 골라 노드·지점으로 출동, 운영자 예외) | 모든 환경 |
 | **총괄과 연동, 4대 동시 운용** | **통합 환경 (배속 100)** |
 
 **미완성·미통합 기능 (기본 꺼짐)**
@@ -91,7 +90,7 @@ UGV 서버 하나(포트 8100)가 차량 4대(인제119·기린119에 UGV 1대, 
 - UGV 자체 센서 측정 (지금은 총괄 모의 센서가 대신함)
 - 배터리로 판단·복귀 — 지금은 표시용이라 배터리가 0 %가 되어도 거절하거나 멈추지 않음
 - Gazebo 차량을 시연 배속 100·시속 60 km로 (지금 차량 모델은 2 m/s)
-- 사용 불능(UNAVAILABLE) 자동 해제 (지금은 수동으로 요청 — Swagger에서 `POST /ugv/{id}/stop`, 또는 도로 상황판에서 그 차에 직접 지시)
+- 사용 불능(UNAVAILABLE) 자동 해제 (지금은 수동으로 요청 — Swagger에서 `POST /ugv/{id}/stop`)
 
 ---
 
@@ -270,7 +269,7 @@ bash ugv/tools/run_twin_ugv.sh dispatch
 | `main` | UGV 열화상·지상 자동 정찰 끔(`ORCH_UGV_THERMAL=0 ORCH_AUTO_RECON_GROUND=0`) → UGV는 출동하지 않고 드론 순찰·소방차 방어만 | 비교용 |
 | `dispatch` | 기본값 그대로 (신고 때 자동 정찰 후보에 UGV 포함, 10/9 팀 합의 `25a0183`). `run_servers.py start --twin`과 같음 | ③ (통합 환경에서 돌리셔야 합니다.) |
 | `final` | `dispatch` + 거절 요청 1건 자동 (시뮬레이션 40분, 도로에서 2.2 km 넘게 먼 산속 칸으로 UGV 정찰 요청, `ugv/tools/twin_reject_request.py --auto`) | ④(소방차만 처음에 출동하고 ugv는 reject 합니다.) |
-| `thermal` | 마을회관 방어 출동을 소방차 대신 UGV로 (`TWIN_DISPATCH_ARGS="--types UGV --site NAMJEON1_HALL,INJE_REST_AREA"`, 남전1리 마을회관·인제휴게소) + UGV 전용 열화상 요청 자동 (시뮬레이션 20분부터 30분마다 불 칸, 최대 6건, `ugv/tools/twin_thermal_request.py --auto`) | ⑤, 시연 ([7장](#7-발표에서-보여줄-동작)) |
+| `thermal` | 마을회관 방어 출동을 소방차 대신 UGV로 (`TWIN_DISPATCH_ARGS="--types UGV --site NAMJEON1_HALL,INJE_REST_AREA"`, 남전1리 마을회관·인제휴게소) + UGV 전용 열화상 요청 자동 (시뮬레이션 20분부터 30분마다 불 칸, 최대 6건, `ugv/tools/twin_thermal_request.py --auto`) | ⑤ |
 
 거절 요청을 원하는 때에 손으로 넣으려면 `dispatch`로 켠 뒤 `.venv/bin/python ugv/tools/twin_reject_request.py`를 실행합니다.
 
@@ -323,7 +322,7 @@ bash ugv/tools/run_twin_ugv.sh final                   # main / dispatch / therm
 # [B] UGV 서버만 (5-3 ①, Swagger·도로 상황판 확인용) — 도로 시나리오 변수를 주지 않으면 모든 도로가 뚫림
 UGV_DRIVER=sim .venv/bin/python -m uvicorn ugv.server:app --port 8100
 
-# [C] Gazebo 1대 (5-3 ②) — A-ugv1만 PX4, 나머지 sim. 총괄·트윈 없이 UGV 서버만 뜨고 도로 상황판에서 직접 지시
+# [C] Gazebo 1대 (5-3 ②) — A-ugv1만 PX4, 나머지 sim. 총괄·트윈 없이 UGV 서버만 뜨고 `/view/command` 로 직접 지시
 SPEED=4 ./ugv/tools/px4-start.sh A-ugv1                                              # WSL, PX4 빌드 필요
 UGV_DRIVER=px4 UGV_PX4_RESOURCES=A-ugv1 UGV_TIME_SCALE=4 .venv/bin/python -m uvicorn ugv.server:app --port 8100
 ```
@@ -354,7 +353,7 @@ UGV_DRIVER=px4 UGV_PX4_RESOURCES=A-ugv1 UGV_TIME_SCALE=4 UGV_ENV_URL=http://<환
 | 총괄 → UGV | 상태 조회, 평가, 주행 시작, 진행 조회 |
 | UGV → 환경 모듈 | 지금 시각 (`/health`) |
 | 웹 관제판 → UGV | 차량 위치·상태 표시 |
-| UGV → 총괄 | 도로 상황판에서 출동 요청할 때만 |
+| UGV → 총괄 | `/view/dispatch` 출동 요청할 때만 |
 
 **총괄이 UGV를 쓰는 흐름** (통합 환경의 총괄 기준)
 
@@ -363,41 +362,15 @@ UGV_DRIVER=px4 UGV_PX4_RESOURCES=A-ugv1 UGV_TIME_SCALE=4 UGV_ENV_URL=http://<환
 3. 진행 조회로 도착 확인
 4. 도착 위치에서 모의 열화상 관측 (지형 시선 계산)
 
-명령은 **총괄만** 내립니다. 도로 상황판의 직접 지시는 운영자 예외이고, 이때 총괄 임무는 실패(`OPERATOR_OVERRIDE`)로 닫혀 다른 차에 다시 맡겨집니다.
+명령은 **총괄만** 내립니다.
 
 ---
 
 ## 7. 발표에서 보여줄 동작
 
-드론과 겹치는 부분도 있으며 Gazebo 시연도 따로 있으므로, 발표 시간 관계상 UGV는 다음 두 가지면 충분하다고 봅니다.
+발표 내용 확정(10분 PPT)으로 삭제.
 
-1. **알고리즘** — 수행 가능성 평가와 Dijkstra 경로 ([3장](#3-어떻게-판단하나)) - ppt에 gif
-2. **시연·영상 한 편** — 도로 상황판에서 특정 지점으로 출동을 요청하면 오케스트레이터가 알맞은 UGV를 골라 보내는 장면
-
-![도로 상황판에서 인제119 A 지점에 UGV 출동 요청 → 오케스트레이터가 A-ugv1을 골라 배정 → 경로 확정·주행·도착](../ugv/media/ugv_roadview_orch_dispatch.gif)
-
-영상: [영상 10](https://drive.google.com/file/d/1SY68U-cmPt6lgy0qlqBAr5AMy7e0-hpU/view) · 실행 결과 근거: [`2026-10-12_thermal`](../ugv/evidence/2026-10-12_thermal/)
-
-직접 시연할 때는 아래를 돌리면 될 것 같습니다.
-
-```bash
-bash ugv/tools/run_twin_ugv.sh thermal
-```
-- 불이 확인되면 남전1리 마을회관·인제휴게소 방어 출동이 UGV로 나가고, 시뮬레이션 20분부터 불 칸으로 UGV 열화상 정찰이 나갑니다. 어느 UGV를 보낼지·갈 수 있는지·관측 판정은 오케스트레이터와 UGV가 정합니다.
-- 도로 상황판(`http://127.0.0.1:8100/view`)에서 지점을 눌러 "UGV 출동 요청"을 보내도 오케스트레이터가 차를 골라 보냅니다 (위 영상).
-- 끄기: `.venv/bin/python run_servers.py stop`
-
-### 7-1. 미완성·미통합 기능의 발표 자료용 영상 (시연 동작 아님)
-
-아래는 통합 시연에 들어가지 않는 **미완성·미통합 기능**입니다 ([2장](#2-구현한-것--안-한-것)). 일부는 동작까지 만들어져 있어, 발표 임팩트용으로 영상이나 다시 보기를 곁들일 수 있습니다.
-
-| 내용 | 파일 | 비고 |
-|---|---|---|
-| Gazebo 1대 직접 지시, 3D 화면·QGroundControl 동시 표시 | [영상 07](https://drive.google.com/file/d/1FDUeMzhDdScPLViCn4qkAXgzBJ7bsy9N/view), GIF 0장 | 실제 차량 모델 주행 (UGV 2 m/s, 시뮬레이션 4배속) |
-| 소방차 방수: Gazebo에서 소방차가 물줄기를 뿜음 (`/suppress` 호출) | [영상 08](https://drive.google.com/file/d/1LxS15i7fFwyW3IC_bP5gZEL3C1U2dunj/view), GIF 아래 | 부분 구현·미통합 (2장). 화면 표시만, 환경의 불은 꺼지지 않음 |
-
-
-![Gazebo 소방차 방수 표시 (부분 구현, 미통합)](../ugv/media/ugv_gazebo_water.gif)
+---
 
 ## 8. 가정과 한계
 

@@ -77,7 +77,7 @@ ugv/
 오케스트레이터로부터 임무 평가를 요청받으면 Dijkstra 알고리즘으로 갈 수 있는지, 어느 길로 갈지, 얼마나 걸릴지를 계산해 수락(ACCEPT) 또는 거절(REJECT)과 예상 도착 시간(ETA)을 돌려줍니다. 오케스트레이터가 배정을 고를 수 있도록 현재 상태(위치, 수행 중 임무)도 항상 조회할 수 있게 합니다. 어떤 임무를 맡을 수 있는지(능력)는 UGV가 보고하지 않고 오케스트레이터 설정이 정합니다.
 임무 수행을 지시받으면 도로를 따라 이동하고, 이동 중 위치·진행률·남은 시간을 제공합니다. 도착하면 임무를 완료로 닫습니다.
 시뮬레이션 동안 시간에 따른 위치, 도로, 지점(노드), 상태를 파일에 기록해 나중에 다시 보거나 분석할 수 있게 합니다.
-별도 웹페이지(UGV 도로 상황판, `서버주소:8100/view`)에서 주행 상태와 기록을 보여 주고, 화면에서 직접 지시를 받을 수도 있습니다.
+별도 웹페이지(UGV 도로 상황판, `서버주소:8100/view`)에서 주행 상태와 기록을 보여 줍니다.
 
 정리
 1. 강원도 인제 지역 실제 도로 자료로 만든 도로망 그래프에서 도달 가능 여부와 시뮬레이션 안의 위치를 정합니다.
@@ -119,7 +119,7 @@ Gazebo 화면의 소방차(A-fire1, 2026-10-05 주행 영상에서 캡처). UGV(
 |도로 상황 반영·우회|도로 통제와 혼잡을 출처별(시나리오 / 수동 / 구역)로 관리하고, 시나리오 CSV를 시각에 맞춰 적용합니다. 주행 중 앞길이 막히면 경로를 다시 찾습니다. 화재는 도로를 막지 않습니다 (팀 결정)|[road_status.py](road_status.py)<br>└ [`RoadStatus`](road_status.py#L18)<br>[scenario.py](scenario.py)<br>└ [`tick`](scenario.py#L121)<br>[server.py](server.py)<br>└ [`_drive_leg` 안 재탐색](server.py#L593)<br>[agent.py](agent.py)<br>├ [`blocked_ahead`](agent.py#L240)<br>└ [`reroute`](agent.py#L248)|
 |시뮬레이션 시계|환경 모듈의 `/health` 시각을 따라갑니다. 환경 모듈이 10초 넘게 응답하지 않으면 혼자 흐릅니다|[server.py](server.py)<br>└ [`_env_clock_loop`](server.py#L112)<br>[sim_clock.py](sim_clock.py)<br>├ [`SimClock`](sim_clock.py#L26)<br>└ [`follow_env`](sim_clock.py#L128)|
 |기록|네 갈래로 남깁니다.<br>① 실행별 사건 기록: 판단·주행·고장을 시뮬레이션 시각과 함께. 최근 30회 보관, 다시 보기의 근거<br>② 임무별 주행 CSV: 0.5초 간격 위치·속도·경로 이탈 거리<br>③ 오케스트레이터 보고 목록 (`/reports`)<br>④ 임무 저장: 서버를 다시 켜도 임무 상태 복구|[history.py](history.py)<br>└ [`record`](history.py#L58)<br>[drive_log.py](drive_log.py)<br>└ [`DriveLog`](drive_log.py#L29)<br>[reporter.py](reporter.py)<br>└ [`report`](reporter.py#L56)<br>[server.py](server.py)<br>├ [`_report`](server.py#L222)<br>└ [`STORE`](server.py#L69) (`ugv_tasks.json`)|
-|도로 상황판|지도 위에 차량·경로·막힌 도로를 표시하고, 지난 실행을 다시 재생하고, 차를 골라 직접 지시합니다 (직접 지시는 오케스트레이터의 안전 검토를 거치지 않음). 화면 머리와 지도 위에 "AI 생성 화면"을 늘 표시합니다 (화면·지도 그림을 AI 코딩 도구로 만든 코드가 그림)|[static/road_view.html](static/road_view.html)<br>[server.py](server.py)<br>├ [`view_vehicles`](server.py#L1287)<br>├ [`view_command`](server.py#L1347)<br>└ [`view_dispatch`](server.py#L1179)|
+|도로 상황판|지도 위에 차량·경로·막힌 도로를 표시하고, 지난 실행을 다시 재생합니다. 화면 머리와 지도 위에 "AI 생성 화면"을 늘 표시합니다 (화면·지도 그림을 AI 코딩 도구로 만든 코드가 그림)|[static/road_view.html](static/road_view.html)<br>[server.py](server.py)<br>└ [`view_vehicles`](server.py#L1287)|
 |거점 복귀|차량 상태에 소속 거점과 거점 앞 도로 위 지점(`station.access_point`)을 싣고, 목적지를 도로 위 지점 `RP:<도로ID>:<m>`으로 받으면 그 지점으로 갑니다. 복귀 지시(언제 돌아갈지)는 오케스트레이터가 정하고, UGV는 이 목적지로 주행합니다. 이미 거점에 있으면 움직이지 않고 바로 완료합니다|[server.py](server.py)<br>├ [`_station`](server.py#L297)<br>└ [`_decide`](server.py#L322)<br>[road_point.py](road_point.py)<br>├ [`access_point`](road_point.py#L126)<br>└ [`at`](road_point.py#L98)|
 |역제안 (COUNTER, 기본 꺼짐)|`UGV_COUNTER=1`일 때, 목표가 도로에서 2 km를 넘지만 3 km(`UGV_COUNTER_MAX_M`) 안이고 그 도로 지점까지 갈 수 있으면 거절 대신 COUNTER를 냅니다. `counter_offer`에 다시 요청할 때 실을 값(`max_snap_m`)과 ETA·설명이 있고, 그 값을 실은 평가·출발 요청은 수락합니다. 그 지점에서 목표가 보이는지는 판단하지 않습니다|[server.py](server.py)<br>├ [`_counter`](server.py#L501)<br>└ [`_snap_limit`](server.py#L494)|
 
@@ -215,7 +215,6 @@ Swagger 단독 호출 (2026-10-11, sim, 배속 5): 평가 ACCEPT·ETA 344초 →
 밖에서 주행에 끼어드는 경우:
 - **정지 요청:** 차를 세우고 임무를 취소(CANCELLED)합니다.
 - **도로 통제·혼잡 변경:** 시나리오 시각이 되거나 API로 바뀌면 다음 확인에서 우회합니다.
-- **도로 상황판의 직접 지시(교체):** 기존 임무를 실패(OPERATOR_OVERRIDE)로 닫고 새 목적지로 출발합니다. 오케스트레이터는 실패를 보고 다른 차에 다시 맡깁니다.
 - **같은 주행 요청 재전송:** 새로 출발하지 않고 지금 임무 상태를 돌려줍니다.
 
 주행 중 위치는 도로 상황판(`/view`)과 웹 관제판(`GET /ugv`)이 읽어 화면에 그립니다.
@@ -281,7 +280,7 @@ congestion,682501921|682501922,00:00,01:00,2.0,시가지 정체 (통과시간 2�
 |`ROAD_STATE`|막힌 도로·혼잡이 바뀔 때만|
 |`ROUTE`|출발·재탐색 때 고른 경로와 구간별 소요시간|
 |`UGV_EVALUATED` · `UGV_TASK_STARTED` · `UGV_PROGRESS` · `UGV_REROUTED` · `UGV_ARRIVED` · …|총괄에 보고하는 것과 같은 사건 (평가 결과·거절 사유 포함)|
-|`VIEW_COMMAND` · `VIEW_DISPATCH`|도로 상황판에서 직접 지시·출동 요청|
+|`VIEW_COMMAND` · `VIEW_DISPATCH`|운영자 직접 명령 · 출동 요청(`/view/dispatch`)|
 
 한 줄은 `{"seq", "wall", "sim_time_s", "type", "resource_id", "task_id", "data"}`입니다. 기록은 화면과 분석용이라 총괄로 보내지 않고, 기록에 실패해도 주행에는 영향이 없습니다 (끄기: `UGV_HISTORY=0`).
 
@@ -426,7 +425,7 @@ Swagger: <http://localhost:8100/docs> · 모델 정의: [ugv/api_models.py](api_
 
 #### 4) 화면 전용 (설명 생략)
 
-`/view` 도로 상황판 · `/view/vehicles` · `/view/dispatch` · `/view/command` (상황판에서 직접 지시, 오케스트레이터의 안전 검토를 거치지 않음) · `/view/terrain` · `/graph/nodes`, `/graph/edges`, `/graph/bases` · `/news`, `/news/api/*` (도로 판단 AI용 가상 교통 소식)
+`/view` 도로 상황판 · `/view/vehicles` · `/view/dispatch` · `/view/command` (운영자 직접 명령, 오케스트레이터의 안전 검토를 거치지 않음) · `/view/terrain` · `/graph/nodes`, `/graph/edges`, `/graph/bases` · `/news`, `/news/api/*` (도로 판단 AI용 가상 교통 소식)
 
 ---
 
@@ -514,7 +513,7 @@ Gazebo  (`gz sim`, 월드 1개에 차량 여러 대)
 |`UGV_TIME_SCALE`|`1`|배속 (시뮬레이션 초 ÷ 실제 초)|
 |`UGV_SCENARIO`|비어 있음|도로 시나리오 CSV. 비우면 시나리오 없음|
 |`UGV_ENV_URL`|`http://127.0.0.1:8300`|시계를 따라갈 환경 모듈|
-|`UGV_ORCH_URL`|`http://127.0.0.1:8200`|도로 상황판 출동 요청을 보낼 오케스트레이터|
+|`UGV_ORCH_URL`|`http://127.0.0.1:8200`|`/view/dispatch` 출동 요청을 보낼 오케스트레이터|
 |`UGV_REPORT_URL`|비어 있음|사건 보고를 보낼 주소. 비우면 기록만|
 |`UGV_STATE_DIR`|`ugv/.state`|임무 저장·기록 폴더|
 |`UGV_TARGET_SNAP_M`|`2000`|목표에서 도로까지 허용 거리(m)|
@@ -538,13 +537,13 @@ UGV는 다른 서버 없이도 뜹니다. 함께 띄울 때는 환경 모듈 →
 |---|---|---|---|
 |오케스트레이터|오케스트레이터 → UGV|상태 조회, 평가, 주행 시작, 진행 조회|[orchestrator/resources.py](../orchestrator/resources.py)<br>└ [`UgvClient`](../orchestrator/resources.py#L144)|
 |오케스트레이터|오케스트레이터 설정|UGV가 맡을 수 있는 임무 종류(능력). UGV가 보고하지 않고 이 설정이 정합니다|[orchestrator/config.py](../orchestrator/config.py#L202)<br>└ `SIMULATED_CAPABILITIES` (WEATHER, THERMAL)|
-|오케스트레이터|UGV → 오케스트레이터|도로 상황판 출동 요청 (`POST /tasks`), 임무 목적 조회 (`GET /attempts/{id}`)|[server.py](server.py)<br>├ [`view_dispatch`](server.py#L1179)<br>└ [`_orch_purposes`](server.py#L1241)|
+|오케스트레이터|UGV → 오케스트레이터|`/view/dispatch` 출동 요청 (`POST /tasks`), 임무 목적 조회 (`GET /attempts/{id}`)|[server.py](server.py)<br>├ [`view_dispatch`](server.py#L1179)<br>└ [`_orch_purposes`](server.py#L1241)|
 |공통 커넥터|커넥터 → UGV|평가, 주행 시작, 진행 조회, 위치 관측|[connectors/ugv_connector.py](../connectors/ugv_connector.py)|
 |환경 모듈|UGV → 환경 모듈|시뮬레이션 시각 읽기 (`GET /health`)|[server.py](server.py)<br>└ [`_env_clock_loop`](server.py#L112)|
 |웹 관제판|관제판 → UGV|차량 위치·상태 표시 (`GET /ugv`)|[web/app.py](../web/app.py#L461)|
 |실행 스크립트|run_servers → UGV|서버 기동, 기동 확인 (`GET /health`)|[run_servers.py](../run_servers.py#L99)|
 
-UGV에 명령(평가·주행 시작)을 내리는 것은 오케스트레이터(와 공통 커넥터)뿐입니다. 예외로 도로 상황판의 직접 지시는 운영자 명령으로 오케스트레이터를 거치지 않고, 이때 오케스트레이터가 맡긴 임무는 실패(OPERATOR_OVERRIDE)로 닫혀 오케스트레이터가 다른 차량에 다시 맡깁니다.
+UGV에 명령(평가·주행 시작)을 내리는 것은 오케스트레이터(와 공통 커넥터)뿐입니다. 예외로 운영자 직접 명령(`/view/command`)은 오케스트레이터를 거치지 않고, 이때 오케스트레이터가 맡긴 임무는 실패(OPERATOR_OVERRIDE)로 닫혀 오케스트레이터가 다른 차량에 다시 맡깁니다.
 
 ---
 
@@ -588,7 +587,7 @@ UGV에 명령(평가·주행 시작)을 내리는 것은 오케스트레이터(�
 |주행 중 막혔는데 다른 길이 없음|가까운 노드에 서고 임무 실패(`ROAD_BLOCKED`). 고장이 아니므로 차는 READY|"주행 중 682501428 차단, 우회 경로 없음", 차량 READY (15, 16)|
 |정지 요청|임무 취소(CANCELLED), 차는 그 자리 가까운 노드에 READY|CANCELLED "stopped by request" (17, 18)|
 |멈춤·경로 이탈·드라이버 고장|임무 실패(FAILED), 차량 사용 불가(UNAVAILABLE). `/stop`으로 해제|— (sim에서는 재현하지 않음. PX4/Gazebo 주행에서 확인)|
-|도로 상황판에서 직접 지시로 교체|기존 임무 실패(`OPERATOR_OVERRIDE`), 새 지시로 출발|—|
+|운영자 직접 명령(`/view/command`)으로 교체|기존 임무 실패(`OPERATOR_OVERRIDE`), 새 지시로 출발|—|
 
 이 재현 한 번의 요청·응답·통과 여부 18건은 [`ugv_cases_sim.json`](../docs/ugv/evidence/2026-10-10/ugv_cases_sim.json)에 있습니다. 같은 실행의 사건 기록(`.jsonl`)은 저장소에 올리지 않았습니다.
 
