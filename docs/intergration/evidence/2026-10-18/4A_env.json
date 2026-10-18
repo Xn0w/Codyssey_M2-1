@@ -1,0 +1,1122 @@
+﻿{
+    "run_id":  "RUN-INJE-20261018T023229Z-fa925b",
+    "state_version":  431,
+    "simulation_time_s":  20160.0,
+    "scenario_start_kst":  "2019-04-04T14:45:00+09:00",
+    "map_version":  "INJE-2019-v1",
+    "crs":  "EPSG:5186",
+    "cell_coord_crs":  "EPSG:4326",
+    "vertical_datum":  "DEM_AMSL_UNVERIFIED",
+    "wind_ms":  5.3,
+    "wind_dir_deg":  160.0,
+    "wind_valid_sim_s":  18900.0,
+    "weather":  {
+                    "temperature_c":  11.9,
+                    "humidity_pct":  20.0,
+                    "scope":  "GLOBAL_FIELD",
+                    "basis":  "KMA_ASOS_HOURLY",
+                    "station_id":  "211",
+                    "observed_kst":  "2019-04-04 20:00",
+                    "data_status":  "OK"
+                },
+    "fire_cells":  [
+                       {
+                           "cell_id":  "13_101",
+                           "lat":  38.0273348,
+                           "lon":  128.1310888,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  232.53,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "BURNED",
+                           "risk_score":  0.2
+                       }
+                   ],
+    "risk_cells":  [
+                       {
+                           "cell_id":  "10_98",
+                           "lat":  38.0297964,
+                           "lon":  128.1280516,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  205.96,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "11_98",
+                           "lat":  38.0297866,
+                           "lon":  128.1290764,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  213.88,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "12_98",
+                           "lat":  38.0297767,
+                           "lon":  128.1301013,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  220.04,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  true,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "13_98",
+                           "lat":  38.0297669,
+                           "lon":  128.1311262,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  230.16,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "14_98",
+                           "lat":  38.029757,
+                           "lon":  128.1321511,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  246.94,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "15_98",
+                           "lat":  38.0297471,
+                           "lon":  128.133176,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  257.35,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.0,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "16_98",
+                           "lat":  38.0297372,
+                           "lon":  128.1342009,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  242.98,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "10_99",
+                           "lat":  38.0289857,
+                           "lon":  128.1280391,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  200.59,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "11_99",
+                           "lat":  38.0289759,
+                           "lon":  128.129064,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  209.33,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "12_99",
+                           "lat":  38.0289661,
+                           "lon":  128.1300889,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  215.5,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  true,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "13_99",
+                           "lat":  38.0289562,
+                           "lon":  128.1311138,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  223.7,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  true,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "14_99",
+                           "lat":  38.0289463,
+                           "lon":  128.1321386,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  238.6,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.0,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "15_99",
+                           "lat":  38.0289365,
+                           "lon":  128.1331635,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  252.46,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.0,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "16_99",
+                           "lat":  38.0289266,
+                           "lon":  128.1341884,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  249.64,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.0,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "10_100",
+                           "lat":  38.0281751,
+                           "lon":  128.1280267,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  198.44,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "11_100",
+                           "lat":  38.0281652,
+                           "lon":  128.1290516,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  209.91,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "12_100",
+                           "lat":  38.0281554,
+                           "lon":  128.1300764,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  216.31,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  true,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "13_100",
+                           "lat":  38.0281455,
+                           "lon":  128.1311013,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  220.26,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "14_100",
+                           "lat":  38.0281357,
+                           "lon":  128.1321262,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  227.17,
+                           "building_type":  5,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.0,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0869
+                       },
+                       {
+                           "cell_id":  "15_100",
+                           "lat":  38.0281258,
+                           "lon":  128.133151,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  245.04,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.0,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "16_100",
+                           "lat":  38.0281159,
+                           "lon":  128.1341759,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  260.48,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.0,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "10_101",
+                           "lat":  38.0273644,
+                           "lon":  128.1280143,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  197.0,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "11_101",
+                           "lat":  38.0273545,
+                           "lon":  128.1290391,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  211.46,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "12_101",
+                           "lat":  38.0273447,
+                           "lon":  128.130064,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  224.6,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  true,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "14_101",
+                           "lat":  38.027325,
+                           "lon":  128.1321137,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  233.23,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "15_101",
+                           "lat":  38.0273151,
+                           "lon":  128.1331386,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  253.54,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "16_101",
+                           "lat":  38.0273052,
+                           "lon":  128.1341634,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  277.48,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "10_102",
+                           "lat":  38.0265537,
+                           "lon":  128.1280018,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  193.94,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "11_102",
+                           "lat":  38.0265439,
+                           "lon":  128.1290267,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  209.32,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "12_102",
+                           "lat":  38.026534,
+                           "lon":  128.1300515,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  230.28,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  true,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "13_102",
+                           "lat":  38.0265242,
+                           "lon":  128.1310764,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  247.88,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "14_102",
+                           "lat":  38.0265143,
+                           "lon":  128.1321012,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  250.6,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "15_102",
+                           "lat":  38.0265044,
+                           "lon":  128.1331261,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  267.68,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "16_102",
+                           "lat":  38.0264946,
+                           "lon":  128.1341509,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  291.42,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "10_103",
+                           "lat":  38.025743,
+                           "lon":  128.1279894,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  190.9,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "11_103",
+                           "lat":  38.0257332,
+                           "lon":  128.1290142,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  205.43,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "12_103",
+                           "lat":  38.0257234,
+                           "lon":  128.1300391,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  229.19,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  true,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "13_103",
+                           "lat":  38.0257135,
+                           "lon":  128.1310639,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  254.18,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "14_103",
+                           "lat":  38.0257036,
+                           "lon":  128.1320887,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  266.23,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "15_103",
+                           "lat":  38.0256938,
+                           "lon":  128.1331136,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  282.78,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "16_103",
+                           "lat":  38.0256839,
+                           "lon":  128.1341384,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  305.97,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "10_104",
+                           "lat":  38.0249324,
+                           "lon":  128.127977,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  188.83,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "11_104",
+                           "lat":  38.0249225,
+                           "lon":  128.1290018,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  202.07,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "12_104",
+                           "lat":  38.0249127,
+                           "lon":  128.1300266,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  223.4,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  true,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "13_104",
+                           "lat":  38.0249028,
+                           "lon":  128.1310514,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  250.23,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "14_104",
+                           "lat":  38.024893,
+                           "lon":  128.1320763,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  275.53,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "15_104",
+                           "lat":  38.0248831,
+                           "lon":  128.1331011,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  299.72,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.6,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       },
+                       {
+                           "cell_id":  "16_104",
+                           "lat":  38.0248732,
+                           "lon":  128.1341259,
+                           "cell_size_m":  90.0,
+                           "ground_amsl_m":  319.57,
+                           "building_type":  0,
+                           "human_exposure":  false,
+                           "is_road":  false,
+                           "fuel_amount":  0.3,
+                           "fire_state":  "UNBURNED",
+                           "risk_score":  0.0
+                       }
+                   ],
+    "protected_sites":  [
+                            {
+                                "site_id":  "RES-69_6",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.1037807,
+                                                 "lon":  128.1897267
+                                             },
+                                "cell_id":  "69_6",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-91_31",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0832839,
+                                                 "lon":  128.2119618
+                                             },
+                                "cell_id":  "91_31",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-66_32",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0827349,
+                                                 "lon":  128.1863083
+                                             },
+                                "cell_id":  "66_32",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-68_32",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0827142,
+                                                 "lon":  128.1883595
+                                             },
+                                "cell_id":  "68_32",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-146_43",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.072961,
+                                                 "lon":  128.2682014
+                                             },
+                                "cell_id":  "146_43",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-56_46",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0714888,
+                                                 "lon":  128.1758704
+                                             },
+                                "cell_id":  "56_46",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-57_47",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0706679,
+                                                 "lon":  128.1768828
+                                             },
+                                "cell_id":  "57_47",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-53_48",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0698983,
+                                                 "lon":  128.1727681
+                                             },
+                                "cell_id":  "53_48",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-53_49",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0690876,
+                                                 "lon":  128.1727551
+                                             },
+                                "cell_id":  "53_49",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-52_51",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0674765,
+                                                 "lon":  128.1717039
+                                             },
+                                "cell_id":  "52_51",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-50_52",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0666863,
+                                                 "lon":  128.1696401
+                                             },
+                                "cell_id":  "50_52",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-53_52",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0666556,
+                                                 "lon":  128.1727163
+                                             },
+                                "cell_id":  "53_52",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-50_53",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0658756,
+                                                 "lon":  128.1696272
+                                             },
+                                "cell_id":  "50_53",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-49_54",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0650752,
+                                                 "lon":  128.168589
+                                             },
+                                "cell_id":  "49_54",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-51_54",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0650548,
+                                                 "lon":  128.1706397
+                                             },
+                                "cell_id":  "51_54",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-47_55",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0642849,
+                                                 "lon":  128.1665253
+                                             },
+                                "cell_id":  "47_55",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-52_56",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0634232,
+                                                 "lon":  128.1716392
+                                             },
+                                "cell_id":  "52_56",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-45_58",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0618732,
+                                                 "lon":  128.1644361
+                                             },
+                                "cell_id":  "45_58",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-176_93",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.032094,
+                                                 "lon":  128.2982483
+                                             },
+                                "cell_id":  "176_93",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-103_98",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0288432,
+                                                 "lon":  128.2233645
+                                             },
+                                "cell_id":  "103_98",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-232_111",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0168553,
+                                                 "lon":  128.3553707
+                                             },
+                                "cell_id":  "232_111",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-247_111",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0166771,
+                                                 "lon":  128.37074
+                                             },
+                                "cell_id":  "247_111",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-63_114",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0162921,
+                                                 "lon":  128.1821618
+                                             },
+                                "cell_id":  "63_114",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-74_114",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0161782,
+                                                 "lon":  128.1934333
+                                             },
+                                "cell_id":  "74_114",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-266_118",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0107743,
+                                                 "lon":  128.3901004
+                                             },
+                                "cell_id":  "266_118",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-271_118",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0107136,
+                                                 "lon":  128.3952231
+                                             },
+                                "cell_id":  "271_118",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-174_123",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0077978,
+                                                 "lon":  128.2957702
+                                             },
+                                "cell_id":  "174_123",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-117_127",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  38.0051843,
+                                                 "lon":  128.2373169
+                                             },
+                                "cell_id":  "117_127",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-172_149",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.986744,
+                                                 "lon":  128.2933509
+                                             },
+                                "cell_id":  "172_149",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-187_158",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.9792784,
+                                                 "lon":  128.3085847
+                                             },
+                                "cell_id":  "187_158",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-5_160",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.9795833,
+                                                 "lon":  128.1221607
+                                             },
+                                "cell_id":  "5_160",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-203_171",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.9685569,
+                                                 "lon":  128.3247812
+                                             },
+                                "cell_id":  "203_171",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-301_171",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.9673838,
+                                                 "lon":  128.425127
+                                             },
+                                "cell_id":  "301_171",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-199_180",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.9613073,
+                                                 "lon":  128.3205546
+                                             },
+                                "cell_id":  "199_180",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-7_183",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.960918,
+                                                 "lon":  128.1239247
+                                             },
+                                "cell_id":  "7_183",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-176_187",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.9558949,
+                                                 "lon":  128.2969057
+                                             },
+                                "cell_id":  "176_187",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-194_192",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.9516371,
+                                                 "lon":  128.3152617
+                                             },
+                                "cell_id":  "194_192",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-194_196",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.9483946,
+                                                 "lon":  128.3152039
+                                             },
+                                "cell_id":  "194_196",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-195_197",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.9475725,
+                                                 "lon":  128.3162132
+                                             },
+                                "cell_id":  "195_197",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-196_201",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.9443185,
+                                                 "lon":  128.3171789
+                                             },
+                                "cell_id":  "196_201",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            },
+                            {
+                                "site_id":  "RES-171_226",
+                                "site_type":  "RESIDENTIAL_CELL",
+                                "human_occupied":  true,
+                                "location":  {
+                                                 "lat":  37.9243363,
+                                                 "lon":  128.2912333
+                                             },
+                                "cell_id":  "171_226",
+                                "coordinate_source":  "buildings_inje.tif ì¹¸ ì¤ì¬ (building_type=1)"
+                            }
+                        ],
+    "step_count":  10,
+    "tick_s":  2100.0,
+    "subtick_s":  60.0,
+    "fire_display":  "INTERPOLATED_WITHIN_CA_STEP (ë¨ê³ ì¬ì´ ì í ìê°ì ì±ì ë£ì ê°)",
+    "source":  "TEAM_ENV",
+    "contract_complete":  true
+}

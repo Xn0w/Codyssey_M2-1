@@ -1,0 +1,26 @@
+﻿{
+    "uav_id":  "A-uav2",
+    "timestamp":  "2026-10-18T03:00:10Z",
+    "position":  {
+                     "lat":  38.03327,
+                     "lon":  128.132708,
+                     "alt_m_amsl":  218.5,
+                     "alt_m_agl":  0.0
+                 },
+    "battery":  {
+                    "percent":  100.0,
+                    "voltage":  15.8
+                },
+    "velocity_ms":  0.0,
+    "flight_mode":  "HOLD",
+    "armed":  false,
+    "health":  {
+                   "gps_ok":  true,
+                   "sensors_ok":  true,
+                   "failsafe":  false
+               },
+    "wind_ms":  3.1,
+    "link_quality":  "OK",
+    "current_task_id":  null,
+    "returning_task_id":  null
+}

@@ -177,6 +177,11 @@ function obsShort(o){if(!o)return '<span class="mute small">정찰 결과 아직
  const where=o.detections&&o.detections.length?` (${o.detections.map(d=>esc(d.cell_id)).join(", ")})`:"";return `<span class="obs ${r[1]}">${r[0]}${where}</span>`;}
 function completionRow(o){const c=o.completion;return c?`<div class="row"><span>완료 근거</span><span>${COMPLETION_KO[c.evidence_level]||esc(c.evidence_level)}</span></div>`:"";}
 function obsDetail(o){return obsDetail0(o)+(o.extras||[]).map(x=>`<div class="extra"><div class="row"><span><b>같은 방문에서 함께 측정</b></span><span></span></div>${obsDetail0(x)}</div>`).join("")+completionRow(o);}
+// 관측 범위 글: UGV 지상 시선(반경)·드론 경로 띠(폭×길이)·드론 한 프레임(가로×세로, 높이는 값이 있을 때만)
+function fpText(fp){const r=v=>Math.round(v).toLocaleString();
+ if(fp.shape==="RADIUS_TERRAIN_LOS")return `반경 ${r(fp.min_m)}m 안 전부 + ${r(fp.max_m)}m 까지 지형에 안 가린 칸 (카메라 높이 ${fp.mast_m}m 가정${fp.visible_cells!=null?`, 보인 칸 ${fp.visible_cells}`:""}${fp.hidden_cells?` · 가린 칸 ${fp.hidden_cells}`:""})`;
+ if(fp.shape==="SWATH_ALONG_PATH")return `지나간 경로 양옆 폭 ${r(fp.swath_m)}m × 길이 ${r(fp.length_m)}m`;
+ return `${r(fp.width_m)}m × ${r(fp.height_m)}m${fp.agl_m!=null?` (높이 ${r(fp.agl_m)}m)`:""}`;}
 function obsDetail0(o){if(o.sensor_type==="WEATHER"){const v=o.values||{};
   return `<div class="row"><span>결과</span>${obsShort(o)}</div>${Object.keys(WX_LABEL).filter(k=>v[k]!=null).map(k=>`<div class="row"><span>${WX_LABEL[k][0]}</span><b class="num">${v[k]}${WX_LABEL[k][1]}</b></div>`).join("")}
   <div class="row"><span>측정 범위</span><span>${o.scope==="CELL"?"그 칸의 값":"지도 전체 값 (칸별 기상 없음)"}</span></div>
@@ -191,7 +196,7 @@ function obsDetail0(o){if(o.sensor_type==="WEATHER"){const v=o.values||{};
  ${o.partial_cells&&o.partial_cells.length?`<div class="row"><span>일부만 본 칸</span><span>${o.partial_cells.map(c=>{const f=(o.cell_coverage||[]).find(x=>x.cell_id===c);return esc(c)+(f?` (${Math.round(f.fraction*100)}%)`:"");}).join(", ")}</span></div>`:""}
  ${o.received_after_purpose?`<div class="row"><span>비고</span><span>임무 ${PURPOSE[o.received_after_purpose]||esc(o.received_after_purpose)} 뒤에 들어온 관측 (완료 근거 아님)</span></div>`:""}
  <div class="row"><span>목표 칸 관측</span><span>${o.target_covered?"됨":"안 됨 · 재관측 필요"}</span></div>
- ${fp?`<div class="row"><span>관측 범위</span><span>${Math.round(fp.width_m)}m × ${Math.round(fp.height_m)}m (높이 ${Math.round(fp.agl_m)}m)</span></div>`:""}
+ ${fp?`<div class="row"><span>관측 범위</span><span>${fpText(fp)}</span></div>`:""}
  ${o.failure_reason?`<div class="row"><span>실패 사유</span><span>${esc(o.failure_reason)}</span></div>`:""}
  <div class="row"><span>출처</span><span>${src}</span></div><div class="row"><span>환경 반영</span><span>${ack}</span></div>
  <div class="row"><span>관측 자원</span><span>${resName(o.resource_id)}</span></div>`;}

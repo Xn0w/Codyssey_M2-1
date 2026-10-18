@@ -47,6 +47,10 @@ def twin_env(opts: dict) -> dict:
         return {}
     d = json.loads((ROOT / "web" / "static" / "inje2019" / "scenario.json").read_text(encoding="utf-8"))
     env = {k: str(v) for k, v in d["twin_env"].items()}
+    # 불: 3D 재현(scenario.json)을 만든 CA 설정을 쓴다. 2026-10-03 환경 기본 설정이 새로 보정되며 재현 설정은 legacy 로
+    # 분리됐는데, 트윈이 기본 설정으로 돌면 발화점 한 칸만 타다 꺼진다 (개인 저장소 ADAIR 는 2026-10-08 부터 이 설정).
+    # 시나리오 파일이나 셸에 ENV_CONFIG 가 있으면 그 값
+    env.setdefault("ENV_CONFIG", os.environ.get("ENV_CONFIG") or "environment/config/scenario_whatif_2019_legacy.yaml")
     run = Path(opts.get("twin_dir") or RUN_DIR)
     env.update({"ENV_STATE_DIR": str(run / "env"), "ENV_RESUME": "0",
                 # 신고: 발화 후 시뮬레이션 120 s 고정 (실제 사례 기준, 사용자 확정). 환경 서버 기본값은 0 이라 여기서 준다.

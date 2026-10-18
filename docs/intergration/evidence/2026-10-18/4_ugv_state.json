@@ -1,0 +1,201 @@
+﻿{
+    "value":  [
+                  {
+                      "resource_id":  "A-ugv1",
+                      "resource_type":  "UGV",
+                      "base":  "A",
+                      "state":  "READY",
+                      "position":  {
+                                       "lat":  38.031494,
+                                       "lon":  128.134401
+                                   },
+                      "fuel_pct":  53.80868371223056,
+                      "current_node":  "495107",
+                      "current_task_id":  null,
+                      "driver":  "sim",
+                      "driver_status":  "ARRIVED",
+                      "updated_at":  1792290502.002153,
+                      "fault":  null,
+                      "current_road_id":  null,
+                      "sim_time_s":  36765.3,
+                      "activity":  "IDLE",
+                      "equipment":  {
+                                        "activity":  "IDLE",
+                                        "activity_task_id":  null,
+                                        "activity_started_sim_s":  null,
+                                        "activity_until_sim_s":  null,
+                                        "siren_on":  false,
+                                        "pump_on":  false,
+                                        "water_l":  null,
+                                        "water_capacity_l":  null,
+                                        "pump_lps":  null,
+                                        "payload_kg":  100.0,
+                                        "cargo":  null,
+                                        "last_activities":  [
+
+                                                            ]
+                                    },
+                      "station":  {
+                                      "base":  "A",
+                                      "node_id":  "A",
+                                      "lat":  38.061984,
+                                      "lon":  128.168513,
+                                      "access_point":  {
+                                                           "road_id":  "682501641",
+                                                           "s_m":  11.8,
+                                                           "node_id":  "A",
+                                                           "lat":  38.061984,
+                                                           "lon":  128.168513
+                                                       }
+                                  }
+                  },
+                  {
+                      "resource_id":  "A-fire1",
+                      "resource_type":  "FIRE_ENGINE",
+                      "base":  "A",
+                      "state":  "READY",
+                      "position":  {
+                                       "lat":  38.0149934,
+                                       "lon":  128.1423295
+                                   },
+                      "fuel_pct":  91.83497045776762,
+                      "current_node":  "494855",
+                      "current_task_id":  null,
+                      "driver":  "sim",
+                      "driver_status":  "ARRIVED",
+                      "updated_at":  1792290502.002153,
+                      "fault":  null,
+                      "current_road_id":  null,
+                      "sim_time_s":  36765.3,
+                      "activity":  "IDLE",
+                      "equipment":  {
+                                        "activity":  "IDLE",
+                                        "activity_task_id":  null,
+                                        "activity_started_sim_s":  null,
+                                        "activity_until_sim_s":  null,
+                                        "siren_on":  false,
+                                        "pump_on":  false,
+                                        "water_l":  3000.0,
+                                        "water_capacity_l":  3000.0,
+                                        "pump_lps":  30.0,
+                                        "payload_kg":  null,
+                                        "cargo":  null,
+                                        "last_activities":  [
+
+                                                            ]
+                                    },
+                      "station":  {
+                                      "base":  "A",
+                                      "node_id":  "A",
+                                      "lat":  38.061984,
+                                      "lon":  128.168513,
+                                      "access_point":  {
+                                                           "road_id":  "682501641",
+                                                           "s_m":  11.8,
+                                                           "node_id":  "A",
+                                                           "lat":  38.061984,
+                                                           "lon":  128.168513
+                                                       }
+                                  }
+                  },
+                  {
+                      "resource_id":  "B-ugv1",
+                      "resource_type":  "UGV",
+                      "base":  "B",
+                      "state":  "READY",
+                      "position":  {
+                                       "lat":  38.0280281,
+                                       "lon":  128.1302412
+                                   },
+                      "fuel_pct":  4.631182099333922,
+                      "current_node":  "494962",
+                      "current_task_id":  null,
+                      "driver":  "sim",
+                      "driver_status":  "ARRIVED",
+                      "updated_at":  1792290502.002153,
+                      "fault":  null,
+                      "current_road_id":  null,
+                      "sim_time_s":  36765.3,
+                      "activity":  "IDLE",
+                      "equipment":  {
+                                        "activity":  "IDLE",
+                                        "activity_task_id":  null,
+                                        "activity_started_sim_s":  null,
+                                        "activity_until_sim_s":  null,
+                                        "siren_on":  false,
+                                        "pump_on":  false,
+                                        "water_l":  null,
+                                        "water_capacity_l":  null,
+                                        "pump_lps":  null,
+                                        "payload_kg":  100.0,
+                                        "cargo":  null,
+                                        "last_activities":  [
+
+                                                            ]
+                                    },
+                      "station":  {
+                                      "base":  "B",
+                                      "node_id":  "B",
+                                      "lat":  37.963796,
+                                      "lon":  128.317438,
+                                      "access_point":  {
+                                                           "road_id":  "683400561",
+                                                           "s_m":  0.0,
+                                                           "node_id":  "B",
+                                                           "lat":  37.963796,
+                                                           "lon":  128.317438
+                                                       }
+                                  }
+                  },
+                  {
+                      "resource_id":  "B-fire1",
+                      "resource_type":  "FIRE_ENGINE",
+                      "base":  "B",
+                      "state":  "READY",
+                      "position":  {
+                                       "lat":  37.963796,
+                                       "lon":  128.317438
+                                   },
+                      "fuel_pct":  100.0,
+                      "current_node":  "B",
+                      "current_task_id":  null,
+                      "driver":  "sim",
+                      "driver_status":  "IDLE",
+                      "updated_at":  1792290502.002153,
+                      "fault":  null,
+                      "current_road_id":  null,
+                      "sim_time_s":  36765.3,
+                      "activity":  "IDLE",
+                      "equipment":  {
+                                        "activity":  "IDLE",
+                                        "activity_task_id":  null,
+                                        "activity_started_sim_s":  null,
+                                        "activity_until_sim_s":  null,
+                                        "siren_on":  false,
+                                        "pump_on":  false,
+                                        "water_l":  3000.0,
+                                        "water_capacity_l":  3000.0,
+                                        "pump_lps":  30.0,
+                                        "payload_kg":  null,
+                                        "cargo":  null,
+                                        "last_activities":  [
+
+                                                            ]
+                                    },
+                      "station":  {
+                                      "base":  "B",
+                                      "node_id":  "B",
+                                      "lat":  37.963796,
+                                      "lon":  128.317438,
+                                      "access_point":  {
+                                                           "road_id":  "683400561",
+                                                           "s_m":  0.0,
+                                                           "node_id":  "B",
+                                                           "lat":  37.963796,
+                                                           "lon":  128.317438
+                                                       }
+                                  }
+                  }
+              ],
+    "Count":  4
+}

@@ -110,6 +110,12 @@ def env():
     return {"tick": _tick, "fire": fire, "risk": risk,
             "wind_speed": es.wind_speed, "spread": es.spread_direction}
 
+# 총괄 응답 대기 한도 (초). /health 는 가볍고, /priority/board 는 실행이 길어질수록 무거워진다.
+ORCH_HEALTH_TIMEOUT_S = float(os.environ.get("WEB_ORCH_HEALTH_TIMEOUT_S", "3"))
+ORCH_BOARD_TIMEOUT_S = float(os.environ.get("WEB_ORCH_BOARD_TIMEOUT_S", "6"))
+_ORCH_LAST_BOARD: dict | None = None
+
+
 @app.get("/api/orch")
 def orch_summary():
     """INT-03: 총괄 판단 요약 (읽기 전용).
@@ -117,17 +123,25 @@ def orch_summary():
     총괄 서버의 /health, /priority/board 를 받아 관제판 우측 패널에 필요한 것만 추린다.
     관제판은 총괄 상태를 바꾸지 않는다 (출동·해소 버튼 없음). 상세 판단은 총괄의 /board 에서 본다.
     """
+    global _ORCH_LAST_BOARD
     base = config.ORCH_URL.rstrip("/")
-    out = {"connected": False, "url": base, "board_url": f"{base}/board"}
+    out = {"connected": False, "delayed": False, "url": base, "board_url": f"{base}/board"}
+    # 연결 여부는 가벼운 /health 로만 판단한다 (묶음 4: /priority/board 가 9 s 걸려 1.5 s 한도에서 '연결 안 됨'으로 잘못 보였음)
     try:
-        health = httpx.get(f"{base}/health", timeout=1.5).json()
-        board = httpx.get(f"{base}/priority/board", timeout=1.5).json()
+        health = httpx.get(f"{base}/health", timeout=ORCH_HEALTH_TIMEOUT_S).json()
     except Exception:
         return out
+    # 판단 목록이 늦으면 끊김이 아니라 '응답 지연' — 직전에 받은 목록을 그대로 보여 준다
+    try:
+        board = httpx.get(f"{base}/priority/board", timeout=ORCH_BOARD_TIMEOUT_S).json()
+        _ORCH_LAST_BOARD = board
+    except Exception:
+        board = _ORCH_LAST_BOARD or {}
+        out["delayed"] = True
     # 목적 상태와 기체(실행 시도) 상태는 따로 보여 준다 — 완료됐어도 기체는 복귀 중일 수 있다 (요청서 INT-03)
     attempts = {}
     try:
-        st = httpx.get(f"{base}/state", timeout=1.5).json()
+        st = httpx.get(f"{base}/state", timeout=ORCH_HEALTH_TIMEOUT_S).json()
         for a in st.get("active_attempts") or []:
             attempts[a.get("task_id")] = {"substatus": a.get("substatus"), "resource_id": a.get("resource_id")}
     except Exception:
@@ -505,6 +519,7 @@ small{color:#6f8a96}
 .badge{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid #3a4a5d;color:#9fb3bf;background:#0f1720}
 .badge.on{color:#1b1206;background:#f0a33a;border-color:#f0a33a}
 .badge.real{color:#06131a;background:#5fd0ff;border-color:#5fd0ff}
+.badge.warn{color:#1a1200;background:#e0a93a;border-color:#e0a93a}
 .badge.bad{color:#fff;background:#8a2b2b;border-color:#8a2b2b}
 .orch{font-size:12px;margin-top:4px}
 .orch .meta{color:#9fb3bf;margin:4px 0 6px}
@@ -584,6 +599,7 @@ const ROAD_R=3;                                       // 차량이 지나온 길
 const FADE_MS=8000;                                   // 시야를 벗어난 뒤 밝음 → 회색으로 흐려지는 시간
 const A_DARK=205,A_GRAY=180;                          // 안개 진하기: 모름 / 본 적 있음 (0=완전히 밝음)
 let ugvLive=null;                                     // 트윈: UGV 서버의 실제 차량 위치 (안개 계산용)
+let fogOpenedAt=performance.now();                    // 화면을 연(또는 실행이 바뀐) 시각
 let vehTrail={};                                      // 차량별 지나온 칸 (트윈 실제 위치 기준)
 let vehPrev={};                                       // 차량별 직전 위치 (지나간 구간만 한 번 밝힘)
 let fogOn=true,fogRun=null,knownFires=[];
@@ -595,7 +611,7 @@ let finds=[],foundCells=new Set(),viewers=[],simT=null;
 const FIND_GROUP_R=5,PING_MS=3000;
 const fogC=document.createElement('canvas');fogC.width=COLS;fogC.height=ROWS;
 function fogReset(){seen=new Uint8Array(COLS*ROWS);seenAt=new Float64Array(COLS*ROWS);lastFire=new Set();lastRisk=new Set();
- vehTrail={};vehPrev={};finds=[];foundCells=new Set();renderFinds();updateFog();}
+ fogOpenedAt=performance.now();vehTrail={};vehPrev={};finds=[];foundCells=new Set();renderFinds();updateFog();}
 function reveal(c,r,R,vis){c=Math.round(c);r=Math.round(r);
  for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){if(dx*dx+dy*dy>R*R+R)continue;
    const x=c+dx,y=r+dy;if(x>=0&&y>=0&&x<COLS&&y<ROWS)vis.add(y*COLS+x);}}
@@ -630,7 +646,7 @@ function updateFog(){const vis=new Set(),now=performance.now();viewers=[];
    const f=finds.find(f=>Math.hypot(f.col-c,f.row-r)<=FIND_GROUP_R);
    if(f){f.cells++;return;}
    let by='-',bd=1e9;viewers.forEach(v=>{const d=Math.hypot(v.col-c,v.row-r);if(d<=v.R+1&&d<bd){bd=d;by=v.by;}});
-   finds.push({n:finds.length+1,col:c,row:r,cells:1,t:now,by,when:findTime()});added=true;});
+   finds.push({n:finds.length+1,col:c,row:r,cells:1,t:now,by,when:findTime()+(now-fogOpenedAt<8000?' · 화면 연 시점 (이전 발견일 수 있음)':'')});added=true;});
  if(added||finds.length)renderFinds();
  if(added){const f=finds[finds.length-1];$('log').textContent='🔥 화재 발견 #'+f.n+' — '+f.when+' · 칸 '+f.col+'_'+f.row+' 일대 · '+f.by;}
  paintFog(now);}
@@ -677,8 +693,12 @@ function draw(){const g=ov.getContext('2d');g.clearRect(0,0,ov.width,ov.height);
    drawKnown(g);drawFinds(g);
    // 트윈: 실제로 움직인 차량, 그리고 관제판 자원 목록에 없는 차량(예: B 거점 B-ugv1)은 실제 위치에 표시
    const shown=new Set(((window.__ugv||{}).units||[]).map(u=>u.id));
+   const prevPos=((window.__ugv||{})._pos)||{},prevUnits={};((window.__ugv||{}).units||[]).forEach(u=>prevUnits[u.id]=u);
    if(ugvLive&&ugvLive.live)ugvLive.units.forEach(u=>{const idle=u.state==='READY'&&(vehTrail[u.id]||[]).length<2;
-     if(idle&&shown.has(u.id))return;
+     // 미리보기 아이콘과 같은 자리에 서 있을 때만 숨긴다 — 화면을 열기 전에 이동을 마친 차량(예: 현장 정차)은 실제 위치에 그린다
+     const pv=prevPos[u.id]||(prevUnits[u.id]&&prevUnits[u.id].col!=null?prevUnits[u.id]:null);
+     const atPreview=!pv||Math.hypot(pv.col-u.col,pv.row-u.row)<=2;
+     if(idle&&shown.has(u.id)&&atPreview)return;
      const[x,y]=P(u.col,u.row),fe=u.type==='FIRE_ENGINE';
      g.strokeStyle=fe?'#ff3b30':'#e8912a';g.lineWidth=3;g.beginPath();g.arc(x,y,8,0,7);g.stroke();
      g.fillStyle='#fff';g.font='bold 11px sans-serif';g.textAlign='left';g.fillText((fe?'🚒 ':'🚙 ')+u.id+(idle?' (대기)':' (실제)'),x+11,y+4);});
@@ -801,11 +821,12 @@ const O_ATT={PREPARED:'출동 준비',REQUESTED:'출동 요청함',STARTED:'이�
 const O_KIND={ENV_SENSE:'환경 측정',RECON:'정찰',MONITOR:'감시',RECHECK:'재확인',GROUND_RECON:'지상 확인',GROUND_SUPPORT:'지상 지원'};
 const O_MODE={AUTO_HIGHER_RISK:'자동 (AI 추천·규칙)',HUMAN_CHOICE:'수동 (사람이 선택)'};
 function esc(s){return String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
-async function tickOrch(){try{const o=await(await fetch('/api/orch')).json();
+let orchBusy=false;  // 앞 요청이 끝나기 전에 또 묻지 않는다 (총괄이 느릴 때 요청이 쌓이지 않게)
+async function tickOrch(){if(orchBusy)return;orchBusy=true;try{const o=await(await fetch('/api/orch')).json();
  $('orchLink').href=o.board_url||'#';
  const b=$('mOrch'); b.title=o.url;
  if(!o.connected){b.textContent='총괄 서버: 연결 안 됨';b.className='badge bad';$('mEnv').textContent='환경: -';$('orchMeta').textContent='-';$('orchTasks').innerHTML='';return;}
- b.textContent='총괄 서버: 연결됨';b.className='badge';
+ b.textContent=o.delayed?'총괄 서버: 응답 지연 (직전 판단 표시)':'총괄 서버: 연결됨';b.className=o.delayed?'badge warn':'badge';
  knownFires=o.fire_cells||[];
  if(o.run_id&&o.run_id!==fogRun){if(fogRun)fogReset();fogRun=o.run_id;}
  const e=$('mEnv'); e.textContent=o.env_shared?'환경: 팀 공유':'환경: 시험용 ('+(o.env_class||'-')+')'; e.className='badge'+(o.env_shared?'':' on');
@@ -816,7 +837,7 @@ async function tickOrch(){try{const o=await(await fetch('/api/orch')).json();
     +'<td><span class="st '+p[1]+'">'+esc(p[0])+'</span></td><td>'+esc(t.resource_id||'-')
     +(t.attempt?'<div class=why>'+esc(O_ATT[t.attempt]||t.attempt)+'</div>':'')+'</td></tr>';}).join('')
    :'<tr><td class=why>총괄이 아는 임무가 아직 없습니다 (신고·임무 접수 전)</td></tr>';
-}catch(err){}}
+}catch(err){}finally{orchBusy=false;}}
 setInterval(tickOrch,2000);setTimeout(tickOrch,500);
 setInterval(tickEnv,1500);setInterval(tickState,1000);setInterval(tickUgv,3000);setTimeout(()=>{fit();tickEnv();tickState();tickUgv();},600);
 $('fly').onclick=async()=>{const col=+$('col').value,row=+$('row').value;

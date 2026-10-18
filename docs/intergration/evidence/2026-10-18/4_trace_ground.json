@@ -1,0 +1,539 @@
+﻿{
+    "value":  [
+                  {
+                      "seq":  26,
+                      "wall_time":  1792290772.83393,
+                      "sim_time_s":  780.0,
+                      "event_type":  "TASK_RECEIVED",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  null,
+                      "attempt_id":  null,
+                      "resource_id":  null,
+                      "result":  "CREATED",
+                      "reason":  null,
+                      "detail":  {
+                                     "request_id":  "OPERATOR-DEFEND:RUN-INJE-20261018T023229Z-fa925b:NAMJEON1_HALL",
+                                     "completion_rule":  "TARGET_POINT",
+                                     "required_cell_ids":  [
+
+                                                           ],
+                                     "needs_env_ack":  false
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  },
+                  {
+                      "seq":  87,
+                      "wall_time":  1792290774.0405438,
+                      "sim_time_s":  900.0,
+                      "event_type":  "PURPOSE_TRANSITION",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  null,
+                      "attempt_id":  null,
+                      "resource_id":  null,
+                      "result":  "PENDING-\u003eEVALUATING",
+                      "reason":  "DISPATCH_EVALUATION",
+                      "detail":  {
+                                     "hold_reason":  null,
+                                     "resume_condition":  null
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  },
+                  {
+                      "seq":  88,
+                      "wall_time":  1792290774.0432608,
+                      "sim_time_s":  900.0,
+                      "event_type":  "CANDIDATES_FILTERED",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  null,
+                      "attempt_id":  null,
+                      "resource_id":  null,
+                      "result":  null,
+                      "reason":  null,
+                      "detail":  {
+                                     "snapshot":  {
+                                                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b",
+                                                      "state_version":  18,
+                                                      "simulation_time_s":  900.0,
+                                                      "map_version":  "INJE-2019-v1",
+                                                      "source":  "ORCHESTRATOR_VIEW",
+                                                      "contract_complete":  true
+                                                  },
+                                     "wind_ref":  {
+                                                      "basis":  "NEAREST_STATION",
+                                                      "source":  "KMA_ASOS_HOURLY",
+                                                      "station_id":  "211",
+                                                      "station_name":  "ì¸ì ",
+                                                      "cell_id":  null,
+                                                      "distance_m":  5479.1,
+                                                      "sim_time_s":  900.0,
+                                                      "observed_kst":  "2019-04-04 15:00",
+                                                      "items":  {
+                                                                    "wind_ms":  {
+                                                                                    "value":  6.3,
+                                                                                    "unit":  "m/s",
+                                                                                    "basis":  "NEAREST_STATION",
+                                                                                    "status":  "VALID",
+                                                                                    "source":  "KMA_ASOS_HOURLY",
+                                                                                    "observed_sim_s":  900.0,
+                                                                                    "received_sim_s":  900.0,
+                                                                                    "age_s":  0.0,
+                                                                                    "max_age_s":  3600.0,
+                                                                                    "station_id":  "211",
+                                                                                    "cell_id":  null,
+                                                                                    "distance_m":  5479.1,
+                                                                                    "replaced":  null
+                                                                                },
+                                                                    "wind_dir_deg":  {
+                                                                                         "value":  160.0,
+                                                                                         "unit":  "deg (ë¶ì´ì¤ë ë°©í¥, ë¶ ê¸°ì¤ ìê³ë°©í¥)",
+                                                                                         "basis":  "NEAREST_STATION",
+                                                                                         "status":  "VALID",
+                                                                                         "source":  "KMA_ASOS_HOURLY",
+                                                                                         "observed_sim_s":  900.0,
+                                                                                         "received_sim_s":  900.0,
+                                                                                         "age_s":  0.0,
+                                                                                         "max_age_s":  3600.0,
+                                                                                         "station_id":  "211",
+                                                                                         "cell_id":  null,
+                                                                                         "distance_m":  5479.1,
+                                                                                         "replaced":  null
+                                                                                     },
+                                                                    "temperature_c":  {
+                                                                                          "value":  15.5,
+                                                                                          "unit":  "degC",
+                                                                                          "basis":  "NEAREST_STATION",
+                                                                                          "status":  "VALID",
+                                                                                          "source":  "KMA_ASOS_HOURLY",
+                                                                                          "observed_sim_s":  900.0,
+                                                                                          "received_sim_s":  900.0,
+                                                                                          "age_s":  0.0,
+                                                                                          "max_age_s":  3600.0,
+                                                                                          "station_id":  "211",
+                                                                                          "cell_id":  null,
+                                                                                          "distance_m":  5479.1,
+                                                                                          "replaced":  null
+                                                                                      },
+                                                                    "humidity_pct":  {
+                                                                                         "value":  25.0,
+                                                                                         "unit":  "%",
+                                                                                         "basis":  "NEAREST_STATION",
+                                                                                         "status":  "VALID",
+                                                                                         "source":  "KMA_ASOS_HOURLY",
+                                                                                         "observed_sim_s":  900.0,
+                                                                                         "received_sim_s":  900.0,
+                                                                                         "age_s":  0.0,
+                                                                                         "max_age_s":  3600.0,
+                                                                                         "station_id":  "211",
+                                                                                         "cell_id":  null,
+                                                                                         "distance_m":  5479.1,
+                                                                                         "replaced":  null
+                                                                                     }
+                                                                },
+                                                      "unknown":  {
+
+                                                                  },
+                                                      "remeasure":  [
+
+                                                                    ]
+                                                  },
+                                     "wind_ms":  6.3,
+                                     "candidates":  [
+                                                        [
+                                                            "A-fire1",
+                                                            5704.3
+                                                        ],
+                                                        [
+                                                            "B-fire1",
+                                                            16383.3
+                                                        ]
+                                                    ],
+                                     "excluded":  {
+                                                      "A-ugv1":  "TYPE_NOT_ALLOWED",
+                                                      "B-ugv1":  "TYPE_NOT_ALLOWED"
+                                                  },
+                                     "ordering":  "STRAIGHT_LINE_DISTANCE_THEN_ID (ì ë ¬ì©, ëì°©ìê° ìë)"
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  },
+                  {
+                      "seq":  89,
+                      "wall_time":  1792290774.0542667,
+                      "sim_time_s":  900.0,
+                      "event_type":  "LOCAL_RESPONSE",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  "DEC-369f2565e0c1",
+                      "attempt_id":  null,
+                      "resource_id":  "A-fire1",
+                      "result":  "ACCEPT",
+                      "reason":  null,
+                      "detail":  {
+                                     "eta_sec_duration":  524,
+                                     "counter_offer":  null,
+                                     "constraints":  {
+                                                         "target_node":  {
+                                                                             "node_id":  "494855",
+                                                                             "lat":  38.014657,
+                                                                             "lon":  128.137626,
+                                                                             "snap_m":  15.9
+                                                                         },
+                                                         "path":  [
+                                                                      "A",
+                                                                      "495012",
+                                                                      "495011",
+                                                                      "495009",
+                                                                      "495085",
+                                                                      "495043",
+                                                                      "494938",
+                                                                      "495079",
+                                                                      "494865",
+                                                                      "494989",
+                                                                      "494992",
+                                                                      "494993",
+                                                                      "495019",
+                                                                      "495130",
+                                                                      "494991",
+                                                                      "494922",
+                                                                      "494921",
+                                                                      "495016",
+                                                                      "494917",
+                                                                      "495015",
+                                                                      "494949",
+                                                                      "494951",
+                                                                      "494961",
+                                                                      "494960",
+                                                                      "494957",
+                                                                      "494948",
+                                                                      "494956",
+                                                                      "494955",
+                                                                      "494962",
+                                                                      "495118",
+                                                                      "495119",
+                                                                      "494966",
+                                                                      "494857",
+                                                                      "494916",
+                                                                      "494855"
+                                                                  ]
+                                                     },
+                                     "request":  {
+                                                     "task_id":  "TASK-80c65a90da82",
+                                                     "decision_id":  "DEC-369f2565e0c1",
+                                                     "target":  {
+                                                                    "lat":  38.0150658,
+                                                                    "lon":  128.1421735
+                                                                }
+                                                 }
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  },
+                  {
+                      "seq":  90,
+                      "wall_time":  1792290774.0882728,
+                      "sim_time_s":  900.0,
+                      "event_type":  "SAFETY_JUDGEMENT",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  "DEC-369f2565e0c1",
+                      "attempt_id":  "ATT-1458599ee702",
+                      "resource_id":  "A-fire1",
+                      "result":  "ALLOW",
+                      "reason":  null,
+                      "detail":  {
+                                     "checked":  [
+                                                     "ids",
+                                                     "local_accept",
+                                                     "local_echo",
+                                                     "command_decision",
+                                                     "command_attempt",
+                                                     "task_state",
+                                                     "reservation",
+                                                     "freshness",
+                                                     "resource_ready",
+                                                     "type_allowed",
+                                                     "snapshot_complete",
+                                                     "snapshot_unchanged",
+                                                     "target_coord",
+                                                     "crs",
+                                                     "capability",
+                                                     "same_mission"
+                                                 ]
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  },
+                  {
+                      "seq":  91,
+                      "wall_time":  1792290774.091985,
+                      "sim_time_s":  900.0,
+                      "event_type":  "PURPOSE_TRANSITION",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  null,
+                      "attempt_id":  "ATT-1458599ee702",
+                      "resource_id":  null,
+                      "result":  "EVALUATING-\u003eAPPROVED",
+                      "reason":  "SAFETY_ALLOW_RESERVED",
+                      "detail":  {
+                                     "hold_reason":  null,
+                                     "resume_condition":  null
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  },
+                  {
+                      "seq":  92,
+                      "wall_time":  1792290774.1161602,
+                      "sim_time_s":  900.0,
+                      "event_type":  "EXECUTION_SENT",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  "DEC-369f2565e0c1",
+                      "attempt_id":  "ATT-1458599ee702",
+                      "resource_id":  "A-fire1",
+                      "result":  "ACK",
+                      "reason":  null,
+                      "detail":  {
+                                     "task_id":  "ATT-1458599ee702",
+                                     "resource_id":  "A-fire1",
+                                     "status":  "STARTED",
+                                     "tracking_url":  "/ugv/A-fire1/task/ATT-1458599ee702",
+                                     "target_node":  {
+                                                         "node_id":  "494855",
+                                                         "lat":  38.014657,
+                                                         "lon":  128.137626,
+                                                         "snap_m":  15.9
+                                                     },
+                                     "eta_sec":  524,
+                                     "stop_point":  {
+                                                        "road_id":  "682501473",
+                                                        "lat":  38.0149934,
+                                                        "lon":  128.1423295,
+                                                        "snap_m":  15.9,
+                                                        "along_m":  457.3
+                                                    },
+                                     "duplicate":  false,
+                                     "current_status":  null
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  },
+                  {
+                      "seq":  93,
+                      "wall_time":  1792290774.117161,
+                      "sim_time_s":  null,
+                      "event_type":  "PURPOSE_TRANSITION",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  null,
+                      "attempt_id":  "ATT-1458599ee702",
+                      "resource_id":  null,
+                      "result":  "APPROVED-\u003eIN_EXECUTION",
+                      "reason":  "EXECUTION_SENT",
+                      "detail":  {
+                                     "hold_reason":  null,
+                                     "resume_condition":  null
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  },
+                  {
+                      "seq":  229,
+                      "wall_time":  1792290781.1781192,
+                      "sim_time_s":  null,
+                      "event_type":  "EXECUTION_PROGRESS",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  null,
+                      "attempt_id":  "ATT-1458599ee702",
+                      "resource_id":  "A-fire1",
+                      "result":  "ARRIVED",
+                      "reason":  "PROVIDER_COMPLETED_IMPLIES_ARRIVAL",
+                      "detail":  {
+                                     "provider_status":  "OK",
+                                     "provider":  {
+                                                      "task_id":  "ATT-1458599ee702",
+                                                      "resource_id":  "A-fire1",
+                                                      "status":  "COMPLETED",
+                                                      "target_node":  "494855",
+                                                      "progress":  {
+                                                                       "phase":  "ARRIVED",
+                                                                       "stage":  "1/1",
+                                                                       "waypoint":  82,
+                                                                       "total":  82
+                                                                   },
+                                                      "observation":  {
+                                                                          "observation_type":  "ROAD_STATUS",
+                                                                          "arrived_node":  "494855",
+                                                                          "position":  {
+                                                                                           "lat":  38.0149934,
+                                                                                           "lon":  128.1423295
+                                                                                       },
+                                                                          "fuel_pct":  91.83497045776762
+                                                                      },
+                                                      "error":  null,
+                                                      "reroutes":  null,
+                                                      "agent_restart":  null,
+                                                      "cargo":  null,
+                                                      "work":  null,
+                                                      "timing":  {
+                                                                     "start":  {
+                                                                                   "wall_s":  0.0,
+                                                                                   "wall_epoch":  1792290774.11,
+                                                                                   "server_sim_s":  873.7,
+                                                                                   "px4_time_s":  null
+                                                                               },
+                                                                     "end":  {
+                                                                                 "wall_s":  6.06,
+                                                                                 "wall_epoch":  1792290780.17,
+                                                                                 "server_sim_s":  1478.5,
+                                                                                 "px4_time_s":  null
+                                                                             },
+                                                                     "eta_sec":  524,
+                                                                     "wall_elapsed_s":  6.1,
+                                                                     "server_sim_elapsed_s":  604.8,
+                                                                     "actual_over_eta":  1.15
+                                                                 },
+                                                      "drive_log":  "logs\\twin\\20261018_113224\\ugv\\drive_logs\\ATT-1458599ee702.csv",
+                                                      "stop_point":  {
+                                                                         "road_id":  "682501473",
+                                                                         "lat":  38.0149934,
+                                                                         "lon":  128.1423295,
+                                                                         "snap_m":  15.9,
+                                                                         "along_m":  457.3
+                                                                     }
+                                                  }
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  },
+                  {
+                      "seq":  230,
+                      "wall_time":  1792290781.1851375,
+                      "sim_time_s":  null,
+                      "event_type":  "OBSERVATION",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  null,
+                      "attempt_id":  "ATT-1458599ee702",
+                      "resource_id":  "A-fire1",
+                      "result":  "ROAD_STATUS",
+                      "reason":  null,
+                      "detail":  {
+                                     "source":  "UGV_PROVIDER",
+                                     "raw":  {
+                                                 "observation_type":  "ROAD_STATUS",
+                                                 "arrived_node":  "494855",
+                                                 "position":  {
+                                                                  "lat":  38.0149934,
+                                                                  "lon":  128.1423295
+                                                              },
+                                                 "fuel_pct":  91.83497045776762
+                                             },
+                                     "is_fire_observation":  false
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  },
+                  {
+                      "seq":  231,
+                      "wall_time":  1792290781.1865423,
+                      "sim_time_s":  null,
+                      "event_type":  "PURPOSE_TRANSITION",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  null,
+                      "attempt_id":  "ATT-1458599ee702",
+                      "resource_id":  null,
+                      "result":  "IN_EXECUTION-\u003eCOMPLETED",
+                      "reason":  "GROUND_ARRIVAL_OBSERVED",
+                      "detail":  {
+                                     "hold_reason":  null,
+                                     "resume_condition":  null
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  },
+                  {
+                      "seq":  232,
+                      "wall_time":  1792290781.1865423,
+                      "sim_time_s":  null,
+                      "event_type":  "TASK_COMPLETE",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  null,
+                      "attempt_id":  "ATT-1458599ee702",
+                      "resource_id":  "A-fire1",
+                      "result":  "COMPLETED",
+                      "reason":  null,
+                      "detail":  {
+                                     "completion_rule":  "TARGET_POINT",
+                                     "basis":  [
+                                                   "ARRIVED",
+                                                   "UGV_ROAD_STATUS",
+                                                   "NO_ENV_ACK_REQUIRED"
+                                               ],
+                                     "resource_released":  false,
+                                     "evidence_level":  "INTEGRATED",
+                                     "evidence":  {
+                                                      "observation_source":  "UGV_PROVIDER",
+                                                      "env_source":  "TEAM_API",
+                                                      "env_ack":  null
+                                                  }
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  },
+                  {
+                      "seq":  233,
+                      "wall_time":  1792290781.1902585,
+                      "sim_time_s":  null,
+                      "event_type":  "EXECUTION_PROGRESS",
+                      "task_id":  "TASK-80c65a90da82",
+                      "decision_id":  null,
+                      "attempt_id":  "ATT-1458599ee702",
+                      "resource_id":  "A-fire1",
+                      "result":  "RELEASED",
+                      "reason":  "RESOURCE_READY_CONFIRMED",
+                      "detail":  {
+                                     "provider_status":  "OK",
+                                     "provider":  {
+                                                      "task_id":  "ATT-1458599ee702",
+                                                      "resource_id":  "A-fire1",
+                                                      "status":  "COMPLETED",
+                                                      "target_node":  "494855",
+                                                      "progress":  {
+                                                                       "phase":  "ARRIVED",
+                                                                       "stage":  "1/1",
+                                                                       "waypoint":  82,
+                                                                       "total":  82
+                                                                   },
+                                                      "observation":  {
+                                                                          "observation_type":  "ROAD_STATUS",
+                                                                          "arrived_node":  "494855",
+                                                                          "position":  {
+                                                                                           "lat":  38.0149934,
+                                                                                           "lon":  128.1423295
+                                                                                       },
+                                                                          "fuel_pct":  91.83497045776762
+                                                                      },
+                                                      "error":  null,
+                                                      "reroutes":  null,
+                                                      "agent_restart":  null,
+                                                      "cargo":  null,
+                                                      "work":  null,
+                                                      "timing":  {
+                                                                     "start":  {
+                                                                                   "wall_s":  0.0,
+                                                                                   "wall_epoch":  1792290774.11,
+                                                                                   "server_sim_s":  873.7,
+                                                                                   "px4_time_s":  null
+                                                                               },
+                                                                     "end":  {
+                                                                                 "wall_s":  6.06,
+                                                                                 "wall_epoch":  1792290780.17,
+                                                                                 "server_sim_s":  1478.5,
+                                                                                 "px4_time_s":  null
+                                                                             },
+                                                                     "eta_sec":  524,
+                                                                     "wall_elapsed_s":  6.1,
+                                                                     "server_sim_elapsed_s":  604.8,
+                                                                     "actual_over_eta":  1.15
+                                                                 },
+                                                      "drive_log":  "logs\\twin\\20261018_113224\\ugv\\drive_logs\\ATT-1458599ee702.csv",
+                                                      "stop_point":  {
+                                                                         "road_id":  "682501473",
+                                                                         "lat":  38.0149934,
+                                                                         "lon":  128.1423295,
+                                                                         "snap_m":  15.9,
+                                                                         "along_m":  457.3
+                                                                     }
+                                                  }
+                                 },
+                      "run_id":  "RUN-INJE-20261018T023229Z-fa925b"
+                  }
+              ],
+    "Count":  13
+}
