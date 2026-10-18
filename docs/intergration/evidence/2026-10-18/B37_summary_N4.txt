@@ -20,7 +20,7 @@
   7-3   접수 후 2단계 넘게 한 번도 평가 안 된 임무 0
   7-4   중복 요청 키 0 · 실행 두 번 간 출동 0 · 같은 센서 관측 중복 0
         끝날 때 안 풀린 출동 {'UNKNOWN': 1}  (끈 순간 진행 중이던 것)
-        같은 임무에 같은 차가 3번 이상 출동 [('MONITOR', 'TASK-dda7d155fbb9', 'A-uav1', 3), ('MONITOR', 'TASK-fd0d80ba27b1', 'A-uav2', 3)]  (많으면 재출동 반복 — 문제 4)
+        같은 임무에 같은 차가 3번 이상 출동 [('MONITOR', 'TASK-dda7d155fbb9', 'A-uav1', 3), ('MONITOR', 'TASK-fd0d80ba27b1', 'A-uav2', 3)]
         보류가 가장 많은 임무 [('TASK-cb6b6d673ed3', 54, 'HOLD'), ('TASK-d695625edaa6', 49, 'COMPLETED'), ('TASK-dda7d155fbb9', 49, 'HOLD')]
   7-6   총괄 복구 스캔 1회 (켤 때 1회는 항상, 2회 이상이면 도중에 총괄을 다시 켠 것)
   UGV   20261018T101020.jsonl: 사전 평가 ACCEPT 181, 출동 평가 ACCEPT 224, 출동 평가 REJECT/ROAD_BLOCKED 17
