@@ -141,7 +141,8 @@ def observation_summary(orch: Orchestrator, task_id: str) -> Optional[dict]:
     task = orch.ledger.get_task(task_id)
     main_sensor = task.requirements.sensor if task else None
     items, by_oid = [], {}                       # [(obs_event, ack_event)] — 반영 결과는 관측 ID 로 짝짓는다
-    for e in orch.ledger.events(task_id):
+    evs = orch.ledger.events(task_id)
+    for e in evs:
         if e["event_type"] == "OBSERVATION":
             items.append([e, None])
             by_oid[(e["detail"] or {}).get("observation_id")] = items[-1]
@@ -165,9 +166,22 @@ def observation_summary(orch: Orchestrator, task_id: str) -> Optional[dict]:
             extras[kind(it[0]) or "OTHER"] = _one_observation(*it)
     out = _one_observation(*main)
     out["extras"] = list(extras.values())
-    out["completion"] = next((e["detail"] for e in reversed(orch.ledger.events(task_id))
-                              if e["event_type"] == "TASK_COMPLETE"), None)
+    out["completion"] = next((e["detail"] for e in reversed(evs) if e["event_type"] == "TASK_COMPLETE"), None)
     return out
+
+
+def _board_observation(o: Optional[dict]) -> Optional[dict]:
+    """관제 화면용 관측 요약: cell_coverage 는 화면이 쓰는 '일부만 본 칸의 비율'만 남긴다.
+    칸별 사각형 등 전체 값은 /tasks/{id} 와 장부에 그대로 있다 (트윈 장시간 실행에서 응답이 2 MB 가까이 커졌다)."""
+    if not o:
+        return o
+
+    def slim(x):
+        part = set(x.get("partial_cells") or [])
+        cc = x.get("cell_coverage")
+        return {**x, "cell_coverage": None if cc is None else
+                [{"cell_id": c.get("cell_id"), "fraction": c.get("fraction")} for c in cc if c.get("cell_id") in part]}
+    return {**slim(o), "extras": [slim(x) for x in o.get("extras") or []]}
 
 
 def _task_view(orch: Orchestrator, task) -> dict:
@@ -376,10 +390,15 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
     @app.get("/priority/board")
     def priority_board():
         """관제 화면용: 최근 우선순위 판단의 선택 묶음과 각 Task 의 현재 상태·근거"""
-        last = next((e for e in reversed(orch.ledger.events(run_id=ACTIVE))
-                     if e["event_type"] == "PRIORITY_ORDER"), None)
+        last = orch.ledger.last_event("PRIORITY_ORDER", run_id=ACTIVE)
         detail = (last or {}).get("detail") or {}
         evidence = detail.get("evidence", {})
+        obs_cache = {}                           # 한 응답 안에서 Task 마다 관측 요약은 한 번만 만든다
+
+        def obs_of(tid):
+            if tid not in obs_cache:
+                obs_cache[tid] = _board_observation(observation_summary(orch, tid))
+            return obs_cache[tid]
 
         def row(tid):
             t = orch.ledger.get_task(tid)
@@ -393,16 +412,15 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
                     "risk_score": ev.get("risk_score"), "distance_m": ev.get("distance_m"),
                     "nearest_protected": ev.get("nearest_protected"),
                     "resource_id": atts[-1]["resource_id"] if atts else None,
-                    "observation": observation_summary(orch, tid)}
+                    "observation": obs_of(tid)}
         groups = [{**g, "tasks": [row(t) for t in g["task_ids"]],
                    "awaiting": [t for t in g["task_ids"]
                                 if (orch.ledger.get_task(t) or None) and orch.ledger.get_task(t).hold_reason
                                 == "AWAITING_PRIORITY_CHOICE"]} for g in detail.get("groups", [])]
         results = []
         for t in orch.ledger.list_tasks():
-            o = observation_summary(orch, t.task_id)
-            if o:
-                results.append({**row(t.task_id), "observation": o})
+            if obs_of(t.task_id):
+                results.append(row(t.task_id))
         results.sort(key=lambda r: r["observation"].get("observed_wall") or "", reverse=True)
         llm_state = orch.llm.status() if orch.llm else "NOT_CONNECTED"
         snap = orch.view()
