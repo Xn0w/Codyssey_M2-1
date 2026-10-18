@@ -21,6 +21,7 @@ SQLite 장부. 서버를 껐다 켜도 Task·판단·실행시도·자원 점유
 실행시도가 있으면 prepare_attempt 가 새 시도를 거절한다.
 """
 
+import contextlib
 import hashlib
 import json
 import sqlite3
@@ -246,6 +247,7 @@ class Ledger:
         raw.row_factory = sqlite3.Row
         raw.execute("PRAGMA journal_mode=WAL" if db_path != ":memory:" else "PRAGMA journal_mode=MEMORY")
         self._lock = threading.RLock()
+        self._sim_default = threading.local()      # default_sim_time() 가 정한 스레드별 기본 sim_time_s
         # 연결 하나를 추적·배정 스레드가 함께 쓴다. 쓰기(_tx)만 잠그고 읽기는 잠그지 않아, 관측 계획으로 읽기가 늘자
         # 동시 읽기에서 sqlite3 InterfaceError('bad parameter or other API misuse')가 났다 (2026-10-07 실제 환경 실행).
         # 모든 실행을 같은 잠금 안에서 하고 결과는 잠금 안에서 다 읽어 둔다.
@@ -678,8 +680,21 @@ class Ledger:
     # ------------------------------------------------------------------
     # 사건 기록
     # ------------------------------------------------------------------
+    @contextlib.contextmanager
+    def default_sim_time(self, sim_time_s: Optional[float]):
+        """이 스레드에서 sim_time_s 없이 기록하는 사건에 이 시각을 채운다 (추적 주기의 진행·관측·완료 사건 —
+        전에는 비어 있어 도착 시각을 기록으로 확인할 수 없었다). 직접 준 sim_time_s 는 그대로 쓴다."""
+        prev = getattr(self._sim_default, "v", None)
+        self._sim_default.v = sim_time_s
+        try:
+            yield
+        finally:
+            self._sim_default.v = prev
+
     def log(self, event_type: str, *, task_id=None, decision_id=None, attempt_id=None, resource_id=None,
             result=None, reason=None, detail=None, sim_time_s=None, run_id=None) -> int:
+        if sim_time_s is None:
+            sim_time_s = getattr(self._sim_default, "v", None)
         with self._tx() as c:
             cur = c.execute(
                 "INSERT INTO events (wall_time, sim_time_s, event_type, task_id, decision_id, attempt_id, "
@@ -695,6 +710,13 @@ class Ledger:
             q, args = q + " AND task_id=?", args + [task_id]
         return [{**dict(r), "detail": _loads(r["detail"])}
                 for r in self._conn.execute(q + " ORDER BY seq", args)]
+
+    def last_event(self, event_type: str, run_id=ALL_RUNS) -> Optional[dict]:
+        """그 종류의 가장 최근 이벤트 하나 (events() 전체를 읽어 뒤에서 찾는 것과 같은 결과)"""
+        where, scope_args = self._scope(run_id)
+        r = self._conn.execute(f"SELECT * FROM events WHERE event_type=? AND {where} ORDER BY seq DESC LIMIT 1",
+                               [event_type] + scope_args).fetchone()
+        return {**dict(r), "detail": _loads(r["detail"])} if r else None
 
     # ------------------------------------------------------------------
     # 외부 이벤트 접수 (B04). 검증을 통과한 이벤트만 여기 들어온다.
