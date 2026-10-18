@@ -1,0 +1,26 @@
+실행 폴더: logs/twin/20261017_192253
+[실행]
+        run_id RUN-INJE-20261017T102254Z-ee7f06
+        시뮬레이션 0 ~ 1935분 (환경 약 55단계), 기록 이벤트 8007줄
+        첫 접수 180.0 s · 첫 실행 180.0 s · 첫 관측 420.0 s  (시뮬레이션 초, 신고 = 0 s)
+        관측 계획 출처 {'RULE_FALLBACK': 23}  (LLM = LLM 사용, RULE_FALLBACK = 규칙 대체)
+
+[묶음 3]
+  3-1   지상 지원 TASK-6b5dbf02936d → A-fire1 · 진행 ARRIVED→RELEASED · 임무 COMPLETED
+  3-2   지상 지원 요청 키 1개, 두 번 이상 생긴 키 0개
+  3-5   UGV·소방차 출동 평가 ACCEPT 253
+        보류된 횟수(사유별) {'NO_FEASIBLE_CANDIDATE': 333, 'AREA_EVIDENCE_UNSUPPORTED': 1}
+        주행 중 우회(REROUTED) 0
+  3-6   도착했지만 목표가 안 보여 보류(GROUND_VIEW_TARGET_NOT_VISIBLE) 0
+  3-7   환경 반영 370건 중 불 상태를 바꾼 반영 0건 (0 이어야 도착 ≠ 진화)
+  3-8   귀소 보냄 19 · 완료 19 · 미완료 - · 불가 0 · 건너뜀 39
+
+[묶음 7]
+  7-1   임무 269 {'COMPLETED': 172, 'CANCELLED': 73, 'HOLD': 20, 'IN_EXECUTION': 1, 'PENDING': 3} · 실행 229 · 관측 371 · 완료 172
+  7-3   접수 후 2단계 넘게 한 번도 평가 안 된 임무 0
+  7-4   중복 요청 키 0 · 실행 두 번 간 출동 0 · 같은 센서 관측 중복 0
+        끝날 때 안 풀린 출동 {'STARTED': 1}  (끈 순간 진행 중이던 것)
+        같은 임무에 같은 차가 3번 이상 출동 [('MONITOR', 'TASK-56d30c48efb0', 'A-uav1', 3), ('MONITOR', 'TASK-6fa274791690', 'A-uav2', 3), ('MONITOR', 'TASK-6fa274791690', 'A-uav1', 3)]  (많으면 재출동 반복 — 문제 4)
+        보류가 가장 많은 임무 [('TASK-87c17df01c9d', 21, 'HOLD'), ('TASK-7e7cffda8c65', 17, 'HOLD'), ('TASK-a4f9e225c327', 17, 'HOLD')]
+  7-6   총괄 복구 스캔 1회 (켤 때 1회는 항상, 2회 이상이면 도중에 총괄을 다시 켠 것)
+  UGV   20261017T192256.jsonl: 사전 평가 ACCEPT 174, 출동 평가 ACCEPT 253

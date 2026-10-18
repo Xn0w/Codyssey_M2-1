@@ -1,0 +1,43 @@
+# 실행 간 비교 (L3 main · N2/N3/N1/N4 브랜치)
+
+## 총괄 응답 시간 — 시나리오 진행 중 측정만 (측정기 logs/probe_*.csv, 10초 간격)
+  L3: 측정 249회 · 중간값 472 ms · 앞 1/3 85 → 뒤 1/3 1554 ms · 최대 8513 ms · 10초 시간 초과 5
+  N2: 측정 160회 · 중간값 1172 ms · 앞 1/3 533 → 뒤 1/3 1267 ms · 최대 3754 ms · 10초 시간 초과 0
+  N3: 측정 110회 · 중간값 621 ms · 앞 1/3 336 → 뒤 1/3 694 ms · 최대 1216 ms · 10초 시간 초과 0
+  N1: 측정 141회 · 중간값 807 ms · 앞 1/3 434 → 뒤 1/3 969 ms · 최대 8278 ms · 10초 시간 초과 10
+  N4: 측정 133회 · 중간값 766 ms · 앞 1/3 404 → 뒤 1/3 862 ms · 최대 8404 ms · 10초 시간 초과 2
+
+## Safety 판정 (자원 종류 × 임무 종류)
+  L3: 허용 314 · 거절 353 · 거절 사유 {'SNAPSHOT_CHANGED': 342, 'SNAPSHOT_CHANGED,WIND_NOT_FROM_SNAPSHOT': 11}
+     UGV/ENV_SENSE 허용4·거절18 · UGV/HEAD_FOLLOW 허용4·거절0 · UGV/OBSERVE 허용94·거절41 · 드론/ENV_SENSE 허용0·거절19 · 드론/HEAD_FOLLOW 허용67·거절2 · 드론/MONITOR 허용55·거절214 · 드론/OBSERVE 허용77·거절36 · 소방차/ENV_SENSE 허용12·거절23 · 소방차/GROUND_SUPPORT 허용1·거절0
+  N2: 허용 229 · 거절 684 · 거절 사유 {'SNAPSHOT_CHANGED': 671, 'SNAPSHOT_CHANGED,WIND_NOT_FROM_SNAPSHOT': 13}
+     UGV/ENV_SENSE 허용7·거절61 · UGV/HEAD_FOLLOW 허용14·거절16 · UGV/OBSERVE 허용38·거절67 · 드론/ENV_SENSE 허용4·거절31 · 드론/HEAD_FOLLOW 허용57·거절6 · 드론/MONITOR 허용35·거절408 · 드론/OBSERVE 허용64·거절55 · 소방차/ENV_SENSE 허용9·거절40 · 소방차/GROUND_SUPPORT 허용1·거절0
+  N3: 허용 235 · 거절 809 · 거절 사유 {'SNAPSHOT_CHANGED': 804, 'SNAPSHOT_CHANGED,WIND_NOT_FROM_SNAPSHOT': 5}
+     UGV/ENV_SENSE 허용12·거절66 · UGV/HEAD_FOLLOW 허용15·거절10 · UGV/OBSERVE 허용45·거절88 · 드론/ENV_SENSE 허용2·거절65 · 드론/HEAD_FOLLOW 허용51·거절6 · 드론/MONITOR 허용33·거절423 · 드론/OBSERVE 허용62·거절38 · 소방차/ENV_SENSE 허용14·거절113 · 소방차/GROUND_SUPPORT 허용1·거절0
+  N1: 허용 213 · 거절 638 · 거절 사유 {'SNAPSHOT_CHANGED': 623, 'SNAPSHOT_CHANGED,WIND_NOT_FROM_SNAPSHOT': 15}
+     UGV/ENV_SENSE 허용13·거절26 · UGV/HEAD_FOLLOW 허용11·거절10 · UGV/OBSERVE 허용42·거절71 · UGV/RECON 허용4·거절12 · 드론/ENV_SENSE 허용1·거절41 · 드론/HEAD_FOLLOW 허용51·거절7 · 드론/MONITOR 허용19·거절362 · 드론/OBSERVE 허용59·거절66 · 드론/RECON 허용0·거절8 · 소방차/ENV_SENSE 허용12·거절35 · 소방차/GROUND_SUPPORT 허용1·거절0
+  N4: 허용 225 · 거절 613 · 거절 사유 {'SNAPSHOT_CHANGED': 597, 'SNAPSHOT_CHANGED,WIND_NOT_FROM_SNAPSHOT': 16}
+     UGV/ENV_SENSE 허용9·거절38 · UGV/HEAD_FOLLOW 허용15·거절11 · UGV/OBSERVE 허용33·거절50 · UGV/RECON 허용1·거절3 · 드론/ENV_SENSE 허용3·거절47 · 드론/HEAD_FOLLOW 허용55·거절12 · 드론/MONITOR 허용30·거절360 · 드론/OBSERVE 허용62·거절45 · 소방차/ENV_SENSE 허용16·거절47 · 소방차/GROUND_SUPPORT 허용1·거절0
+
+## 환경 끝 상태 (N2 · N3, env/env_state.json) — 같은 시드면 불은 같게 번지는지
+  N2: 시각 116100.0 · 단계 56 · 시드 9 · 타는 칸 94 · 다 탄 칸 465
+  N3: 시각 116100.0 · 단계 56 · 시드 9 · 타는 칸 94 · 다 탄 칸 465
+  칸 목록까지 같음: True
+
+## 드론 시도 상태 반복 (EXECUTION_UNKNOWN 이벤트)
+  L3: 전체 이벤트 11348 · 귀환 중 재배정 111 · UNKNOWN 0 []
+  N2: 전체 이벤트 8007 · 귀환 중 재배정 87 · UNKNOWN 0 []
+  N3: 전체 이벤트 9281 · 귀환 중 재배정 83 · UNKNOWN 0 []
+  N1: 전체 이벤트 8374 · 귀환 중 재배정 86 · UNKNOWN 0 []
+  N4: 전체 이벤트 11782 · 귀환 중 재배정 84 · UNKNOWN 1017 [(('ATT-e3ee04ffd372', 'A-uav1'), 1017)]
+  N4 ATT-e3ee04ffd372 첫 이벤트:
+    seq 2178 SAFETY_JUDGEMENT ALLOW None {"checked": ["ids", "local_accept", "local_echo", "command_decision", "command_attempt", "task_state", "reservation", "freshness", "resource_ready", "type_allow
+    seq 2179 PURPOSE_TRANSITION EVALUATING->APPROVED SAFETY_ALLOW_RESERVED {"hold_reason": null, "resume_condition": null}
+    seq 2180 EXECUTION_SENT ACK None {"task_id": "ATT-e3ee04ffd372", "status": "STARTED", "tracking_url": "/uav/A-uav1/task/ATT-e3ee04ffd372", "uav_id": "A-uav1", "duplicate": false, "route_id": "R
+    seq 2181 PURPOSE_TRANSITION APPROVED->IN_EXECUTION EXECUTION_SENT {"hold_reason": null, "resume_condition": null}
+    seq 2196 OBS_RETASK_AIRBORNE ABORTED_BEFORE_OBSERVATION None {"previous_task_id": "TASK-2fa9b5018240", "phase_after": "RETURNING"}
+    seq 2198 OBS_RETASK_WHILE_RETURNING None None {"previous_task_id": "TASK-2fa9b5018240"}
+    seq 2199 EXECUTION_PROGRESS RETURNING ABORTED {"provider_status": "OK", "provider": {"task_id": "ATT-e3ee04ffd372", "uav_id": "A-uav1", "status": "FAILED", "progress": {"phase": "RETURNING"}, "observation":
+    seq 2230 EXECUTION_UNKNOWN UNKNOWN FAILED_POSITION_UNCONFIRMED:ABORTED {"occupancy_kept": true, "automatic_redispatch": false, "previous_substatus": "RETURNING"}
+    seq 2245 EXECUTION_PROGRESS RETURNING PROVIDER_RECONTACTED {"provider_status": "OK", "provider": {"task_id": "ATT-e3ee04ffd372", "uav_id": "A-uav1", "status": "FAILED", "progress": {"phase": "RETASKED"}, "observation": 
+  그 뒤 A-uav1 실행 39회
