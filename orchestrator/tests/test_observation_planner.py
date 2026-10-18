@@ -6,6 +6,7 @@
 """
 import json
 import math
+import threading
 
 import pytest
 
@@ -1441,6 +1442,176 @@ def test_new_order_cuts_drone_flying_to_old_stop_and_sends_it_to_new_stop(pw):
     _poll(orch)                                                                 # 끊긴 앞 시도의 FAILED 가 새 Task 를 건드리지 않음
     assert lg.get_task(att["task_id"]).purpose_status == "CANCELLED"
     assert not [e for e in _events(lg, "TASK_REOPENED") if e["task_id"] == att["task_id"]]
+
+
+def _att_events(lg, aid, kinds=("EXECUTION_PROGRESS", "EXECUTION_UNKNOWN")):
+    return [(e["event_type"], e["result"], e["reason"]) for e in lg.events()
+            if e.get("attempt_id") == aid and e["event_type"] in kinds]
+
+
+def test_stale_track_does_not_revive_attempt_released_for_retask(pw):
+    """B37 N4: 추적 주기가 읽어 둔 시도(STARTED)를, 배정 작업자가 끊기 → 복귀 중 재배정으로 반납한 뒤에 처리해도
+    RELEASED 를 RETURNING 으로 되살리지 않는다. 이어지는 FAILED/RETASKED 보고로 UNKNOWN↔RETURNING 을 오가지 않는다."""
+    orch, env, lg, uav = pw["orch"], pw["env"], pw["ledger"], pw["uav"]
+    _to_report_time(env)
+    att, plan, b = _flying_uav1(orch, lg)
+    stale = lg.get_attempt(att["attempt_id"])                                  # 추적 주기 시작 때 읽은 값
+    rows, _ = orch._assign_orders(plan, b["inp"], b["idx"], "PLAN-NEW", "LLM", 120.0)
+    assert lg.get_attempt(att["attempt_id"])["substatus"] == "RELEASED"
+    assert orch._track(stale, orch.uav) is None                                # 응답(FAILED/RETURNING)은 낡은 시도에 쓰지 않음
+    exec_id = att["command"]["payload"]["task_id"]
+    uav.scripts[exec_id] = [{"status": "FAILED", "reason": "ABORTED", "progress": {"phase": "RETASKED"}}]
+    _poll(orch)
+    assert lg.get_attempt(att["attempt_id"])["substatus"] == "RELEASED"
+    assert [e for e in _att_events(lg, att["attempt_id"]) if e[1] in ("RETURNING", "UNKNOWN")] == []
+    assert lg.reservations().get("A-uav1", {}).get("task_id") in (None, rows[0]["task_id"])
+
+
+def test_retasked_report_ends_attempt_whose_reservation_is_gone(pw):
+    """이미 점유가 풀린 시도를 드론이 RETASKED 로 보고하면 추적을 끝낸다 (불명으로 보내지 않음)"""
+    orch, env, lg, uav = pw["orch"], pw["env"], pw["ledger"], pw["uav"]
+    _to_report_time(env)
+    att, plan, b = _flying_uav1(orch, lg)
+    aid = att["attempt_id"]
+    exec_id = att["command"]["payload"]["task_id"]
+    with lg._tx() as c:                                                         # 반납이 기록에서 빠진 상태를 흉내 낸다
+        c.execute("DELETE FROM reservations WHERE attempt_id=?", (aid,))
+    lg.set_attempt_status(aid, "RETURNING", {**att["detail"], "mission_end": {"reason": "ABORTED_FOR_RETASK"}})
+    uav.scripts[exec_id] = [{"status": "FAILED", "reason": "ABORTED", "progress": {"phase": "RETASKED"}}]
+    _poll(orch, 3)
+    assert lg.get_attempt(aid)["substatus"] == "RELEASED"
+    assert _att_events(lg, aid)[-1] == ("EXECUTION_PROGRESS", "RELEASED", "PROVIDER_RETASKED")
+    assert not [e for e in _att_events(lg, aid) if e[0] == "EXECUTION_UNKNOWN"]
+
+
+def test_retasked_report_keeps_occupancy_when_reservation_still_held(pw):
+    """점유가 아직 이 시도에 있으면(총괄이 모르는 재배정) 풀지 않는다 — 불명 1번, 그 뒤 같은 보고에는 조용히 유지
+    (출발 단계에서 불명이 된 시도: 되살릴 단계가 없으니 보고만 적어 두고, 사유·이전 단계는 지우지 않는다)"""
+    orch, env, lg, uav = pw["orch"], pw["env"], pw["ledger"], pw["uav"]
+    _to_report_time(env)
+    att, plan, b = _flying_uav1(orch, lg)
+    aid = att["attempt_id"]
+    uav.scripts[att["command"]["payload"]["task_id"]] = [{"status": "FAILED", "reason": "ABORTED",
+                                                          "progress": {"phase": "RETASKED"}}]
+    _poll(orch)
+    assert lg.get_attempt(aid)["substatus"] == "UNKNOWN"
+    assert lg.reservations()["A-uav1"]["attempt_id"] == aid
+    assert len([e for e in _att_events(lg, aid) if e[0] == "EXECUTION_UNKNOWN"]) == 1
+    d = lg.get_attempt(aid)["detail"]
+    assert d["unknown_report"] == ["RETASKED", "ABORTED"]
+    assert d["unknown_reason"] == "FAILED_POSITION_UNCONFIRMED:ABORTED" and d["pre_unknown_substatus"] == "STARTED"
+
+
+def test_failed_report_on_attempt_already_unknown_is_recorded_without_losing_reason(pw):
+    """다른 이유(제공자가 시도를 못 찾음)로 불명이 된 시도에 FAILED 보고가 오면 그 보고를 적어 두고(되풀이 보고는 조용히 유지),
+    불명 사유·이전 단계는 그대로 둔다"""
+    orch, env, lg, uav = pw["orch"], pw["env"], pw["ledger"], pw["uav"]
+    _to_report_time(env)
+    att, plan, b = _flying_uav1(orch, lg)
+    aid, exec_id = att["attempt_id"], att["command"]["payload"]["task_id"]
+    uav.scripts.pop(exec_id)
+    orch._track(lg.get_attempt(aid), orch.uav)                                  # 404 → 불명 (PROVIDER_LOST_TASK)
+    assert lg.get_attempt(aid)["detail"]["unknown_reason"] == "PROVIDER_LOST_TASK"
+    uav.scripts[exec_id] = [{"status": "FAILED", "reason": "ABORTED", "progress": {"phase": "RETURN_FAILED"}}]
+    for _ in range(3):
+        orch._track(lg.get_attempt(aid), orch.uav)
+    a = lg.get_attempt(aid)
+    assert a["substatus"] == "UNKNOWN" and a["detail"]["unknown_report"] == ["RETURN_FAILED", "ABORTED"]
+    assert a["detail"]["unknown_reason"] == "PROVIDER_LOST_TASK" and a["detail"]["pre_unknown_substatus"] == "STARTED"
+    assert len([e for e in _att_events(lg, aid) if e[0] == "EXECUTION_UNKNOWN"]) == 1
+
+
+def test_track_does_not_write_over_change_made_while_it_was_processing(pw):
+    """추적이 시도를 다시 확인한 뒤 쓰기 전에(목적 상태 저장 등) 배정 작업자가 반납해도 그 위에 RETURNING 을 쓰지 않는다
+    (확인과 쓰기를 한 트랜잭션에서 — Ledger.attempt_guard)"""
+    orch, env, lg, uav = pw["orch"], pw["env"], pw["ledger"], pw["uav"]
+    _to_report_time(env)
+    att, plan, b = _flying_uav1(orch, lg)
+    aid = att["attempt_id"]
+    uav.scripts[att["command"]["payload"]["task_id"]] = [{"status": "FAILED", "reason": "ABORTED",
+                                                          "progress": {"phase": "RETURNING"}}]
+    real, fired = orch._set_purpose, []
+
+    def concurrent_release(*a, **k):                  # 추적이 목적을 재대기로 돌리는 순간 다른 스레드가 반납
+        if not fired:
+            fired.append(1)
+            th = threading.Thread(target=lambda: lg.set_attempt_status(
+                aid, "RELEASED", {**lg.get_attempt(aid)["detail"], "released_evidence": "other"}, release=True))
+            th.start()
+            th.join()
+        return real(*a, **k)
+    orch._set_purpose = concurrent_release
+    assert orch._track(lg.get_attempt(aid), orch.uav) is None and fired
+    assert lg.get_attempt(aid)["substatus"] == "RELEASED"
+    assert lg.get_attempt(aid)["detail"]["released_evidence"] == "other"
+    assert [e["reason"] for e in _events(lg, "TRACK_STALE")] == ["CHANGED_BY_OTHER_THREAD"]
+
+
+def test_abort_confirmed_while_attempt_went_unknown_still_cancels_old_stop(pw):
+    """중단 요청을 보내는 사이 추적이 시도를 불명(출발 단계에서)으로 바꿨어도, 드론이 '관측 전 중단'을 확인해 주면 앞 지점은
+    거두고 시도는 복귀 중 + 임무 종료로 (앞 지점이 재대기로 되살아나 같은 드론에 두 지점이 남지 않게)"""
+    orch, env, lg, uav = pw["orch"], pw["env"], pw["ledger"], pw["uav"]
+    _to_report_time(env)
+    att, plan, b = _flying_uav1(orch, lg)
+    aid = att["attempt_id"]
+    real_abort = orch.uav.abort
+
+    def abort_then_unknown(*a, **k):
+        out = real_abort(*a, **k)
+        orch._unknown(lg.get_attempt(aid), lg.get_task(att["task_id"]), dict(lg.get_attempt(aid)["detail"]),
+                      "PROVIDER_OFFLINE")
+        return out
+    orch.uav.abort = abort_then_unknown
+    rows, _ = orch._assign_orders(plan, b["inp"], b["idx"], "PLAN-NEW", "LLM", 120.0)
+    _poll(orch)
+    assert lg.get_task(att["task_id"]).purpose_status == "CANCELLED"
+    assert lg.get_attempt(aid)["substatus"] == "RELEASED"
+    assert not [t for t in lg.list_tasks(["PENDING"]) if t.task_id == att["task_id"]]
+    assert rows[0]["dispatch"] == "STARTED"
+
+
+def test_abort_result_does_not_overwrite_progress_tracked_meanwhile(pw):
+    """배정 작업자가 중단 요청을 보내는 사이 추적 스레드가 시도를 도착(ARRIVED)으로 바꿨으면, 요청 전에 읽은 STARTED 로
+    되돌리지 않는다 (도착 근거를 지우면 관측을 두 번 할 수 있다). 앞 Task 도 거두지 않는다."""
+    orch, env, lg, uav = pw["orch"], pw["env"], pw["ledger"], pw["uav"]
+    _to_report_time(env)
+    att, plan, b = _flying_uav1(orch, lg)
+    stale = lg.get_attempt(att["attempt_id"])                                  # 배정 작업자가 읽은 값 (STARTED)
+    orch._track(lg.get_attempt(att["attempt_id"]), orch.uav)                   # ENROUTE
+    orch._track(lg.get_attempt(att["attempt_id"]), orch.uav)                   # OBSERVING → ARRIVED
+    assert lg.get_attempt(att["attempt_id"])["substatus"] == "ARRIVED"
+    uav.scripts[att["command"]["payload"]["task_id"]].insert(0, {"status": "IN_PROGRESS", "progress": {"phase": "OBSERVING"}})
+    out = orch._abort_for_retask(stale, lg.get_task(att["task_id"]))
+    now = lg.get_attempt(att["attempt_id"])
+    assert now["substatus"] == "ARRIVED" and out["substatus"] == "ARRIVED"
+    assert now["detail"].get("arrival_evidence") and now["detail"]["retask_abort"]["result"] == "ABORTED_BEFORE_OBSERVATION"
+    assert "mission_end" not in now["detail"]
+    assert lg.get_task(att["task_id"]).purpose_status != "CANCELLED"
+
+
+def test_same_failed_report_after_observation_does_not_flap(pw):
+    """관측 뒤 복귀 실패(FAILED/RETURN_FAILED)가 되풀이 보고돼도 UNKNOWN 한 번으로 머문다 (PROVIDER_RECONTACTED ↔ UNKNOWN
+    반복 없음). 드론이 나중에 내렸다고(DONE) 보고하면 그때는 다시 연락된 것으로 보고 반납한다."""
+    orch, env, lg, uav = pw["orch"], pw["env"], pw["ledger"], pw["uav"]
+    uav.default_script = _returning_flight()
+    _to_report_time(env)
+    orch.obs_plan_cycle()
+    aid = lg.reservations()["A-uav1"]["attempt_id"]
+    exec_id = lg.get_attempt(aid)["command"]["payload"]["task_id"]
+    for _ in range(3):
+        orch._track(lg.get_attempt(aid), orch.uav)
+    assert lg.get_attempt(aid)["substatus"] == "RETURNING"                     # 관측 반영 뒤 복귀 중
+    uav.scripts[exec_id] = [{"status": "FAILED", "reason": "RETURN_FAILED", "progress": {"phase": "RETURN_FAILED"}}]
+    for _ in range(6):
+        orch._track(lg.get_attempt(aid), orch.uav)
+    assert lg.get_attempt(aid)["substatus"] == "UNKNOWN"
+    ev = _att_events(lg, aid)
+    assert len([e for e in ev if e[0] == "EXECUTION_UNKNOWN"]) == 1
+    assert not [e for e in ev if e[2] == "PROVIDER_RECONTACTED"]
+    uav.scripts[exec_id] = [{"status": "FAILED", "reason": "RETURN_FAILED", "progress": {"phase": "DONE"}}]
+    uav.state["A-uav1"]["current_task_id"] = None
+    orch._track(lg.get_attempt(aid), orch.uav)
+    assert lg.get_attempt(aid)["substatus"] == "RELEASED"
 
 
 def test_observing_drone_is_not_cut_and_new_order_waits(pw):
