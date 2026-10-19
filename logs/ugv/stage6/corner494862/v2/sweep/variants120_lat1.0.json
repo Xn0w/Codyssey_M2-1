@@ -1,0 +1,246 @@
+{
+ "Va_junction_only": {
+  "eta_plan_vs_base": {
+   "mean_%": 1.72,
+   "median_%": 1.12,
+   "p95_%": 5.95,
+   "max_%": 8.31
+  },
+  "eta_items_vs_base": {
+   "mean_%": 2.74,
+   "median_%": 1.98,
+   "p95_%": 8.98,
+   "max_%": 12.33
+  },
+  "over_by_kind_R": {
+   "bend/R25-40": {
+    "n": 1691,
+    "n_over_0.05": 1388,
+    "max_over": 2.165
+   },
+   "bend/R40-60": {
+    "n": 22742,
+    "n_over_0.05": 22361,
+    "max_over": 2.521
+   },
+   "bend/R<25": {
+    "n": 721,
+    "n_over_0.05": 537,
+    "max_over": 4.647
+   },
+   "junction/R25-40": {
+    "n": 33,
+    "n_over_0.05": 0,
+    "max_over": 0.0
+   },
+   "junction/R40-60": {
+    "n": 90,
+    "n_over_0.05": 4,
+    "max_over": 0.63
+   },
+   "junction/R<25": {
+    "n": 782,
+    "n_over_0.05": 1,
+    "max_over": 0.16
+   },
+   "road(none)/R25-40": {
+    "n": 557,
+    "n_over_0.05": 418,
+    "max_over": 1.722
+   },
+   "road(none)/R40-60": {
+    "n": 758,
+    "n_over_0.05": 608,
+    "max_over": 2.121
+   },
+   "road(none)/R<25": {
+    "n": 363,
+    "n_over_0.05": 270,
+    "max_over": 1.317
+   }
+  }
+ },
+ "Vb_candidate": {
+  "eta_plan_vs_base": {
+   "mean_%": 2.26,
+   "median_%": 1.87,
+   "p95_%": 5.95,
+   "max_%": 8.31
+  },
+  "eta_items_vs_base": {
+   "mean_%": 3.06,
+   "median_%": 2.37,
+   "p95_%": 8.98,
+   "max_%": 12.33
+  },
+  "over_by_kind_R": {
+   "bend/R25-40": {
+    "n": 1691,
+    "n_over_0.05": 1075,
+    "max_over": 2.165
+   },
+   "bend/R40-60": {
+    "n": 22742,
+    "n_over_0.05": 20083,
+    "max_over": 2.521
+   },
+   "bend/R<25": {
+    "n": 721,
+    "n_over_0.05": 537,
+    "max_over": 4.647
+   },
+   "junction/R25-40": {
+    "n": 33,
+    "n_over_0.05": 0,
+    "max_over": 0.0
+   },
+   "junction/R40-60": {
+    "n": 90,
+    "n_over_0.05": 4,
+    "max_over": 0.63
+   },
+   "junction/R<25": {
+    "n": 782,
+    "n_over_0.05": 1,
+    "max_over": 0.16
+   },
+   "road(none)/R25-40": {
+    "n": 557,
+    "n_over_0.05": 418,
+    "max_over": 1.722
+   },
+   "road(none)/R40-60": {
+    "n": 758,
+    "n_over_0.05": 599,
+    "max_over": 2.121
+   },
+   "road(none)/R<25": {
+    "n": 363,
+    "n_over_0.05": 270,
+    "max_over": 1.317
+   }
+  }
+ },
+ "Vc_all_exact": {
+  "eta_plan_vs_base": {
+   "mean_%": 12.52,
+   "median_%": 13.99,
+   "p95_%": 15.67,
+   "max_%": 17.28
+  },
+  "eta_items_vs_base": {
+   "mean_%": 14.3,
+   "median_%": 15.28,
+   "p95_%": 17.23,
+   "max_%": 18.52
+  },
+  "over_by_kind_R": {
+   "bend/R25-40": {
+    "n": 1691,
+    "n_over_0.05": 118,
+    "max_over": 0.511
+   },
+   "bend/R40-60": {
+    "n": 22742,
+    "n_over_0.05": 155,
+    "max_over": 0.469
+   },
+   "bend/R<25": {
+    "n": 721,
+    "n_over_0.05": 73,
+    "max_over": 0.484
+   },
+   "junction/R25-40": {
+    "n": 33,
+    "n_over_0.05": 0,
+    "max_over": 0.0
+   },
+   "junction/R40-60": {
+    "n": 90,
+    "n_over_0.05": 4,
+    "max_over": 0.63
+   },
+   "junction/R<25": {
+    "n": 782,
+    "n_over_0.05": 1,
+    "max_over": 0.16
+   },
+   "road(none)/R25-40": {
+    "n": 557,
+    "n_over_0.05": 288,
+    "max_over": 0.382
+   },
+   "road(none)/R40-60": {
+    "n": 758,
+    "n_over_0.05": 119,
+    "max_over": 2.121
+   },
+   "road(none)/R<25": {
+    "n": 363,
+    "n_over_0.05": 166,
+    "max_over": 0.723
+   }
+  }
+ },
+ "Vd_group_spread": {
+  "eta_plan_vs_base": {
+   "mean_%": 2.26,
+   "median_%": 1.88,
+   "p95_%": 5.95,
+   "max_%": 8.31
+  },
+  "eta_items_vs_base": {
+   "mean_%": 3.06,
+   "median_%": 2.38,
+   "p95_%": 8.98,
+   "max_%": 12.33
+  },
+  "over_by_kind_R": {
+   "bend/R25-40": {
+    "n": 1691,
+    "n_over_0.05": 1072,
+    "max_over": 2.165
+   },
+   "bend/R40-60": {
+    "n": 22742,
+    "n_over_0.05": 20083,
+    "max_over": 2.521
+   },
+   "bend/R<25": {
+    "n": 721,
+    "n_over_0.05": 536,
+    "max_over": 4.647
+   },
+   "junction/R25-40": {
+    "n": 33,
+    "n_over_0.05": 0,
+    "max_over": 0.0
+   },
+   "junction/R40-60": {
+    "n": 90,
+    "n_over_0.05": 4,
+    "max_over": 0.63
+   },
+   "junction/R<25": {
+    "n": 782,
+    "n_over_0.05": 1,
+    "max_over": 0.16
+   },
+   "road(none)/R25-40": {
+    "n": 557,
+    "n_over_0.05": 418,
+    "max_over": 1.722
+   },
+   "road(none)/R40-60": {
+    "n": 758,
+    "n_over_0.05": 599,
+    "max_over": 2.121
+   },
+   "road(none)/R<25": {
+    "n": 363,
+    "n_over_0.05": 270,
+    "max_over": 1.317
+   }
+  }
+ }
+}

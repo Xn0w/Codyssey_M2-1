@@ -1,0 +1,56 @@
+{
+ "tag": "R28_03",
+ "manifest": "/c/Users/수다쟁이고양이들/Documents/GitHub/ADAIR",
+ "ready": "ready=1",
+ "susp": "susp_joints=4",
+ "result": "COMPLETED/ARRIVED",
+ "fault": null,
+ "out_n": 0,
+ "end_m": 0.34,
+ "tol": 0.15,
+ "items_plan": [
+  4.96,
+  4.27,
+  4.27,
+  3.87,
+  3.87,
+  5.29,
+  5.29,
+  5.29,
+  5.29,
+  3.87
+ ],
+ "last_item_plan": 3.87,
+ "last_carried": 3.87,
+ "px4": "{'NAV_ACC_RAD': 3.0, 'RA_ACC_RAD_MAX': -1.0, 'RO_SPEED_LIM': 16.700000762939453}",
+ "leftover": "leftover=[]",
+ "arcs": [
+  {
+   "id": "junction",
+   "R_m": 28.683,
+   "v_curve_mps": 5.356,
+   "v_entry_max_mps": 3.717,
+   "v_apex_max_mps": 5.005,
+   "arc_max_over_plan_mps": -0.086,
+   "arc_max_over_vcurve_mps": -0.141,
+   "entry_ok": true,
+   "apex_ok": true,
+   "arc_vs_plan_ok": true,
+   "arc_vs_vcurve_ok": true
+  },
+  {
+   "id": "junction",
+   "R_m": 28.128,
+   "v_curve_mps": 5.304,
+   "v_entry_max_mps": 5.214,
+   "v_apex_max_mps": 5.162,
+   "arc_max_over_plan_mps": -0.001,
+   "arc_max_over_vcurve_mps": -0.005,
+   "entry_ok": true,
+   "apex_ok": true,
+   "arc_vs_plan_ok": true,
+   "arc_vs_vcurve_ok": true
+  }
+ ],
+ "PASS": true
+}

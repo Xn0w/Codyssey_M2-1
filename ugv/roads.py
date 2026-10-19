@@ -55,6 +55,8 @@ class Route:
     length: float = field(init=False)
     legs: List[Tuple[str, str, str]] = field(default_factory=list)   # (road_id, 출발 노드, 향하는 노드) — 방향 경로만
     arrive_toward: Optional[str] = None                              # 도착할 때 향하던 노드 (도착 방향)
+    # 선형 다듬기(drive_graph._smooth)가 그린 원호 [(i0, i1, R, cx, cy, 회전각 rad, 종류 junction/bend)] — pts 번호. 없으면 창 곡률만
+    arcs: list = field(default_factory=list)
 
     def __post_init__(self):
         self.length = sum(math.dist(p, q) for p, q in zip(self.pts, self.pts[1:]))
@@ -70,6 +72,7 @@ class SpeedPlan:
     v_max: float
     max_chord_dev_m: float = 0.0              # 미션 지점을 이은 직선과 계획 선형의 최대 차이
     items_on_path: Optional[List[Tuple[float, float, float]]] = None   # 곡선 보정 전 미션 지점 (계획 선형 위)
+    arcs: Optional[list] = None               # 속도 상한을 건 생성 원호 [(s0, s1, R, 상한 반경, 종류)] (계획 선형 거리 m)
 
 
 class RoadNetwork:
@@ -271,6 +274,51 @@ def _curvature(pts, cum, i, w):
     return 0.0 if den <= 1e-9 else 2.0 * area2 / den
 
 
+def _plan_curvature(pts, cum, i, w):
+    """속도 계획 곡률: 앞뒤 w m 세 점 원과, 반쪽 창(점 i ~ 앞 또는 뒤 w m, 가운데 w/2 m 점) 세 점 원 중 큰 쪽.
+    반쪽 창 값은 CURVE_SIDE_R_M 보다 급할 때만 쓴다 (config 설명). 원호가 w 이상이면 원호 시작·끝 점도 원호 곡률을 그대로 본다"""
+    k = _curvature(pts, cum, i, w)
+    n = len(pts) - 1
+    for e in (cum[i] + w, cum[i] - w):
+        if e < 0.0 or e > cum[-1]:
+            continue
+        m = min(n, bisect.bisect_left(cum, (cum[i] + e) / 2))
+        j = min(n, bisect.bisect_left(cum, e))
+        if m in (i, j):
+            continue
+        a, b, c = pts[i], pts[m], pts[j]
+        area2 = abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]))
+        den = math.dist(a, b) * math.dist(b, c) * math.dist(a, c)
+        ks = 0.0 if den <= 1e-9 else 2.0 * area2 / den
+        if ks * config.CURVE_SIDE_R_M > 1.0:
+            k = max(k, ks)
+    return k
+
+
+def _route_arcs(route, w):
+    """경로의 생성 원호 → [(s0, s1, R, 상한에 쓸 반경, 종류)] (route.pts 누적 거리). 점이 그 원 위에 있지 않으면(경로가 바뀜) 버린다.
+    교차로 원호(junction)는 원호 전 구간을 반경 R 로 본다. 일반 꺾인 점 원호(bend, 도로 선형 꺾임을 다듬은 것)는 원호 길이 L 이
+    2w 보다 짧으면 같은 방향 변화를 2w 에 걸쳐 본 반경 R·2w/L 로 본다 — 짧은 원호의 순간 곡률을 그대로 쓰면 좌표 꺾임마다 감속한다
+    (앞뒤 w 창 세 점 원이 짧은 꺾임을 보는 방식과 같고, L ≥ 2w 이면 R 그대로라 반경·길이에 대해 연속)"""
+    arcs = getattr(route, "arcs", None) or []
+    if not arcs:
+        return []
+    pts = route.pts
+    c = [0.0]
+    for p, q in zip(pts, pts[1:]):
+        c.append(c[-1] + math.dist(p, q))
+    out = []
+    for i0, i1, R, cx, cy, D, kind in arcs:
+        if not (0 <= i0 < i1 < len(pts)) or R <= 0:
+            continue
+        if abs(math.dist(pts[i0], (cx, cy)) - R) > 0.03 or abs(math.dist(pts[i1], (cx, cy)) - R) > 0.03:
+            continue
+        L = R * D
+        r_cap = R if kind == "junction" or L >= 2 * w else R * 2 * w / max(L, 1e-6)
+        out.append((c[i0], c[i1], R, r_cap, kind))
+    return out
+
+
 def _signed_curvature(pts, cum, i, w):
     """점 i 의 부호 있는 곡률 (+ = 왼쪽(반시계) 회전). 앞뒤 w m 점과 세 점 원."""
     j = bisect.bisect_left(cum, cum[i] - w)
@@ -320,8 +368,15 @@ def plan_speeds(route: Route, v0: float = 0.0, *, profile=None, lat_accel=None, 
         cum.append(cum[-1] + math.dist(p, q))
     v = []
     for i in range(len(pts)):
-        k = _curvature(pts, cum, i, config.CURVE_WINDOW_M)
+        k = _plan_curvature(pts, cum, i, config.CURVE_WINDOW_M)
         v.append(min(vl[i], profile.max_speed_mps, math.sqrt(lat_accel / k) if k > 1e-6 else math.inf))
+    # 생성 원호 전 구간(접점 포함) 곡선 속도 상한 — 창 곡률은 원호 끝 창 길이 안에서 직선을 섞어 곡률을 작게 본다
+    # (반경 25~40 m 원호는 반쪽 창 보조(CURVE_SIDE_R_M)에도 걸리지 않아 원호 끝 계획이 곡선 속도보다 1.1~1.3 m/s 빨랐다 — 2026-10-19 검증)
+    arcs = _route_arcs(route, config.CURVE_WINDOW_M) if config.ARC_SPEED_CAP else []
+    for s0, s1, R, r_cap, kind in arcs:
+        cap = math.sqrt(lat_accel * r_cap)
+        for i in range(bisect.bisect_left(cum, s0 - 1e-6), min(len(pts), bisect.bisect_right(cum, s1 + 1e-6))):
+            v[i] = min(v[i], cap)
     v[0] = min(v[0], max(v0, 0.0)) if v0 > 0 else 0.0
     v[-1] = 0.0
     for i in range(1, len(v)):
@@ -350,11 +405,14 @@ def plan_speeds(route: Route, v0: float = 0.0, *, profile=None, lat_accel=None, 
             # 구간 속도 = 그 구간 계획 속도의 최소. 단 출발 램프(첫 ITEM_FIRST_MIN_M)는 빼고 본다 — 램프 최솟값을 실으면
             # PX4 가 구간 전체를 그 속도로 달린다
             # 앞 지점 도착 반경(ITEM_SPEED_LEAD_M) 안에서 이 구간 속도가 먼저 적용되므로 그 앞 위치부터 본다
+            # 마지막(도착) 구간도 같다 — 도착점 정지 속도 0 만 뺀다 (PX4 가 도착점에서 스스로 멈춘다. 0 을 넣으면 구간 전체가 1 m/s).
+            # 예전에는 마지막 구간만 앞 지점 뒤부터 봐서 원호 끝 지점 3 m 앞에서 도착 구간 속도 3.82 m/s 가 먼저 적용돼 원호 끝에서
+            # 3.83 m/s (곡선 속도 3.21) — 2026-10-19 494862 원호 3. 마지막 구간 안 표본이 없을 때(앞 지점 바로 다음이 도착점) 1 m/s 로
+            # 대신하던 것도 도착 반경 창 값을 쓴다 (창도 비면 1 m/s)
             lo = min(last + 1, bisect.bisect_left(cum, cum[last] - config.ITEM_SPEED_LEAD_M))
-            seg = [v[k] for k in range(lo, i + 1) if cum[k] >= config.ITEM_FIRST_MIN_M] or v[last + 1:i + 1]
-            seg_v = min(seg) if i > last else v[i]
-            if i == len(pts) - 1:
-                seg_v = min(v[last + 1:i]) if i - 1 > last else 1.0
+            end = i if i == len(pts) - 1 else i + 1
+            seg = [v[k] for k in range(lo, end) if cum[k] >= config.ITEM_FIRST_MIN_M] or v[last + 1:end]
+            seg_v = min(seg) if seg else 1.0
             items.append((pts[i][0], pts[i][1], max(math.floor(seg_v * 100) / 100, 1.0)))
             idx.append(i)
             last, last_hd = i, hd
@@ -362,7 +420,7 @@ def plan_speeds(route: Route, v0: float = 0.0, *, profile=None, lat_accel=None, 
             last_hd = hd
     comp = curve_compensate(pts, cum, idx, getattr(route, "item_comp_l", None))
     sent = [(x, y, it[2]) for (x, y), it in zip(comp, items)]
-    return SpeedPlan(pts, v, cum, eta, sent, max(v) if v else 0.0, round(max_dev, 3), items_on_path=items)
+    return SpeedPlan(pts, v, cum, eta, sent, max(v) if v else 0.0, round(max_dev, 3), items_on_path=items, arcs=arcs)
 
 
 def _seg_point_dist(q, a, b):

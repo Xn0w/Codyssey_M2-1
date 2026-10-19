@@ -1,0 +1,26 @@
+{
+ "frozen_at": "2026-10-19 (Gazebo 실행 전)",
+ "judge": "judge_corner_v2.py (sha256 은 baseline/manifest.json 이후 판정기 최종본 — criteria 작성 시점 파일)",
+ "common": {
+  "lat_accel_mps2": 1.0,
+  "tolerance": "max(0.15, e95 + 2*sigma_meas) — 원본 규칙. 원 경로는 원본 원호(R<15) 제외(--tol-exclude old), 대표 반경 사례는 v2 확인 원호 제외(--tol-exclude v2)",
+  "arrival": "state/ugv_tasks.json 마지막 임무 status=COMPLETED, mission_result=ARRIVED, ugv_final fault=None",
+  "road_boundary": "road_test.out body_outside_est_road(samples) == 0",
+  "stop": "road_test.out end_to_last_item_m <= 1.0",
+  "invalid": "ready=0, susp_joints!=4, 궤적 csv 없음, 남은 gz/px4 프로세스로 인한 기동 실패 — 무효(합격·불합격으로 세지 않음)"
+ },
+ "original_route_5runs": {
+  "candidate": "ADAIR 작업 트리 (수정1+2+원호상한)",
+  "per_corner_1_2_3": ["v2.entry_ok", "v2.apex_ok", "v2.arc_vs_plan_ok", "v2.arc_vs_vcurve_ok"],
+  "final_item": "ulog triplet 마지막 구간 cruising_speed == 계획 마지막 항목 3.20 (±0.01), px4_params NAV_ACC_RAD == 3 == ITEM_SPEED_LEAD_M",
+  "screening": "첫 1회 불합격·무효면 나머지 자동 반복 없이 원인 확인"
+ },
+ "representative_cases": {
+  "R28": "682502664 → 682503044, 교차로 495114 원호 R 28.07 m 49.8°, 출발 s=65.3 (A 거점)",
+  "R42": "682502274 → 682503113, 교차로 495041 원호 R 42.09 m 51.0°, 출발 s=150 (A 거점)",
+  "control_1run": "wt_fix12 (수정1+2, 원호상한 없음) 1회 — 대조 기록 (합격 판정 대상 아님)",
+  "candidate_3runs": "ADAIR 작업 트리 3회 (첫 1회 선별)",
+  "junction_arc_criteria": ["v2.entry_ok", "v2.apex_ok", "v2.arc_vs_plan_ok", "v2.arc_vs_vcurve_ok"],
+  "note": "회전표 원호 반경이 이산값(28.06, 42.09 m)이라 정확히 25 m·40 m 교차로 원호는 실제 도로에 없음 — 가장 가까운 값으로 대표"
+ }
+}

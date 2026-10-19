@@ -140,8 +140,8 @@ def test_vehicle_mission_stall_faults_and_stops(tmp_path):
     asyncio.run(go())
 
 
-def _arc_route(R=8.2, turn_deg=90.0, lead=60.0, tail=60.0, step=0.5):
-    """직선 lead m → 반경 R 원호 → 직선 tail m (교차로 급회전 모양)."""
+def _arc_route(R=8.2, turn_deg=90.0, lead=60.0, tail=60.0, step=0.5, tail_step=None):
+    """직선 lead m → 반경 R 원호 → 직선 tail m (교차로 급회전 모양). tail_step: 뒤 직선 점 간격 (기본 step)."""
     pts = [(-lead + k * step, 0.0) for k in range(int(lead / step))]
     n = int(math.radians(turn_deg) * R / step)
     for k in range(n + 1):
@@ -149,7 +149,8 @@ def _arc_route(R=8.2, turn_deg=90.0, lead=60.0, tail=60.0, step=0.5):
         pts.append((R * math.sin(a), -R * (1 - math.cos(a))))           # 오른쪽 회전
     ex, ey = pts[-1]
     h = -math.radians(turn_deg)
-    pts += [(ex + k * step * math.cos(h), ey + k * step * math.sin(h)) for k in range(1, int(tail / step))]
+    ts = tail_step or step
+    pts += [(ex + k * ts * math.cos(h), ey + k * ts * math.sin(h)) for k in range(1, int(tail / ts))]
     return SimpleNamespace(pts=pts, vlim=[20.0] * len(pts))          # plan_speeds 는 pts·vlim 만 쓴다
 
 
@@ -180,3 +181,54 @@ def test_item_speed_covers_acceptance_lead():
     apex = min(range(len(sp.v) - 1), key=lambda k: sp.v[k] if sp.cum[k] > 10 else 1e9)
     near = [sp.items[n][2] for n in range(len(idx)) if abs(sp.cum[idx[n]] - sp.cum[apex]) <= 3.0]
     assert near and max(near) <= math.sqrt(lat * 8.2) + 0.1, near
+
+
+def _arc_span(sp, R=8.2, turn_deg=90.0):
+    """_arc_route 원호 구간 [접점, 끝점] 의 진행 거리 (출발 lead m 뒤부터 원호 길이만큼)."""
+    s0 = sp.cum[min(range(len(sp.pts)), key=lambda k: math.dist(sp.pts[k], (0.0, 0.0)))]
+    return s0, s0 + math.radians(turn_deg) * R
+
+
+def test_plan_speed_whole_arc_including_ends_le_curve_speed():
+    """원호 시작·끝(접점 근처)까지 계획 속도 ≤ √(횡가속 × R) — 앞뒤 5 m 창 세 점 원은 원호 끝 약 5 m 안에서 직선을 섞어
+    원호 시작 1.1 m 안 3.36 m/s, 끝 4 m 에 3.10~3.87 m/s 를 계획했다 (2026-10-19 교차로 494862 20회, R 8.41 m 곡선 속도 2.90).
+    원호에 걸치는 PX4 구간 속도(앞 지점 도착 반경부터 적용)도 곡선 속도 이하."""
+    lat = 1.0
+    for R, step in ((8.41, 1.1), (10.28, 1.26), (8.2, 0.5)):
+        sp = plan_speeds(_arc_route(R=R, step=step), 0.0, lat_accel=lat)
+        vc = math.sqrt(lat * R)
+        s0, s1 = _arc_span(sp, R)
+        on_arc = [sp.v[k] for k in range(len(sp.v)) if s0 - 0.01 <= sp.cum[k] <= s1 + 0.01]
+        assert on_arc and max(on_arc) <= vc + 0.01, (R, max(on_arc), vc)
+        # 원호 안은 곡선 속도보다 쓸데없이 낮추지 않는다
+        assert min(on_arc) >= vc - 0.05, (R, min(on_arc), vc)
+        pos = {(round(x, 6), round(y, 6)): k for k, (x, y) in enumerate(sp.pts)}
+        idx = [pos[(round(x, 6), round(y, 6))] for x, y, _ in sp.items_on_path]
+        for n in range(1, len(idx)):
+            lo_s = sp.cum[idx[n - 1]] - ACCEPT_M                    # 이 구간 속도가 적용되기 시작하는 곳
+            if lo_s <= s1 and sp.cum[idx[n]] >= s0:
+                assert sp.items[n][2] <= vc + 0.01, (R, n, sp.items[n][2], vc)
+
+
+def test_side_window_curvature_not_used_on_gentle_bends_and_straights():
+    """반쪽 창 곡률은 급한 곡선(CURVE_SIDE_R_M 미만)에만 — 완만한 굽이(R 50 m 다듬은 원호)와 원호에서 창 밖 직선은 예전(앞뒤 창)과 같다."""
+    from ugv.roads import _curvature, _plan_curvature
+    sp = plan_speeds(_arc_route(R=50.0, turn_deg=12.0, step=1.0), 0.0, lat_accel=1.0)
+    for k in range(len(sp.pts)):
+        assert _plan_curvature(sp.pts, sp.cum, k, config.CURVE_WINDOW_M) == _curvature(sp.pts, sp.cum, k, config.CURVE_WINDOW_M)
+    sp = plan_speeds(_arc_route(R=8.41, step=1.1), 0.0, lat_accel=1.0)
+    s0, s1 = _arc_span(sp, 8.41)
+    for k in range(len(sp.pts)):
+        if sp.cum[k] < s0 - config.CURVE_WINDOW_M or sp.cum[k] > s1 + config.CURVE_WINDOW_M:
+            assert _plan_curvature(sp.pts, sp.cum, k, config.CURVE_WINDOW_M) == _curvature(sp.pts, sp.cum, k, config.CURVE_WINDOW_M)
+
+
+def test_final_item_speed_covers_acceptance_lead():
+    """마지막(도착) 구간 속도도 앞 지점 도착 반경(ITEM_SPEED_LEAD_M)부터 본다 — 예전에는 앞 지점 뒤부터만 봐서 2026-10-19 494862
+    원호 3 끝 지점 3 m 앞에서 도착 구간 3.82 m/s 가 먼저 적용돼 원호 끝 실제 3.83 m/s (곡선 속도 3.21)."""
+    pts = [(float(x), 0.0) for x in range(41)] + [(40.0 + 5.0 * k, 0.0) for k in range(1, 8)]     # 0~40 m 1 m 간격, 이후 5 m → 75 m 도착
+    vlim = [3.0 if 37.5 <= x <= 39.5 else 20.0 for x, _ in pts]                               # 앞 지점(40 m) 직전 느린 구간
+    sp = plan_speeds(SimpleNamespace(pts=pts, vlim=vlim), 0.0, lat_accel=1.0)
+    (_, _, v_prev), (x_last, _, v_last) = sp.items_on_path[-2], sp.items_on_path[-1]
+    assert x_last == 75.0 and sp.items_on_path[-2][0] == 40.0, sp.items_on_path
+    assert v_last <= 3.0 + 0.01, v_last

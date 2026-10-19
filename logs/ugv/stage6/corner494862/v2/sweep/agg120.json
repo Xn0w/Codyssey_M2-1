@@ -1,0 +1,598 @@
+{
+ "lat1.0": {
+  "base": {
+   "name": "기준(HEAD)",
+   "eta_plan_s": {
+    "mean": 1770.11,
+    "median": 2099.77,
+    "p95": 3445.46,
+    "max": 4314.11
+   },
+   "eta_plan_vs_base": {
+    "mean_%": 0.0,
+    "median_%": 0.0,
+    "p95_%": 0.0,
+    "max_%": 0.0,
+    "min_%": 0.0
+   },
+   "eta_items_s": {
+    "mean": 2150.95,
+    "median": 2569.89,
+    "p95": 4218.44,
+    "max": 5231.16
+   },
+   "eta_items_vs_base": {
+    "mean_%": 0.0,
+    "median_%": 0.0,
+    "p95_%": 0.0,
+    "max_%": 0.0,
+    "min_%": 0.0
+   },
+   "n_items": {
+    "mean": 820.62,
+    "median": 978.0,
+    "p95": 1571,
+    "max": 2053
+   },
+   "min_item_v": {
+    "mean": 2.32,
+    "median": 2.31,
+    "p95": 3.2,
+    "max": 3.86
+   },
+   "n_items_total": 98474,
+   "min_item_v_min": 1.0,
+   "arc_over_by_R": {
+    "R0-15": {
+     "n_arcs": 1070,
+     "plan_over_max": 4.647,
+     "n_plan_over_gt_0.05": 1069,
+     "item_over_max": 9.998,
+     "n_item_over_gt_0.05": 1065
+    },
+    "R15-25": {
+     "n_arcs": 796,
+     "plan_over_max": 1.806,
+     "n_plan_over_gt_0.05": 673,
+     "item_over_max": 8.157,
+     "n_item_over_gt_0.05": 719
+    },
+    "R25-40": {
+     "n_arcs": 2281,
+     "plan_over_max": 2.165,
+     "n_plan_over_gt_0.05": 2168,
+     "item_over_max": 7.171,
+     "n_item_over_gt_0.05": 1698
+    },
+    "R40-60": {
+     "n_arcs": 23590,
+     "plan_over_max": 2.521,
+     "n_plan_over_gt_0.05": 23265,
+     "item_over_max": 5.649,
+     "n_item_over_gt_0.05": 15410
+    }
+   },
+   "n_gen_arcs_total": 0
+  },
+  "fix1": {
+   "name": "수정1",
+   "eta_plan_s": {
+    "mean": 1788.73,
+    "median": 2122.89,
+    "p95": 3480.11,
+    "max": 4355.53
+   },
+   "eta_plan_vs_base": {
+    "mean_%": 1.63,
+    "median_%": 1.06,
+    "p95_%": 5.78,
+    "max_%": 8.31,
+    "min_%": 0.0
+   },
+   "eta_items_s": {
+    "mean": 2192.18,
+    "median": 2624.45,
+    "p95": 4297.53,
+    "max": 5314.85
+   },
+   "eta_items_vs_base": {
+    "mean_%": 2.66,
+    "median_%": 1.92,
+    "p95_%": 8.98,
+    "max_%": 12.32,
+    "min_%": 0.0
+   },
+   "n_items": {
+    "mean": 820.62,
+    "median": 978.0,
+    "p95": 1571,
+    "max": 2053
+   },
+   "min_item_v": {
+    "mean": 1.82,
+    "median": 1.28,
+    "p95": 2.9,
+    "max": 3.86
+   },
+   "n_items_total": 98474,
+   "min_item_v_min": 1.0,
+   "arc_over_by_R": {
+    "R0-15": {
+     "n_arcs": 1070,
+     "plan_over_max": 4.647,
+     "n_plan_over_gt_0.05": 314,
+     "item_over_max": 9.998,
+     "n_item_over_gt_0.05": 400
+    },
+    "R15-25": {
+     "n_arcs": 796,
+     "plan_over_max": 1.041,
+     "n_plan_over_gt_0.05": 499,
+     "item_over_max": 8.157,
+     "n_item_over_gt_0.05": 208
+    },
+    "R25-40": {
+     "n_arcs": 2281,
+     "plan_over_max": 2.165,
+     "n_plan_over_gt_0.05": 1839,
+     "item_over_max": 7.171,
+     "n_item_over_gt_0.05": 1437
+    },
+    "R40-60": {
+     "n_arcs": 23590,
+     "plan_over_max": 2.521,
+     "n_plan_over_gt_0.05": 23056,
+     "item_over_max": 5.649,
+     "n_item_over_gt_0.05": 15179
+    }
+   },
+   "n_gen_arcs_total": 0
+  },
+  "fix12": {
+   "name": "수정1+2",
+   "eta_plan_s": {
+    "mean": 1788.73,
+    "median": 2122.89,
+    "p95": 3480.11,
+    "max": 4355.53
+   },
+   "eta_plan_vs_base": {
+    "mean_%": 1.63,
+    "median_%": 1.06,
+    "p95_%": 5.78,
+    "max_%": 8.31,
+    "min_%": 0.0
+   },
+   "eta_items_s": {
+    "mean": 2192.24,
+    "median": 2624.45,
+    "p95": 4297.53,
+    "max": 5314.85
+   },
+   "eta_items_vs_base": {
+    "mean_%": 2.67,
+    "median_%": 1.92,
+    "p95_%": 8.98,
+    "max_%": 12.32,
+    "min_%": 0.0
+   },
+   "n_items": {
+    "mean": 820.62,
+    "median": 978.0,
+    "p95": 1571,
+    "max": 2053
+   },
+   "min_item_v": {
+    "mean": 1.82,
+    "median": 1.28,
+    "p95": 2.9,
+    "max": 3.86
+   },
+   "n_items_total": 98474,
+   "min_item_v_min": 1.0,
+   "arc_over_by_R": {
+    "R0-15": {
+     "n_arcs": 1070,
+     "plan_over_max": 4.647,
+     "n_plan_over_gt_0.05": 314,
+     "item_over_max": 9.998,
+     "n_item_over_gt_0.05": 395
+    },
+    "R15-25": {
+     "n_arcs": 796,
+     "plan_over_max": 1.041,
+     "n_plan_over_gt_0.05": 499,
+     "item_over_max": 8.157,
+     "n_item_over_gt_0.05": 208
+    },
+    "R25-40": {
+     "n_arcs": 2281,
+     "plan_over_max": 2.165,
+     "n_plan_over_gt_0.05": 1839,
+     "item_over_max": 7.171,
+     "n_item_over_gt_0.05": 1437
+    },
+    "R40-60": {
+     "n_arcs": 23590,
+     "plan_over_max": 2.521,
+     "n_plan_over_gt_0.05": 23056,
+     "item_over_max": 5.649,
+     "n_item_over_gt_0.05": 15179
+    }
+   },
+   "n_gen_arcs_total": 0
+  },
+  "cand": {
+   "name": "수정1+2+원호상한",
+   "eta_plan_s": {
+    "mean": 1803.07,
+    "median": 2141.04,
+    "p95": 3508.17,
+    "max": 4397.7
+   },
+   "eta_plan_vs_base": {
+    "mean_%": 2.26,
+    "median_%": 1.87,
+    "p95_%": 5.95,
+    "max_%": 8.31,
+    "min_%": 0.02
+   },
+   "eta_items_s": {
+    "mean": 2202.44,
+    "median": 2637.31,
+    "p95": 4317.29,
+    "max": 5347.29
+   },
+   "eta_items_vs_base": {
+    "mean_%": 3.06,
+    "median_%": 2.37,
+    "p95_%": 8.98,
+    "max_%": 12.33,
+    "min_%": -0.39
+   },
+   "n_items": {
+    "mean": 820.62,
+    "median": 978.0,
+    "p95": 1571,
+    "max": 2053
+   },
+   "min_item_v": {
+    "mean": 1.91,
+    "median": 1.28,
+    "p95": 2.9,
+    "max": 3.86
+   },
+   "n_items_total": 98474,
+   "min_item_v_min": 1.0,
+   "arc_over_by_R": {
+    "R0-15": {
+     "n_arcs": 1070,
+     "plan_over_max": 4.647,
+     "n_plan_over_gt_0.05": 309,
+     "item_over_max": 9.998,
+     "n_item_over_gt_0.05": 394
+    },
+    "R15-25": {
+     "n_arcs": 796,
+     "plan_over_max": 1.041,
+     "n_plan_over_gt_0.05": 499,
+     "item_over_max": 8.157,
+     "n_item_over_gt_0.05": 208
+    },
+    "R25-40": {
+     "n_arcs": 2281,
+     "plan_over_max": 2.165,
+     "n_plan_over_gt_0.05": 1493,
+     "item_over_max": 7.171,
+     "n_item_over_gt_0.05": 1190
+    },
+    "R40-60": {
+     "n_arcs": 23590,
+     "plan_over_max": 2.521,
+     "n_plan_over_gt_0.05": 20686,
+     "item_over_max": 5.649,
+     "n_item_over_gt_0.05": 13942
+    }
+   },
+   "n_gen_arcs_total": 54338
+  }
+ },
+ "lat1.5": {
+  "base": {
+   "name": "기준(HEAD)",
+   "eta_plan_s": {
+    "mean": 1580.18,
+    "median": 1857.61,
+    "p95": 3070.77,
+    "max": 3814.79
+   },
+   "eta_plan_vs_base": {
+    "mean_%": 0.0,
+    "median_%": 0.0,
+    "p95_%": 0.0,
+    "max_%": 0.0,
+    "min_%": 0.0
+   },
+   "eta_items_s": {
+    "mean": 1833.47,
+    "median": 2179.99,
+    "p95": 3586.21,
+    "max": 4405.55
+   },
+   "eta_items_vs_base": {
+    "mean_%": 0.0,
+    "median_%": 0.0,
+    "p95_%": 0.0,
+    "max_%": 0.0,
+    "min_%": 0.0
+   },
+   "n_items": {
+    "mean": 820.62,
+    "median": 978.0,
+    "p95": 1571,
+    "max": 2053
+   },
+   "min_item_v": {
+    "mean": 2.68,
+    "median": 2.84,
+    "p95": 3.73,
+    "max": 3.86
+   },
+   "n_items_total": 98474,
+   "min_item_v_min": 1.0,
+   "arc_over_by_R": {
+    "R0-15": {
+     "n_arcs": 1070,
+     "plan_over_max": 5.632,
+     "n_plan_over_gt_0.05": 1069,
+     "item_over_max": 11.66,
+     "n_item_over_gt_0.05": 1066
+    },
+    "R15-25": {
+     "n_arcs": 796,
+     "plan_over_max": 2.024,
+     "n_plan_over_gt_0.05": 670,
+     "item_over_max": 9.041,
+     "n_item_over_gt_0.05": 717
+    },
+    "R25-40": {
+     "n_arcs": 2281,
+     "plan_over_max": 2.517,
+     "n_plan_over_gt_0.05": 2049,
+     "item_over_max": 8.012,
+     "n_item_over_gt_0.05": 1693
+    },
+    "R40-60": {
+     "n_arcs": 23590,
+     "plan_over_max": 2.916,
+     "n_plan_over_gt_0.05": 22894,
+     "item_over_max": 5.97,
+     "n_item_over_gt_0.05": 15119
+    }
+   },
+   "n_gen_arcs_total": 0
+  },
+  "fix1": {
+   "name": "수정1",
+   "eta_plan_s": {
+    "mean": 1598.02,
+    "median": 1879.69,
+    "p95": 3103.91,
+    "max": 3855.35
+   },
+   "eta_plan_vs_base": {
+    "mean_%": 1.65,
+    "median_%": 1.14,
+    "p95_%": 5.45,
+    "max_%": 7.65,
+    "min_%": 0.0
+   },
+   "eta_items_s": {
+    "mean": 1868.97,
+    "median": 2226.42,
+    "p95": 3653.26,
+    "max": 4480.53
+   },
+   "eta_items_vs_base": {
+    "mean_%": 2.61,
+    "median_%": 1.96,
+    "p95_%": 8.18,
+    "max_%": 12.05,
+    "min_%": 0.0
+   },
+   "n_items": {
+    "mean": 820.62,
+    "median": 978.0,
+    "p95": 1571,
+    "max": 2053
+   },
+   "min_item_v": {
+    "mean": 2.12,
+    "median": 1.57,
+    "p95": 3.55,
+    "max": 3.86
+   },
+   "n_items_total": 98474,
+   "min_item_v_min": 1.0,
+   "arc_over_by_R": {
+    "R0-15": {
+     "n_arcs": 1070,
+     "plan_over_max": 5.632,
+     "n_plan_over_gt_0.05": 313,
+     "item_over_max": 11.66,
+     "n_item_over_gt_0.05": 397
+    },
+    "R15-25": {
+     "n_arcs": 796,
+     "plan_over_max": 0.913,
+     "n_plan_over_gt_0.05": 482,
+     "item_over_max": 8.721,
+     "n_item_over_gt_0.05": 183
+    },
+    "R25-40": {
+     "n_arcs": 2281,
+     "plan_over_max": 2.517,
+     "n_plan_over_gt_0.05": 1662,
+     "item_over_max": 8.012,
+     "n_item_over_gt_0.05": 1330
+    },
+    "R40-60": {
+     "n_arcs": 23590,
+     "plan_over_max": 2.916,
+     "n_plan_over_gt_0.05": 22728,
+     "item_over_max": 5.65,
+     "n_item_over_gt_0.05": 14962
+    }
+   },
+   "n_gen_arcs_total": 0
+  },
+  "fix12": {
+   "name": "수정1+2",
+   "eta_plan_s": {
+    "mean": 1598.02,
+    "median": 1879.69,
+    "p95": 3103.91,
+    "max": 3855.35
+   },
+   "eta_plan_vs_base": {
+    "mean_%": 1.65,
+    "median_%": 1.14,
+    "p95_%": 5.45,
+    "max_%": 7.65,
+    "min_%": 0.0
+   },
+   "eta_items_s": {
+    "mean": 1868.98,
+    "median": 2226.42,
+    "p95": 3653.26,
+    "max": 4480.53
+   },
+   "eta_items_vs_base": {
+    "mean_%": 2.61,
+    "median_%": 1.96,
+    "p95_%": 8.18,
+    "max_%": 12.05,
+    "min_%": 0.0
+   },
+   "n_items": {
+    "mean": 820.62,
+    "median": 978.0,
+    "p95": 1571,
+    "max": 2053
+   },
+   "min_item_v": {
+    "mean": 2.12,
+    "median": 1.57,
+    "p95": 3.55,
+    "max": 3.86
+   },
+   "n_items_total": 98474,
+   "min_item_v_min": 1.0,
+   "arc_over_by_R": {
+    "R0-15": {
+     "n_arcs": 1070,
+     "plan_over_max": 5.632,
+     "n_plan_over_gt_0.05": 313,
+     "item_over_max": 11.66,
+     "n_item_over_gt_0.05": 395
+    },
+    "R15-25": {
+     "n_arcs": 796,
+     "plan_over_max": 0.913,
+     "n_plan_over_gt_0.05": 482,
+     "item_over_max": 8.721,
+     "n_item_over_gt_0.05": 183
+    },
+    "R25-40": {
+     "n_arcs": 2281,
+     "plan_over_max": 2.517,
+     "n_plan_over_gt_0.05": 1662,
+     "item_over_max": 8.012,
+     "n_item_over_gt_0.05": 1330
+    },
+    "R40-60": {
+     "n_arcs": 23590,
+     "plan_over_max": 2.916,
+     "n_plan_over_gt_0.05": 22728,
+     "item_over_max": 5.65,
+     "n_item_over_gt_0.05": 14962
+    }
+   },
+   "n_gen_arcs_total": 0
+  },
+  "cand": {
+   "name": "수정1+2+원호상한",
+   "eta_plan_s": {
+    "mean": 1606.05,
+    "median": 1889.81,
+    "p95": 3119.76,
+    "max": 3879.37
+   },
+   "eta_plan_vs_base": {
+    "mean_%": 2.04,
+    "median_%": 1.62,
+    "p95_%": 5.45,
+    "max_%": 7.65,
+    "min_%": 0.0
+   },
+   "eta_items_s": {
+    "mean": 1874.77,
+    "median": 2233.89,
+    "p95": 3664.95,
+    "max": 4499.6
+   },
+   "eta_items_vs_base": {
+    "mean_%": 2.86,
+    "median_%": 2.25,
+    "p95_%": 8.18,
+    "max_%": 12.05,
+    "min_%": -0.48
+   },
+   "n_items": {
+    "mean": 820.62,
+    "median": 978.0,
+    "p95": 1571,
+    "max": 2053
+   },
+   "min_item_v": {
+    "mean": 2.24,
+    "median": 1.57,
+    "p95": 3.55,
+    "max": 3.86
+   },
+   "n_items_total": 98474,
+   "min_item_v_min": 1.0,
+   "arc_over_by_R": {
+    "R0-15": {
+     "n_arcs": 1070,
+     "plan_over_max": 5.632,
+     "n_plan_over_gt_0.05": 308,
+     "item_over_max": 11.66,
+     "n_item_over_gt_0.05": 394
+    },
+    "R15-25": {
+     "n_arcs": 796,
+     "plan_over_max": 0.913,
+     "n_plan_over_gt_0.05": 482,
+     "item_over_max": 8.721,
+     "n_item_over_gt_0.05": 183
+    },
+    "R25-40": {
+     "n_arcs": 2281,
+     "plan_over_max": 2.517,
+     "n_plan_over_gt_0.05": 1316,
+     "item_over_max": 8.012,
+     "n_item_over_gt_0.05": 1083
+    },
+    "R40-60": {
+     "n_arcs": 23590,
+     "plan_over_max": 2.916,
+     "n_plan_over_gt_0.05": 20387,
+     "item_over_max": 5.65,
+     "n_item_over_gt_0.05": 13759
+    }
+   },
+   "n_gen_arcs_total": 54338
+  }
+ }
+}

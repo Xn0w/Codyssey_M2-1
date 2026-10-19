@@ -253,6 +253,9 @@ def create_app(fleet: Optional[Fleet] = None, *, autostart: bool = True) -> Fast
                            "speed_mps": s} for x, y, s in sp.items],
                 # 계획 선형(뒤축 경로, 5 m 이하 간격)·계획 속도 — 시험 분석용 (지역 평면 x, y m)
                 "plan_xy": [[round(x, 2), round(y, 2)] for x, y in sp.pts], "plan_v": [round(v, 2) for v in sp.v],
+                # 곡선 속도 상한을 건 생성 원호 (계획 선형 거리 s0~s1, 반경 R, 상한에 쓴 반경, 종류) — 시험 판정 대조용
+                "plan_arcs": [{"s0": round(a, 3), "s1": round(b, 3), "R": round(R, 4), "R_cap": round(rc, 4), "kind": k}
+                              for a, b, R, rc, k in (sp.arcs or [])],
                 "hold": v.hold,
                 "last_sent_mission": getattr(v.driver, "last_sent", None)}     # PX4 에 실제로 보낸 마지막 미션 (정지 미션 포함)
 

@@ -627,13 +627,15 @@ class DriveGraph:
             rid, to = chain[-1]
             r = net.roads[rid]
             add(net.polyline(rid, 0.0 if to == r.b else r.length, p.s), self.road_speed(r), rid, self.other(rid, to), to)
+        arcs = []
         if len(pts) == 1:
             pts.append(pts[0])
             vlim.append(vlim[0])
         else:
-            pts, vlim = self._smooth(pts, vlim, legs, relax)
+            pts, vlim, arcs = self._smooth(pts, vlim, legs, relax)
         route = Route(pts, vlim, rids, st.pos, p, arr.time_s)
         route.legs, route.arrive_toward = legs, arr.toward
+        route.arcs = arcs                     # 최종 선형에 남은 생성 원호 (속도 계획이 원호 전 구간에 곡선 속도 상한을 건다)
         return route
 
     # ------------------------------------------------------------------ 주행 선형 다듬기
@@ -646,7 +648,9 @@ class DriveGraph:
            작은 꺾임은 이 원호에 흡수된다 (예전에는 원호 옆 꺾임을 줄여 최소 회전반경보다 좁은 원호가 생겼다).
            이웃 교차로 원호와 겹치면 둘 다 줄인다 — 반경이 작아질 수 있고, 그러면 최종 검사(check_route)가 거른다.
         2) 그 밖의 꺾인 점: 반경 BEND_R_M 목표, 이웃 선분의 BEND_TANGENT_SHARE 까지, 교차로 원호 구간은 건드리지 않는다.
-        원호는 정확한 원호로 ARC_STEP_M 간격 표본을 둔다."""
+        원호는 정확한 원호로 ARC_STEP_M 간격 표본을 둔다.
+        반환 (점, 속도 상한, 원호): 원호 = 최종 점 목록에 실제로 남은 생성 원호 [(i0, i1, R, cx, cy, 회전각 rad, 종류 junction/bend)] —
+        겹침 축소 뒤 실제로 그린 반경·접점이고, 최종 점이 그 원 위에 있는지 확인한 것만 (roads.plan_speeds 가 원호 전 구간에 √(횡가속 × R) 상한)."""
         def cum_of(p):
             c = [0.0]
             for a, b in zip(p, p[1:]):
@@ -657,7 +661,9 @@ class DriveGraph:
             d = math.dist(a, b) or 1.0
             return ((b[0] - a[0]) / d, (b[1] - a[1]) / d)
 
-        def fillet(V, u, w, T):
+        made = []                                       # 그린 원호 (중심, R, 시작점, 끝점, 회전각, 종류) — 끝에서 최종 점 번호로 바꾼다
+
+        def fillet(V, u, w, T, kind="bend"):
             """꼭짓점 V, 들어오는 방향 u, 나가는 방향 w 에 접하는 원호 표본 (V-Tu 부터 V+Tw 까지, 양 끝 포함)."""
             D = abs(math.atan2(u[0] * w[1] - u[1] * w[0], u[0] * w[0] + u[1] * w[1]))
             p1 = (V[0] - T * u[0], V[1] - T * u[1])
@@ -671,6 +677,7 @@ class DriveGraph:
             # 표본 사이 현이 원호 안쪽으로 들어가는 거리(R − √(R² − (step/2)²))를 ARC_SAGITTA_M 이하로
             step = min(ARC_STEP_M, math.sqrt(8 * R * ARC_SAGITTA_M))
             n = max(2, math.ceil(R * D / step))
+            made.append((C, R, p1, p2, D, kind))
             return [(C[0] + R * math.cos(a0 + sg * D * k / n), C[1] + R * math.sin(a0 + sg * D * k / n))
                     for k in range(n)] + [p2]
 
@@ -759,7 +766,7 @@ class DriveGraph:
             seq = []
             if span_in > T + 0.05:
                 seq.append((V[0] - span_in * u[0], V[1] - span_in * u[1]))
-            arc = fillet(V, u, w, T)
+            arc = fillet(V, u, w, T, "junction")
             # 들어오는 연결 곡선: 도로 선형 끊는 점(도로 방향에 접함) → 방향선·원호 시작(u 에 접함)
             first_prot = len(out)
             if blend_in > 0.5:
@@ -847,7 +854,29 @@ class DriveGraph:
         if math.dist(fp[-1], pts[-1]) > 0.05:
             fp.append(pts[-1])
             fv.append(vlim[-1])
-        return fp, fv
+        return fp, fv, self._arc_index(fp, made)
+
+    @staticmethod
+    def _arc_index(pts, made, tol=0.03):
+        """그린 원호를 최종 점 번호 (i0, i1) 로: 시작·끝 접점과 0.06 m 안의 점, 그 사이 모든 점이 원 위(|d − R| ≤ tol).
+        중복 점 제거·이음매 처리로 접점이 빠졌거나 원 밖 점이 끼면 그 원호는 버린다 (속도 계획은 창 곡률만 쓴다)"""
+        import numpy as np
+        if not made or len(pts) < 2:
+            return []
+        P = np.asarray(pts, dtype=float)
+        out = []
+        for C, R, p1, p2, D, kind in made:
+            d1 = np.hypot(P[:, 0] - p1[0], P[:, 1] - p1[1])
+            d2 = np.hypot(P[:, 0] - p2[0], P[:, 1] - p2[1])
+            i0, i1 = int(d1.argmin()), int(d2.argmin())
+            if d1[i0] > 0.06 or d2[i1] > 0.06 or i1 <= i0:
+                continue
+            seg = P[i0:i1 + 1]
+            if np.abs(np.hypot(seg[:, 0] - C[0], seg[:, 1] - C[1]) - R).max() > tol:
+                continue
+            out.append((i0, i1, R, C[0], C[1], D, kind))
+        out.sort()
+        return out
 
     # ------------------------------------------------------------------ 최종 경로 검사
     _FINE_M = 25.0

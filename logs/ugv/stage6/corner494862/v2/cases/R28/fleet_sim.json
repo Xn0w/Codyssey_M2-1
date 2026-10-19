@@ -1,0 +1,1 @@
+[{"resource_id": "A-ugv1", "resource_type": "UGV", "profile": "adair_ugv", "station_base_id": "A", "station_slot": 0, "initial": {"lat": 38.05712367153998, "lon": 128.16675547253138, "heading_deg": 315.1516664746241}, "driver": "sim"}]

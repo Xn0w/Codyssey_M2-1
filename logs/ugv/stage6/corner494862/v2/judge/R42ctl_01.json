@@ -1,0 +1,246 @@
+{
+ "judge": "judge_corner_v2",
+ "run": "R42ctl_01",
+ "plan": "route_final.json",
+ "track_csv": "corner_R42ctl_01_20261019_181736.csv",
+ "lat_accel": 1.0,
+ "eta_sec": 31,
+ "tolerance": {
+  "value_mps": 0.15,
+  "rule": "max(0.15, e95 + 2*sigma_meas) (원본과 같음)",
+  "exclude_arcs": "v2",
+  "e95_steady_excess_mps": 0.06,
+  "sigma_meas_mps": 0.0,
+  "n_samples": 544
+ },
+ "reach_s_m": 236.97,
+ "plan_len_m": 237.2,
+ "arcs_detected": [
+  {
+   "i0": 4,
+   "i1": 8,
+   "s0": 18.5867,
+   "s1": 26.078,
+   "R": 47.3493,
+   "res_max_m": 0.0017,
+   "n_pts": 5,
+   "deg": 9.0657,
+   "dir": "R",
+   "uniform": true,
+   "status": "CONFIRMED"
+  },
+  {
+   "i0": 10,
+   "i1": 13,
+   "s0": 33.8194,
+   "s1": 38.2616,
+   "R": 48.8939,
+   "res_max_m": 0.0012,
+   "n_pts": 4,
+   "deg": 5.2057,
+   "dir": "R",
+   "uniform": false,
+   "status": "CONFIRMED"
+  },
+  {
+   "i0": 32,
+   "i1": 51,
+   "s0": 129.8185,
+   "s1": 167.2895,
+   "R": 42.0625,
+   "res_max_m": 0.0055,
+   "n_pts": 20,
+   "deg": 51.046,
+   "dir": "R",
+   "uniform": true,
+   "status": "CONFIRMED"
+  }
+ ],
+ "corners": [],
+ "extra_arcs": [
+  {
+   "arc": {
+    "i0": 4,
+    "i1": 8,
+    "s0": 18.5867,
+    "s1": 26.078,
+    "R": 47.3493,
+    "res_max_m": 0.0017,
+    "n_pts": 5,
+    "deg": 9.0657,
+    "dir": "R",
+    "uniform": true,
+    "status": "CONFIRMED"
+   },
+   "v2": {
+    "R_m": 47.349,
+    "v_curve_mps": 6.881,
+    "s_m": [
+     18.59,
+     26.08
+    ],
+    "s_apex_m": 22.33,
+    "v_entry_max_mps": 6.17,
+    "v_apex_max_mps": 7.024,
+    "arc_max_over_plan_mps": -0.435,
+    "arc_max_over_vcurve_mps": 0.143,
+    "entry_ok": true,
+    "apex_ok": true,
+    "arc_vs_plan_ok": true,
+    "arc_vs_vcurve_ok": true,
+    "n_entry": 7,
+    "n_apex": 10,
+    "n_arc": 20
+   },
+   "px4_carried_arc": [
+    6.09
+   ]
+  },
+  {
+   "arc": {
+    "i0": 10,
+    "i1": 13,
+    "s0": 33.8194,
+    "s1": 38.2616,
+    "R": 48.8939,
+    "res_max_m": 0.0012,
+    "n_pts": 4,
+    "deg": 5.2057,
+    "dir": "R",
+    "uniform": false,
+    "status": "CONFIRMED"
+   },
+   "v2": {
+    "R_m": 48.894,
+    "v_curve_mps": 6.992,
+    "s_m": [
+     33.82,
+     38.26
+    ],
+    "s_apex_m": 36.04,
+    "v_entry_max_mps": 7.184,
+    "v_apex_max_mps": 8.16,
+    "arc_max_over_plan_mps": -0.631,
+    "arc_max_over_vcurve_mps": 1.212,
+    "entry_ok": false,
+    "apex_ok": false,
+    "arc_vs_plan_ok": true,
+    "arc_vs_vcurve_ok": false,
+    "n_entry": 5,
+    "n_apex": 9,
+    "n_arc": 11
+   },
+   "px4_carried_arc": [
+    7.07
+   ]
+  },
+  {
+   "arc": {
+    "i0": 32,
+    "i1": 51,
+    "s0": 129.8185,
+    "s1": 167.2895,
+    "R": 42.0625,
+    "res_max_m": 0.0055,
+    "n_pts": 20,
+    "deg": 51.046,
+    "dir": "R",
+    "uniform": true,
+    "status": "CONFIRMED"
+   },
+   "v2": {
+    "R_m": 42.063,
+    "v_curve_mps": 6.486,
+    "s_m": [
+     129.82,
+     167.29
+    ],
+    "s_apex_m": 148.55,
+    "v_entry_max_mps": 6.672,
+    "v_apex_max_mps": 6.42,
+    "arc_max_over_plan_mps": 0.109,
+    "arc_max_over_vcurve_mps": 0.161,
+    "entry_ok": false,
+    "apex_ok": true,
+    "arc_vs_plan_ok": true,
+    "arc_vs_vcurve_ok": false,
+    "n_entry": 6,
+    "n_apex": 12,
+    "n_arc": 107
+   },
+   "px4_carried_arc": [
+    6.48,
+    6.48,
+    6.48,
+    6.48,
+    6.48,
+    6.48
+   ]
+  }
+ ],
+ "gen_arc_compare": null,
+ "item_speeds_near_arcs": [
+  [
+   22.34,
+   6.09
+  ],
+  [
+   36.78,
+   7.07
+  ],
+  [
+   80.3,
+   8.33
+  ],
+  [
+   124.86,
+   7.92
+  ],
+  [
+   133.76,
+   6.48
+  ],
+  [
+   139.68,
+   6.48
+  ],
+  [
+   145.59,
+   6.48
+  ],
+  [
+   151.51,
+   6.48
+  ],
+  [
+   157.42,
+   6.48
+  ],
+  [
+   163.34,
+   6.48
+  ],
+  [
+   182.27,
+   6.48
+  ],
+  [
+   227.22,
+   5.47
+  ],
+  [
+   237.2,
+   3.87
+  ]
+ ],
+ "final": {
+  "state": "READY",
+  "fault": null
+ },
+ "task": {
+  "status": "COMPLETED",
+  "mission_result": "ARRIVED",
+  "physical_state": "STOPPED_ON_STATION",
+  "error": null
+ }
+}

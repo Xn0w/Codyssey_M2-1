@@ -1,0 +1,268 @@
+{
+ "judge": "judge_corner_v2",
+ "run": "R28_01",
+ "plan": "route_final.json",
+ "track_csv": "corner_R28_01_20261019_182424.csv",
+ "lat_accel": 1.0,
+ "eta_sec": 26,
+ "tolerance": {
+  "value_mps": 0.15,
+  "rule": "max(0.15, e95 + 2*sigma_meas) (원본과 같음)",
+  "exclude_arcs": "v2",
+  "e95_steady_excess_mps": 0.136,
+  "sigma_meas_mps": 0.001,
+  "n_samples": 462
+ },
+ "reach_s_m": 153.41,
+ "plan_len_m": 153.58,
+ "arcs_detected": [
+  {
+   "i0": 10,
+   "i1": 13,
+   "s0": 42.3845,
+   "s1": 47.2506,
+   "R": 18.7892,
+   "res_max_m": 0.001,
+   "n_pts": 4,
+   "deg": 14.8435,
+   "dir": "L",
+   "uniform": false,
+   "status": "CONFIRMED"
+  },
+  {
+   "i0": 15,
+   "i1": 18,
+   "s0": 52.2231,
+   "s1": 57.8483,
+   "R": 28.6826,
+   "res_max_m": 0.0027,
+   "n_pts": 4,
+   "deg": 11.2387,
+   "dir": "L",
+   "uniform": true,
+   "status": "CONFIRMED"
+  },
+  {
+   "i0": 18,
+   "i1": 28,
+   "s0": 57.8483,
+   "s1": 76.5988,
+   "R": 28.1282,
+   "res_max_m": 0.0024,
+   "n_pts": 11,
+   "deg": 38.2009,
+   "dir": "L",
+   "uniform": true,
+   "status": "CONFIRMED"
+  }
+ ],
+ "corners": [],
+ "extra_arcs": [
+  {
+   "arc": {
+    "i0": 10,
+    "i1": 13,
+    "s0": 42.3845,
+    "s1": 47.2506,
+    "R": 18.7892,
+    "res_max_m": 0.001,
+    "n_pts": 4,
+    "deg": 14.8435,
+    "dir": "L",
+    "uniform": false,
+    "status": "CONFIRMED"
+   },
+   "v2": {
+    "R_m": 18.789,
+    "v_curve_mps": 4.335,
+    "s_m": [
+     42.38,
+     47.25
+    ],
+    "s_apex_m": 44.82,
+    "v_entry_max_mps": 4.279,
+    "v_apex_max_mps": 4.254,
+    "arc_max_over_plan_mps": -0.048,
+    "arc_max_over_vcurve_mps": -0.078,
+    "entry_ok": true,
+    "apex_ok": true,
+    "arc_vs_plan_ok": true,
+    "arc_vs_vcurve_ok": true,
+    "n_entry": 9,
+    "n_apex": 17,
+    "n_arc": 21
+   },
+   "px4_carried_arc": [
+    4.95,
+    4.27
+   ]
+  },
+  {
+   "arc": {
+    "i0": 15,
+    "i1": 18,
+    "s0": 52.2231,
+    "s1": 57.8483,
+    "R": 28.6826,
+    "res_max_m": 0.0027,
+    "n_pts": 4,
+    "deg": 11.2387,
+    "dir": "L",
+    "uniform": true,
+    "status": "CONFIRMED"
+   },
+   "v2": {
+    "R_m": 28.683,
+    "v_curve_mps": 5.356,
+    "s_m": [
+     52.22,
+     57.85
+    ],
+    "s_apex_m": 55.04,
+    "v_entry_max_mps": 3.8,
+    "v_apex_max_mps": 5.057,
+    "arc_max_over_plan_mps": -0.113,
+    "arc_max_over_vcurve_mps": -0.169,
+    "entry_ok": true,
+    "apex_ok": true,
+    "arc_vs_plan_ok": true,
+    "arc_vs_vcurve_ok": true,
+    "n_entry": 10,
+    "n_apex": 18,
+    "n_arc": 24
+   },
+   "px4_carried_arc": [
+    4.27,
+    3.87,
+    3.87
+   ]
+  },
+  {
+   "arc": {
+    "i0": 18,
+    "i1": 28,
+    "s0": 57.8483,
+    "s1": 76.5988,
+    "R": 28.1282,
+    "res_max_m": 0.0024,
+    "n_pts": 11,
+    "deg": 38.2009,
+    "dir": "L",
+    "uniform": true,
+    "status": "CONFIRMED"
+   },
+   "v2": {
+    "R_m": 28.128,
+    "v_curve_mps": 5.304,
+    "s_m": [
+     57.85,
+     76.6
+    ],
+    "s_apex_m": 67.22,
+    "v_entry_max_mps": 5.187,
+    "v_apex_max_mps": 5.176,
+    "arc_max_over_plan_mps": -0.022,
+    "arc_max_over_vcurve_mps": -0.026,
+    "entry_ok": true,
+    "apex_ok": true,
+    "arc_vs_plan_ok": true,
+    "arc_vs_vcurve_ok": true,
+    "n_entry": 7,
+    "n_apex": 15,
+    "n_arc": 67
+   },
+   "px4_carried_arc": [
+    3.87,
+    5.29,
+    5.29,
+    5.29
+   ]
+  }
+ ],
+ "gen_arc_compare": [
+  {
+   "gen": {
+    "s0": 42.39,
+    "s1": 47.256,
+    "R": 19.0546,
+    "R_cap": 39.1436,
+    "kind": "bend"
+   },
+   "fit": {
+    "s0": 42.384,
+    "s1": 47.251,
+    "R": 18.7892,
+    "res": 0.0010434149437337226
+   },
+   "dR_m": -0.2654
+  },
+  {
+   "gen": {
+    "s0": 52.227,
+    "s1": 76.604,
+    "R": 28.0656,
+    "R_cap": 28.0656,
+    "kind": "junction"
+   },
+   "fit": {
+    "s0": 57.848,
+    "s1": 76.599,
+    "R": 28.1282,
+    "res": 0.0024139406627092796
+   },
+   "dR_m": 0.0626
+  }
+ ],
+ "item_speeds_near_arcs": [
+  [
+   42.39,
+   4.95
+  ],
+  [
+   47.25,
+   4.27
+  ],
+  [
+   50.25,
+   4.27
+  ],
+  [
+   52.22,
+   3.87
+  ],
+  [
+   57.85,
+   3.87
+  ],
+  [
+   63.48,
+   5.29
+  ],
+  [
+   69.1,
+   5.29
+  ],
+  [
+   74.73,
+   5.29
+  ],
+  [
+   118.58,
+   5.29
+  ],
+  [
+   153.58,
+   3.87
+  ]
+ ],
+ "final": {
+  "state": "READY",
+  "fault": null
+ },
+ "task": {
+  "status": "COMPLETED",
+  "mission_result": "ARRIVED",
+  "physical_state": "STOPPED_ON_STATION",
+  "error": null
+ }
+}
