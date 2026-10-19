@@ -26,18 +26,20 @@ ingest_event(...)  외부 이벤트 접수: 검증 → 접수키 확정 → 반�
 
 import dataclasses
 import math
+import threading
 import time
 from typing import Dict, List, Optional, Tuple
 
 from . import config, llm as llm_mod, map_evaluation, negotiation, observation, observation_planner as obs_plan, priority, safety
 from .env_adapter import ENV_TRANSIENT_ERRORS, missing_snapshot_fields
-from .knowledge import Knowledge
+from .knowledge import Knowledge, _fold_key
 from .ledger import (ACTIVE, OCCUPYING_SUBSTATUSES, AttemptConflict, IllegalTransition, Ledger,
-                     ReservationConflict, RunClosed, RunNotActive, RunSwitchBlocked, content_hash, new_id)
+                     ReservationConflict, RunClosed, RunNotActive, RunSwitchBlocked, StaleAttempt, content_hash,
+                     new_id)
 from .models import (AREA_KINDS, COMPLETION_AREA_ALL, COMPLETION_TARGET_POINT, MISSION_OPEN_SUBSTATUSES,
                      RETURN_HOME_UNKNOWN_PREFIX,
                      TERMINAL_PURPOSES, Requirements, ResourceView, Target, Task, can_transition)
-from .prefilter import filter_candidates
+from .prefilter import filter_candidates, task_input_problems
 from .resources import Unreachable
 
 # PREPARED 도 추적한다: 송신 직전·직후 총괄이 종료되면 재시작 후 이 상태로 남는다 (복구 대상)
@@ -66,6 +68,11 @@ def _first_ok(ranked, ok, max_checks: int = 8):
     return None
 
 
+def _failed_reason(data: dict) -> str:
+    """제공자 FAILED 보고의 사유 (reason, 없으면 error 의 앞부분)"""
+    return data.get("reason") or (data.get("error") or "PROVIDER_FAILED").split(":")[0]
+
+
 def _finite_number(v) -> bool:
     """외부 값이 유한한 수인지. 너무 큰 정수(10**400 등)는 변환에서 OverflowError 가 나므로 그 구간만 처리한다."""
     if isinstance(v, bool) or not isinstance(v, (int, float)):
@@ -84,6 +91,8 @@ class Orchestrator:
     def __init__(self, ledger: Ledger, env, uav=None, ugv=None, llm=None, analysis=None, weather_feeds=()):
         self.ledger, self.env, self.uav, self.ugv, self.llm = ledger, env, uav, ugv, llm
         self.kb = Knowledge(ledger)
+        self._report_cache = None             # _report_rows 증분 상태
+        self._report_lock = threading.Lock()
         self.analysis = analysis              # 위험 칸·확산 예측 (입력은 총괄이 아는 세계만)
         self.weather_feeds = list(weather_feeds)
         self.priority_mode = config.PRIORITY_MODE
@@ -97,6 +106,7 @@ class Orchestrator:
         self._obs_last_hash = None            # 마지막으로 계획을 적용한 입력 해시 (같은 입력으로 다시 계획하지 않음)
         self._obs_rejections = (None, [])     # (지식 판, [{resource_id, block_id, reason}]) — 새 관측이 오면 비움
         self._map_idx = (None, None)          # (map_version, MapIndex)
+        self._cells_idx = (None, {})          # (지도 목록 객체, cell_id → 칸) — _cells_by_id
         self._obs_end_logged = False
         # 작업 지시서 (사용자 결정 2026-10-08). 프로세스 메모리 — 재시작하면 다음 회의에서 새로 받는다 (사건은 장부에 남음)
         self._orders: Dict[str, dict] = {}    # 자원 → {plan_id, source, stops[{block_id, cell_id}], next, new_fire, kind}
@@ -109,7 +119,6 @@ class Orchestrator:
         self._llm_in_flight = 0               # 지금 기다리는 LLM 호출 수 — 트윈 시계가 이 동안 멈춘다 (/health)
         self._emerg_cache = (None, [])        # (환경 상태 판, 인명피해 예상 장소 목록)
         # 지시서 장부 잠금: 배정 작업자(회의 적용)와 추적 루프(관측 뒤 다음 행동)가 동시에 바꾸지 않게 (2026-10-08 run5)
-        import threading
         self._order_lock = threading.RLock()
 
     # ------------------------------------------------------------------
@@ -487,6 +496,35 @@ class Orchestrator:
 
     def view(self):
         """판단용 화면: 지도(변하지 않는 정보) + 아는 세계 + 분석. 불·위험·기상 진짜 값은 들어가지 않는다."""
+        snap = self._build_view()
+        self._last_view = (time.monotonic(), snap)
+        return snap
+
+    def view_cached(self, max_age_s: float):
+        """상태 표시용 (/health). (마지막 판단 화면, 그 나이 초) 를 돌려준다. 판단에는 쓰지 않는다 — 배정·Safety 는
+        항상 view() 로 새 화면을 만든다.
+        /health 가 부를 때마다 화면 전체(환경 조회·지식 동기화·분석)를 다시 만들어, 실행이 길어질수록 1~10 s 걸려
+        관제판이 '연결 안 됨'으로 보이고 트윈 시계도 막혔다 (팀 트윈 시험 2026-10-19).
+        max_age_s 보다 오래됐으면 지금 화면을 그대로 돌려주고 새 화면은 뒤에서 하나만 만든다 (응답을 기다리게 하지 않는다).
+        아직 화면이 없을 때만 그 자리에서 만든다."""
+        last = getattr(self, "_last_view", None)
+        if last is None:
+            return self.view(), 0.0
+        age = time.monotonic() - last[0]
+        if age >= max_age_s and not getattr(self, "_view_refreshing", False):
+            self._view_refreshing = True
+
+            def refresh():
+                try:
+                    self.view()
+                except Exception as e:  # noqa: BLE001 — 상태 표시용 갱신 실패는 기록만 (판단 경로와 무관)
+                    self.ledger.log("HEALTH_VIEW_REFRESH_ERROR", reason=type(e).__name__, detail={"error": str(e)})
+                finally:
+                    self._view_refreshing = False
+            threading.Thread(target=refresh, daemon=True, name="health-view-refresh").start()
+        return last[1], age
+
+    def _build_view(self):
         truth = self.env.read()
         gate = self._ensure_run(truth)
         if gate:
@@ -496,7 +534,7 @@ class Orchestrator:
                                        run_gate=gate)
         self._sync_knowledge(truth)
         now = truth.simulation_time_s or 0.0
-        cells = {c["cell_id"]: c for c in getattr(self.env, "map_cells", lambda: [])()}
+        cells = self._cells_by_id()
         fires = [{**cells.get(cid, {"cell_id": cid}), "fire_state": "BURNING", "risk_score": None,
                   "knowledge": k} for cid, k in self.kb.known_fires(now).items()]
         field = self.kb.field_weather(now)
@@ -952,10 +990,16 @@ class Orchestrator:
                 (v for v in client.states() if v.resource_id == rid), None)
         except Unreachable:
             fresh = None
+        checked_snap = snap
+        if config.SAFETY_SNAPSHOT_RECHECK and current.state_version != snap.state_version:
+            checked_snap, refused = self._recheck_moved_snapshot(task, view, client, snap, current, did, evaluated, mods)
+            if refused:
+                self.ledger.update_decision(did, safety="REJECT", safety_reasons=[refused])
+                return {"excluded_reason": "SAFETY:" + refused}
         verdict = safety.check(
             task=self.ledger.get_task(task.task_id), attempt_id=attempt_id, decision_id=did,
             view=fresh or view, view_age_s=client.source_age_s(fresh) if fresh else None,
-            reservations=self.ledger.reservations(), eval_snapshot=snap, current_snapshot=current,
+            reservations=self.ledger.reservations(), eval_snapshot=checked_snap, current_snapshot=current,
             evaluated_payload=evaluated, local=local, command=command)
         self.ledger.log("SAFETY_JUDGEMENT", task_id=task.task_id, decision_id=did, attempt_id=attempt_id,
                         resource_id=rid, result=verdict.response, reason=verdict.reason,
@@ -968,6 +1012,57 @@ class Orchestrator:
             return self._reserve_and_send(task, view, client, did, attempt_id, command, current)
         finally:
             self._sending.discard(attempt_id)
+
+    def _recheck_moved_snapshot(self, task, view, client, snap, current, did, evaluated, mods):
+        """Local 평가 뒤 snapshot 버전이 바뀐 경우 새 snapshot 으로 다시 확인한다 (config.SAFETY_SNAPSHOT_RECHECK, 트윈 한정).
+        (Safety 에 넘길 평가 snapshot, 거절 사유) 를 돌려준다.
+          - 그대로 가능 → (current, None): Safety 의 버전 검사가 새 snapshot 기준으로 통과한다
+          - 가능 → 불가능 → (snap, 사유): 이 자원은 제외 (재시작 없음)
+          - run·지도 버전 또는 임무 조건이 바뀜 → (snap, None): Safety 가 지금처럼 SNAPSHOT_CHANGED 로 거절, 처음부터 재평가"""
+        rid = view.resource_id
+        moved = {"from_state_version": snap.state_version, "to_state_version": current.state_version}
+        if (current.run_id, current.map_version) != (snap.run_id, snap.map_version):
+            return snap, None
+        rebuilt = self._payload(task, view, current, did, task.task_id, mods)
+        if "target_node" in evaluated:
+            rebuilt["target_node"] = evaluated["target_node"]
+        if safety.mission_fields(rebuilt) != safety.mission_fields(evaluated):
+            self.ledger.log("SNAPSHOT_RECHECK", task_id=task.task_id, decision_id=did, resource_id=rid,
+                            result="MISSION_INPUT_CHANGED", sim_time_s=current.simulation_time_s, detail=moved)
+            return snap, None
+
+        def refuse(reason, extra=None):
+            self.ledger.log("SNAPSHOT_RECHECK", task_id=task.task_id, decision_id=did, resource_id=rid,
+                            result="NOW_INFEASIBLE", reason=reason, sim_time_s=current.simulation_time_s,
+                            detail={**moved, **(extra or {})})
+            return snap, "SNAPSHOT_CHANGED_NOW_INFEASIBLE:" + reason
+
+        problems = task_input_problems(task, current, view.resource_type)
+        if problems:
+            return refuse("INPUT:" + ",".join(problems))
+        try:
+            again = client.evaluate(rid, evaluated)
+        except Unreachable as e:
+            return refuse("LOCAL_UNREACHABLE", {"error": str(e)})
+        echo = again["echo"]
+        if echo.get("task_id") != task.task_id or echo.get("decision_id") != did or echo.get("resource_id") != rid:
+            return refuse("LOCAL_ECHO_MISMATCH")
+        local_again = {"verdict": again["verdict"], "reason": again.get("reason"), "eta_sec": again.get("eta_sec"),
+                       "counter_offer": again.get("counter_offer"), "constraints": again.get("constraints")}
+        moved["local_recheck"] = local_again          # 두 번째 Local 응답도 감사 추적에 남긴다
+        if again["verdict"] != "ACCEPT":
+            return refuse(f"LOCAL_{again['verdict']}:{again.get('reason')}")
+        node = (again.get("constraints") or {}).get("target_node")
+        node_id = node.get("node_id") if isinstance(node, dict) else node
+        if "target_node" in evaluated and node_id and node_id != evaluated["target_node"]:
+            # 다시 평가하니 다른 도로 노드를 고름 → 보낼 조건이 달라진다. 불가능은 아니므로 처음부터 재평가
+            self.ledger.log("SNAPSHOT_RECHECK", task_id=task.task_id, decision_id=did, resource_id=rid,
+                            result="MISSION_INPUT_CHANGED", sim_time_s=current.simulation_time_s,
+                            detail={**moved, "target_node": [evaluated["target_node"], node_id]})
+            return snap, None
+        self.ledger.log("SNAPSHOT_RECHECK", task_id=task.task_id, decision_id=did, resource_id=rid,
+                        result="STILL_FEASIBLE", sim_time_s=current.simulation_time_s, detail=moved)
+        return current, None
 
     def _reserve_and_send(self, task, view, client, did, attempt_id, command, current) -> dict:
         rid = view.resource_id
@@ -1228,12 +1323,27 @@ class Orchestrator:
         return None
 
     def _track(self, att: dict, client) -> Optional[dict]:
+        # 처리하는 동안 다른 스레드(배정 작업자 등)가 이 시도를 바꾸면 그 위에 쓰지 않고 이번 주기를 버린다 (B37 N4)
+        try:
+            with self.ledger.attempt_guard(att["attempt_id"], att["substatus"]):
+                return self._track_guarded(att, client)
+        except StaleAttempt as e:
+            self.ledger.log("TRACK_STALE", task_id=att["task_id"], attempt_id=att["attempt_id"],
+                            resource_id=att["resource_id"], reason="CHANGED_BY_OTHER_THREAD", detail={"error": str(e)})
+            return None
+
+    def _track_guarded(self, att: dict, client) -> Optional[dict]:
         aid, rid, tid = att["attempt_id"], att["resource_id"], att["task_id"]
         if aid in self._sending:
             return None                      # 이 프로세스가 지금 출동 요청을 보내는 중 — 결과가 기록된 뒤 추적한다
         task = self.ledger.get_task(tid)
         detail = dict(att["detail"] or {})
         status, data = client.task_status(rid, aid)
+        cur = self.ledger.get_attempt(aid)
+        if cur is None or (cur["substatus"], cur["updated_wall"]) != (att["substatus"], att["updated_wall"]):
+            # 조회하는 사이 다른 스레드가 이 시도를 바꿨다 (배정 작업자의 복귀 중 재배정 반납 등). 낡은 값으로 덮어쓰지 않고
+            # 다음 추적 주기에 새 값으로 본다 — 반납된 시도를 RETURNING 으로 되살려 UNKNOWN↔RETURNING 을 오가던 결함 (B37 N4)
+            return None
         now = time.time()
 
         def move(sub, reason=None, release=False, extra=None):
@@ -1308,6 +1418,17 @@ class Orchestrator:
         pstatus = data.get("status")
         phase = (data.get("progress") or {}).get("phase")
         sub = att["substatus"]
+        if att["command"]["resource_type"] == "UAV" and phase == "RETASKED" \
+                and (detail.get("mission_end") or (detail.get("pre_unknown_substatus") if sub == "UNKNOWN" else sub)
+                     in POST_MISSION) \
+                and (self.ledger.reservations().get(rid) or {}).get("attempt_id") != aid:
+            # 드론이 복귀 중에 다음 시도를 받았고(UAV-06) 임무가 끝난 이 시도의 점유는 이미 풀렸다 → 추적을 끝낸다.
+            # 점유가 아직 이 시도에 있거나(총괄이 모르는 재배정) 임무가 끝났다는 근거가 없으면 아래 일반 규칙대로 둔다
+            return move("RELEASED", "PROVIDER_RETASKED", extra={"released_evidence": {"provider_phase": "RETASKED"}})
+        if sub == "UNKNOWN" and pstatus == "FAILED" and detail.get("unknown_report") == [phase, _failed_reason(data)]:
+            # 불명으로 둔 바로 그 실패 보고가 되풀이될 뿐 — 다시 연락된 것으로 보고 되살렸다가 또 불명으로 보내지 않는다
+            self.ledger.set_attempt_status(aid, "UNKNOWN", detail)
+            return None
         if sub == "UNKNOWN":
             # 실행 파트가 이 시도를 다시 (검증된 응답으로) 보고함 → 실제 상태를 따라 추적 재개
             if (self._owns(att, task) and task.purpose_status == "HOLD" and task.resume_condition == MANUAL
@@ -1318,6 +1439,7 @@ class Orchestrator:
                                 detail={"provider_status": pstatus, "phase": phase})
             before = detail.pop("pre_unknown_substatus", None)
             detail.pop("unknown_reason", None)
+            detail.pop("unknown_report", None)
             if before in POST_MISSION or before == "ARRIVED":
                 # 이미 지나온 단계는 다시 밟지 않는다 (관측·환경 반영을 두 번 하지 않음)
                 move(before, "PROVIDER_RECONTACTED")
@@ -1348,7 +1470,7 @@ class Orchestrator:
             return self._maybe_release(att, client, phase, detail, move)
 
         if pstatus == "FAILED":
-            reason = data.get("reason") or (data.get("error") or "PROVIDER_FAILED").split(":")[0]
+            reason = _failed_reason(data)
             first_report = "mission_end" not in detail
             # 임무 부분 종료 근거: 제공자가 실패를 확정 보고함. 이 근거가 있어야 다른 자원으로 인계할 수 있다
             detail.setdefault("mission_end", {"reason": f"PROVIDER_FAILED:{reason}", "evidence": "PROVIDER_STATUS_FAILED"})
@@ -1373,6 +1495,12 @@ class Orchestrator:
             if phase == "FAILED" and att["command"]["resource_type"] != "UAV":
                 # UGV 서버: 이상 확정 → 차를 세우고 UNAVAILABLE. /stop 전까지 재배정 불가
                 return move("FAULTED", reason, extra={"fault": data.get("error")})
+            detail["unknown_report"] = [phase, reason]          # 같은 보고가 되풀이되면 불명을 유지한다 (위)
+            if att["substatus"] == "UNKNOWN":                   # 이미 불명 (되살릴 단계가 아니었다) — 보고만 적어 둔다
+                stored = att["detail"] or {}
+                keep = {k: stored[k] for k in ("unknown_reason", "pre_unknown_substatus") if k in stored}
+                self.ledger.set_attempt_status(aid, "UNKNOWN", {**detail, **keep})
+                return None
             return self._unknown(att, task, detail, f"FAILED_POSITION_UNCONFIRMED:{reason}", hold_task=not observed)
         return None
 
@@ -2223,6 +2351,14 @@ class Orchestrator:
     #   obs_plan_request (짧음, 장부 읽기) → obs_plan_call (LLM, 잠금 밖) → obs_plan_apply (입력이 그대로일 때만 적용)
     #   입력 = 정적 지도 + 아는 세계(신고·관측·기상) + 자원 상태. 진짜 세계(정답)는 넣지 않는다.
     # ------------------------------------------------------------------
+    def _cells_by_id(self) -> dict:
+        """지도 칸 cell_id → 칸 (읽기 전용). 환경이 같은 지도 목록을 그대로 돌려주면(map_version 이 같으면) 앞서 만든 사전을
+        다시 쓴다 — 화면(view)마다 전 칸 사전을 새로 만들던 것이 총괄 CPU 의 큰 몫이었다 (B37)."""
+        lst = getattr(self.env, "map_cells", lambda: [])()
+        if self._cells_idx[0] is not lst:
+            self._cells_idx = (lst, {c["cell_id"]: c for c in lst})
+        return self._cells_idx[1]
+
     def _map_index(self) -> "obs_plan.MapIndex":
         ver = self.env.read().map_version
         if self._map_idx[0] != ver or self._map_idx[1] is None:
@@ -2230,8 +2366,21 @@ class Orchestrator:
         return self._map_idx[1]
 
     def _report_rows(self) -> List[dict]:
-        return [{"report_id": k["key"], "cell_id": k["subject"], "sim_time_s": k["sim_time_s"], "source": k["source"]}
-                for k in self.ledger.knowledge("FIRE") if (k["body"] or {}).get("status") == "REPORTED"]
+        # 신고 행만 증분으로 모은다 (새로 들어온 FIRE 행만 확인). 관측 행이 쌓여도 매번 전부 읽어 풀지 않는다 —
+        # 배정 주기마다 불려 장부 잠금을 오래 잡던 것 (팀 트윈 시험 2026-10-19). 순서는 knowledge() 와 같은 (sim_time_s, seq)
+        with self._report_lock:
+            run = self.ledger.active_run()
+            c = self._report_cache
+            if c is None or c["run"] != run:
+                c = self._report_cache = {"run": run, "seq": 0, "rows": []}
+            new = self.ledger.knowledge_after("FIRE", c["seq"])
+            if new:
+                c["seq"] = max(k["seq"] for k in new)
+                rep = [k for k in new if (k["body"] or {}).get("status") == "REPORTED"]
+                if rep:
+                    c["rows"] = sorted(c["rows"] + rep, key=_fold_key)
+            return [{"report_id": k["key"], "cell_id": k["subject"], "sim_time_s": k["sim_time_s"],
+                     "source": k["source"]} for k in c["rows"]]
 
     def _report_point(self, idx) -> Optional[dict]:
         """테두리 추적 방향의 기준 = 이 run 의 첫 신고 칸 (시나리오 신고는 하나)"""
@@ -2379,7 +2528,7 @@ class Orchestrator:
         now = snap.simulation_time_s or 0.0
         idx = self._map_index()
         fire_states = self.kb.fire_states(now)
-        version = len(self.ledger.knowledge("FIRE"))
+        version = self.ledger.knowledge_count("FIRE")
         if self._obs_rejections[0] != version:              # 새 관측·신고가 오면 지난 거절 기록은 비운다
             self._obs_rejections = (version, [])
         layers = obs_plan.belief_layers(fire_states, now, self._burn_out_s())
@@ -2768,24 +2917,34 @@ class Orchestrator:
         status, data = self.uav.abort(rid, exec_id, f"RETASK_AIRBORNE:{task.task_id}")
         result = ((data or {}).get("abort") or {}).get("result") if status == "OK" else None
         phase = ((data or {}).get("progress") or {}).get("phase") if status == "OK" else None
-        detail["retask_abort"] = {"next_task_id": task.task_id, "status": status, "result": result, "phase": phase}
+        rec = {"next_task_id": task.task_id, "status": status, "result": result, "phase": phase}
         sim = self.env.read().simulation_time_s
         self.ledger.log("OBS_RETASK_AIRBORNE", task_id=task.task_id, attempt_id=aid, resource_id=rid,
                         result=result or status, sim_time_s=sim,
                         detail={"previous_task_id": att["task_id"], "phase_after": phase})
-        if result != "ABORTED_BEFORE_OBSERVATION" or phase not in ("RETURNING", "DONE"):
-            self.ledger.set_attempt_status(aid, att["substatus"], detail)   # 관측까지 간다 — 다시 끊지 않게 기록만
-            return {**att, "detail": detail}
-        old = self.ledger.get_task(att["task_id"])
-        if old and old.purpose_status not in ("COMPLETED", "CANCELLED", "FAILED"):
-            self._set_purpose(old, "CANCELLED", basis=f"RETASKED_AIRBORNE:{task.task_id}",
-                              hold_reason=f"RETASKED_AIRBORNE:{task.task_id}", resume=None, sim=sim)
-        detail["mission_end"] = {"reason": "ABORTED_FOR_RETASK", "evidence": "PROVIDER_ABORT_BEFORE_OBSERVATION"}
-        if phase == "DONE":                  # 이륙 전에 끊겼다 — 기체는 그대로 쉬고 있다
-            self.ledger.set_attempt_status(aid, "RELEASED", {**detail, "released_evidence": "ABORTED_BEFORE_TAKEOFF"},
-                                           release=True)
-        else:
-            self.ledger.set_attempt_status(aid, "RETURNING", detail)
+        with self.ledger._tx():
+            # 중단 요청을 보내는 사이 추적 스레드가 이 시도를 바꿨을 수 있다 (도착·관측 등) — 요청 전에 읽은 값으로 덮어쓰지 않고
+            # 지금 장부 값에 중단 결과를 더한다 (추적 쪽 _track 의 다시 읽기와 짝, B37)
+            att = self.ledger.get_attempt(aid)
+            detail = {**(att["detail"] or {}), "retask_abort": rec}
+            # 출발 단계에서 불명이 된 시도도 드론이 '관측 전 중단'을 확인해 줬으면 출발 단계와 같이 거둔다
+            before = detail.get("pre_unknown_substatus") if att["substatus"] == "UNKNOWN" else att["substatus"]
+            if result != "ABORTED_BEFORE_OBSERVATION" or phase not in ("RETURNING", "DONE") \
+                    or before not in ("STARTED", "REQUESTED"):
+                self.ledger.set_attempt_status(aid, att["substatus"], detail)   # 관측까지 간다 — 다시 끊지 않게 기록만
+                return {**att, "detail": detail}
+            old = self.ledger.get_task(att["task_id"])
+            if old and old.purpose_status not in ("COMPLETED", "CANCELLED", "FAILED"):
+                self._set_purpose(old, "CANCELLED", basis=f"RETASKED_AIRBORNE:{task.task_id}",
+                                  hold_reason=f"RETASKED_AIRBORNE:{task.task_id}", resume=None, sim=sim)
+            detail["mission_end"] = {"reason": "ABORTED_FOR_RETASK", "evidence": "PROVIDER_ABORT_BEFORE_OBSERVATION"}
+            for k in ("pre_unknown_substatus", "unknown_reason", "unknown_report"):
+                detail.pop(k, None)              # 중단 응답이 연락 근거다 — 불명 표시를 지운다
+            if phase == "DONE":                  # 이륙 전에 끊겼다 — 기체는 그대로 쉬고 있다
+                self.ledger.set_attempt_status(aid, "RELEASED", {**detail, "released_evidence": "ABORTED_BEFORE_TAKEOFF"},
+                                               release=True)
+            else:
+                self.ledger.set_attempt_status(aid, "RETURNING", detail)
         return self.ledger.get_attempt(aid)
 
     def _queue_stop(self, rid: str, sim) -> Optional[Task]:

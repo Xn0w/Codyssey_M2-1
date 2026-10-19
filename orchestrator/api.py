@@ -135,12 +135,29 @@ def _one_observation(obs: dict, ack: Optional[dict]) -> dict:
                                                    "state_version": (ack["detail"] or {}).get("state_version")}}
 
 
+_OBS_SUMMARY_EVENTS = ("OBSERVATION", "ENVIRONMENT_APPLY", "TASK_COMPLETE")
+
+
 def observation_summary(orch: Orchestrator, task_id: str) -> Optional[dict]:
-    """Task 의 주 관측(임무 센서) 요약 + 같은 방문에서 함께 한 측정(extras)"""
+    """Task 의 주 관측(임무 센서) 요약 + 같은 방문에서 함께 한 측정(extras).
+    쓰는 사건 종류만 읽고, 그 종류의 새 사건이 없으면 지난 결과를 그대로 준다 (사건은 덧붙기만 한다).
+    관제판이 Task 마다 모든 사건을 풀어 실행이 길어질수록 느려지던 것 (팀 트윈 시험 2026-10-19).
+    돌려준 dict 는 공유되므로 호출자는 고치지 않는다."""
+    memo = orch.__dict__.setdefault("_obs_summary_memo", {})
+    last = orch.ledger.last_event_seq(task_id, _OBS_SUMMARY_EVENTS)
+    hit = memo.get(task_id)
+    if hit is not None and hit[0] == last:
+        return hit[1]
+    out = _observation_summary(orch, task_id)
+    memo[task_id] = (last, out)
+    return out
+
+
+def _observation_summary(orch: Orchestrator, task_id: str) -> Optional[dict]:
     task = orch.ledger.get_task(task_id)
     main_sensor = task.requirements.sensor if task else None
     items, by_oid = [], {}                       # [(obs_event, ack_event)] — 반영 결과는 관측 ID 로 짝짓는다
-    evs = orch.ledger.events(task_id)
+    evs = orch.ledger.events(task_id, event_types=_OBS_SUMMARY_EVENTS)
     for e in evs:
         if e["event_type"] == "OBSERVATION":
             items.append([e, None])
@@ -256,7 +273,8 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
 
     @app.get("/health")
     def health():
-        snap = orch.view()
+        # 마지막 판단 화면을 다시 쓴다 (매번 새로 만들면 실행이 길어질수록 느려져 관제판 연결 판단·트윈 시계가 막힘)
+        snap, view_age_s = orch.view_cached(config.HEALTH_VIEW_MAX_AGE_S)
         env_source = getattr(orch.env, "source", "UNKNOWN")
         return {"status": "ok", "schema_version": config.SCHEMA_VERSION,
                 "truth_env": {"class": type(orch.env).__name__, "source": env_source,
@@ -264,7 +282,7 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
                               "note": "시험용 가짜 환경. 팀 공유 환경(ENV-01) 연결 아님" if env_source == "FIXTURE" else (
                                   "환경팀 계약 환경 (실제 CA). 같은 프로세스 — 웹과 시계 공유 안 됨"
                                   if env_source == "TEAM_ENV_IN_PROCESS" else None)},
-                "env": snap.ref(),
+                "env": snap.ref(), "env_view_age_s": round(view_age_s, 1),
                 "run": {"active": orch.ledger.active_run(), "policy": "SINGLE_ACTIVE_RUN", "gate": snap.run_gate,
                         "legacy_rows_quarantined": orch.ledger.migrated_from_legacy},
                 "weather_policy": orch.weather_policy(),
@@ -281,6 +299,11 @@ def create_app(orch: Orchestrator, poll_interval_s: Optional[float] = None) -> F
                         "in_flight": orch._llm_in_flight},     # 트윈 시계가 이 동안 멈춘다 (2026-10-08)
                 "f1_official_rule": config.OFFICIAL_RULE_SOURCE or "NOT_READY",
                 "f2_suppression": "READY" if config.SUPPRESSION_CONTRACT_READY else "NOT_READY"}
+
+    @app.get("/llm/in_flight")
+    def llm_in_flight():
+        """트윈 시계용 가벼운 확인 — 총괄이 LLM 을 기다리는 중인지 (/health 의 llm.in_flight 와 같은 값). 환경·장부를 읽지 않는다."""
+        return {"in_flight": orch._llm_in_flight}
 
     @app.post("/tasks", status_code=202)
     def create_task(body: TaskIn):

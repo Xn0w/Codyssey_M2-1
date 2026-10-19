@@ -83,6 +83,8 @@ RECON_OBSERVE_S = int(os.getenv("ORCH_RECON_OBSERVE_S", "0")) or None   # PROVIS
 # ---------------------------------------------------------------------------
 RESOURCE_STALE_S = 10.0
 RESOURCE_OFFLINE_S = 30.0
+# /health 에 싣는 판단 화면 요약의 최대 나이 (실제 초). 이보다 오래됐을 때만 /health 가 화면을 새로 만든다 (2026-10-19)
+HEALTH_VIEW_MAX_AGE_S = float(os.getenv("ORCH_HEALTH_VIEW_MAX_AGE_S", "30"))
 
 # ---------------------------------------------------------------------------
 # 협상 (PROVISIONAL, 사용자 결정 2026-09-29)
@@ -110,6 +112,12 @@ PRIORITY_MODE = os.getenv("ORCH_PRIORITY_MODE", "AUTO_HIGHER_RISK")
 # 상황이 바뀔 때(새 임무·신고·자원 반납 등) 대기 임무 배정을 자동 실행. 주기 실행은 하지 않는다 (부하)
 AUTO_DISPATCH_ON_CHANGE = os.getenv("ORCH_AUTO_DISPATCH", "1") == "1"
 PRIORITY_MODES = ("HUMAN_CHOICE", "AUTO_HIGHER_RISK")
+# Safety 의 snapshot 버전 검사 완화 (사용자 결정 2026-10-19: 트윈 시험 한정 임시). 트윈 시계는 시뮬레이션 1분마다 버전을 올려
+# 70배속에서는 Local 평가 → Safety 사이(0.5~1 s)에 거의 매번 버전이 바뀐다 → 감시 출동 대부분이 SNAPSHOT_CHANGED 로 보류.
+# 켜면 버전이 바뀌었을 때 바로 거절하지 않고 새 snapshot 으로 다시 확인한다:
+#   임무 조건(목표·고도·풍속 …)이 그대로면 총괄 입력 검사 + Local 재평가(같은 결정)를 하고, 가능→불가능이 됐을 때만 거절.
+#   run·지도 버전이 바뀌었거나 임무 조건이 바뀌었으면 지금처럼 거절 후 처음부터 재평가. 기본 끔 (run_servers 트윈·run_twin.sh 에서 켬)
+SAFETY_SNAPSHOT_RECHECK = os.getenv("ORCH_SAFETY_SNAPSHOT_RECHECK", "0") == "1"
 PRIORITY_SIMILAR_RISK_DELTA = 0.1     # 위험도 차이가 이 값 이내면 '비슷함' (risk_score 0~1 기준)
 
 # ---------------------------------------------------------------------------
