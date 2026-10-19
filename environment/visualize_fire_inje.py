@@ -8,15 +8,15 @@
 1. 대화형 GUI 창 실행 (화면에 그래프/애니메이션 표시):
 
     cd environment
-    python visualize_fire.py
+    python visualize_fire_inje.py
 
 2. 애니메이션을 GIF 파일로 저장:
 
-    python visualize_fire.py --save images/fire_spread.gif
+    python visualize_fire_inje.py --save images/fire_spread.gif
 
 3. 사용자 정의 시뮬레이션 파라미터 적용:
 
-    python visualize_fire.py --x 14 --y 101 --steps 30 --fps 5 --seed 42
+    python visualize_fire_inje.py --x 14 --y 101 --steps 65 --seed 42
 
 """
 
