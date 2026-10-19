@@ -1051,10 +1051,20 @@ class Vehicle:
             return
         # 차량 이상 (PX4): 주행 중 시동 꺼짐
         # (출발 시각 0.0 을 '없음' 으로 보지 않는다 — 전에는 `or now` 라 시각 0 에 출발한 차는 이 판정이 꺼져 있었다)
-        started = self._drive_started_sim if self._drive_started_sim is not None else now
-        parked = prog.finished and getattr(self.driver, "parked_seq", None) == prog.mission_seq == self.seq
-        if self.driver.kind == "px4" and not tel.armed and now - started > 5.0 and not parked:
+        def disarmed_driving(now, tel, prog):
+            started = self._drive_started_sim if self._drive_started_sim is not None else now
+            parked = prog.finished and getattr(self.driver, "parked_seq", None) == prog.mission_seq == self.seq
+            return self.driver.kind == "px4" and not tel.armed and now - started > 5.0 and not parked
+        if disarmed_driving(now, tel, prog):
             async with self.lock:
+                # 잠금을 기다리는 동안 대기 해제 재출발(clear_hold: 정차 유지로 꺼진 시동을 다시 건다)·대기·정지가 상태를 바꿨을 수
+                # 있다 → 잠금 안에서 최신 텔레메트리·진행으로 다시 확인한다 (MISSION_STALL 과 같은 방식). 예전에는 다시 보지 않아,
+                # 대기 지점에 다 서서 시동이 꺼진 뒤 대기가 풀리면 재출발 업로드 동안 계산한 판정으로 한 번도 안 움직인 차를
+                # VEHICLE_FAULT 로 고장 처리했다 (2026-10-19 Gazebo 4대 logs/ugv/stage6/multi/rgf_02 A-ugv1)
+                now, tel, prog = self.clock.now(), self.driver.telemetry(), self.driver.progress()
+                if (self.hold is not None or self.state not in ("DRIVING", "EVADING") or tel is None
+                        or not disarmed_driving(now, tel, prog)):
+                    return
                 self._fail("VEHICLE_FAULT", "주행 중 시동 꺼짐 (disarm)")
                 # 다른 고장처럼 미션을 정지로 바꾼다. 안 바꾸면 시동이 다시 걸릴 때 PX4 가 남은 미션을 감독 없이 달린다
                 # (2026-10-10 Gazebo: 오판된 VEHICLE_FAULT 뒤 FAULT 상태로 8 m/s 주행)
@@ -1308,17 +1318,23 @@ class Vehicle:
                 return
             info = self.hold
             items = self._items_between(None)
-            self.hold = None
+            # 대기(hold)는 재출발 명령이 끝난 뒤에 지운다. PX4 드라이버는 follow 시작에 진행 상태를 새 미션(미완료)으로 바꾸고
+            # 업로드·시동(~1 s)을 한다 → 그동안 '정차 유지' 보호(parked)가 풀린다. 대기를 먼저 지우면 감시가 정차 유지로 꺼진 시동을
+            # '주행 중 시동 꺼짐' 으로 판정했다 (2026-10-19 rgf_02). 차는 follow 끝(start_mission)에야 움직이므로 그동안
+            # 대기 중(YIELDING·대기 지점 점유)으로 보는 것이 맞다. 실패·예외에도 지운다 (finally)
             try:
                 # 재출발도 시간 제한 (_send_stop 과 같은 STOP_CMD_TIMEOUT_S). 실패·시간 초과면 미션이 일부 적용됐을 수 있다 →
                 # 명령 불확실(보수적 점유·재시도) + 고장 + 정지 (2026-10-11 검토: 재출발 follow 에 시간 제한이 없었다)
                 self.seq = await self._send_stop(self.driver.follow(items))
             except DriverError as e:
+                self.hold = None
                 self._fail("RESUME_FAILED", str(e))
                 self.command_uncertain = True
                 await self._safe_stop()
                 self.state = "FAULT"
                 return
+            finally:
+                self.hold = None
             # 대기 지점에 서면 PX4 는 미션 끝 정차로 시동을 끈다 → 다시 출발할 때 시동 상태가 텔레메트리에 늦게 온다.
             # 출발 시각을 지금으로 해 '주행 중 시동 꺼짐' 판정이 재출발 직후를 오판하지 않게 한다 (2026-10-10 Gazebo 마주 접근 시험)
             self._drive_started_sim = self.clock.now()
