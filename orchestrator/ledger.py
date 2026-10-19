@@ -223,6 +223,10 @@ class RunClosed(Exception):
     """이미 닫힌 run 을 다시 활성화하려 함 (늦게 온 이전 run)"""
 
 
+class StaleAttempt(Exception):
+    """지켜보던 실행시도를 다른 스레드가 바꿨다 (attempt_guard) — 이 스레드의 낡은 값으로 쓰지 않는다"""
+
+
 def new_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex[:12]}"
 
@@ -248,10 +252,12 @@ class Ledger:
         raw.execute("PRAGMA journal_mode=WAL" if db_path != ":memory:" else "PRAGMA journal_mode=MEMORY")
         self._lock = threading.RLock()
         self._sim_default = threading.local()      # default_sim_time() 가 정한 스레드별 기본 sim_time_s
+        self._attempt_guard = threading.local()    # attempt_guard() 가 정한 스레드별 [시도, 기대 substatus]
         # 연결 하나를 추적·배정 스레드가 함께 쓴다. 쓰기(_tx)만 잠그고 읽기는 잠그지 않아, 관측 계획으로 읽기가 늘자
         # 동시 읽기에서 sqlite3 InterfaceError('bad parameter or other API misuse')가 났다 (2026-10-07 실제 환경 실행).
         # 모든 실행을 같은 잠금 안에서 하고 결과는 잠금 안에서 다 읽어 둔다.
         self._conn = _LockedConn(raw, self._lock)
+        self._knowledge_cache = {}                 # knowledge() 결과 — (범위, 종류) → ((행 수, 최대 seq), 행)
         self.migrated_from_legacy = self._init_schema()
         row = self._conn.execute("SELECT run_id FROM runs WHERE status='ACTIVE'").fetchone()
         self._active_run = row["run_id"] if row else None
@@ -515,16 +521,37 @@ class Ledger:
                 c.execute("UPDATE tasks SET body=?, updated_wall=? WHERE task_id=?", (_dumps(body), now, task_id))
         return self.get_attempt(attempt_id)
 
+    @contextlib.contextmanager
+    def attempt_guard(self, attempt_id: str, substatus: str):
+        """이 스레드가 이 시도를 substatus 로 알고 처리하는 동안, 그 사이 다른 스레드가 substatus 를 바꿨으면
+        set_attempt_status 가 쓰지 않고 StaleAttempt 를 던진다 (확인과 쓰기를 한 트랜잭션 안에서). 이 스레드가 쓴 값은
+        다음 기대값이 된다. 추적(_track)이 조회 HTTP 를 기다리는 사이 배정 작업자가 반납한 시도를 되살리던 결함 (B37)."""
+        prev = getattr(self._attempt_guard, "v", None)
+        self._attempt_guard.v = [attempt_id, substatus]
+        try:
+            yield
+        finally:
+            self._attempt_guard.v = prev
+
     def set_attempt_status(self, attempt_id: str, substatus: str, detail: Optional[dict] = None,
                            release: bool = False):
         """substatus 갱신. release=True 는 예약 해제까지 같은 트랜잭션에서 수행."""
+        guard = getattr(self._attempt_guard, "v", None)
+        if guard is not None and guard[0] != attempt_id:
+            guard = None
         with self._tx() as c:
+            if guard is not None:
+                r = c.execute("SELECT substatus FROM attempts WHERE attempt_id=?", (attempt_id,)).fetchone()
+                if r is None or r["substatus"] != guard[1]:
+                    raise StaleAttempt(f"{attempt_id}: {guard[1]} 로 알고 있었는데 {r['substatus'] if r else None}")
             c.execute("UPDATE attempts SET substatus=?, detail=COALESCE(?, detail), updated_wall=? "
                       "WHERE attempt_id=?", (substatus, _dumps(detail), time.time(), attempt_id))
             if release:
                 if substatus in OCCUPYING_SUBSTATUSES:
                     raise ValueError(f"{substatus} 상태로는 예약을 해제할 수 없다")
                 c.execute("DELETE FROM reservations WHERE attempt_id=?", (attempt_id,))
+        if guard is not None:
+            guard[1] = substatus
 
     def open_mission_attempts(self, task_id: str) -> List[dict]:
         """임무가 아직 열린 실행시도 (R01). 점유 중인 시도는 '임무 종료 근거'(detail.mission_end)가 있고
@@ -775,11 +802,25 @@ class Ledger:
             return cur.rowcount == 1
 
     def knowledge(self, kind: str, run_id=ACTIVE) -> List[dict]:
+        """그 run·종류의 지식 행 (sim_time_s, seq 순). body 는 읽기 전용으로 쓴다 (호출끼리 같은 객체를 나눠 쓴다).
+
+        아는 세계 화면(view)이 판단·/health 마다 이 행을 모두 다시 읽어 JSON 을 풀었다 — 실행이 길어질수록 행과 호출이
+        함께 늘어 총괄 응답이 느려졌다 (B37). 지식은 덧붙이기만 하므로(INSERT OR IGNORE) 행 수·최대 seq 가 같으면
+        앞서 읽은 행을 그대로 쓴다 (같은 장부 파일을 다른 연결이 고쳐도 이 값이 바뀌면 다시 읽는다)."""
         where, args = self._scope(run_id)
-        rows = self._conn.execute(f"SELECT * FROM knowledge WHERE {where} AND kind=? ORDER BY sim_time_s, seq",
-                                  args + [kind])
-        return [{"seq": r["seq"], "key": r["key"], "subject": r["subject"], "sim_time_s": r["sim_time_s"],
-                 "source": r["source"], "body": _loads(r["body"])} for r in rows]
+        with self._lock:
+            ver = tuple(self._conn.execute(f"SELECT COUNT(*), MAX(seq) FROM knowledge WHERE {where} AND kind=?",
+                                           args + [kind]).fetchone())
+            key = (where, tuple(args), kind)
+            hit = self._knowledge_cache.get(key)
+            if hit is None or hit[0] != ver:
+                rows = self._conn.execute(
+                    f"SELECT * FROM knowledge WHERE {where} AND kind=? ORDER BY sim_time_s, seq", args + [kind])
+                hit = (ver, [{"seq": r["seq"], "key": r["key"], "subject": r["subject"], "sim_time_s": r["sim_time_s"],
+                              "source": r["source"], "body": _loads(r["body"])} for r in rows])
+                if not self._conn.in_transaction:   # 되돌려질 수 있는 쓰기를 본 결과는 남기지 않는다 (seq 가 다시 쓰일 수 있다)
+                    self._knowledge_cache[key] = hit
+        return [dict(r) for r in hit[1]]
 
     def knowledge_count(self, kind: str, run_id=ACTIVE) -> int:
         """len(knowledge(kind)) 와 같은 값 (행을 읽어 풀지 않는다)"""
