@@ -278,7 +278,7 @@ python -m pytest -q environment/tests
 ## 11. 주요 문서
 
 - [프로젝트 기획서](ADAIR%20프로젝트%20기획서.md)
-- [사용자 테스트 및 피드백](ADAIR_사용자_피드백.md)
+- [사용자 테스트 및 피드백](docs/common/ADAIR_사용자_피드백.md)
 - [통합 실행 안내](INTEGRATION_README.md)
 - [Integration Contract](docs/intergration/01.%20Integration%20Contract.md)
 - [Integration Test Cases](docs/intergration/02.%20Integration%20Test%20Cases.md)
