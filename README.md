@@ -248,7 +248,7 @@ python -m pytest -q environment/tests
 
 수집된 의견을 바탕으로 **관제판의 정보 전달력과 조작성 개선**을 우선 과제로 선정했습니다.
 
-- 상세 피드백: [`ADAIR_사용자_피드백.md`](ADAIR_사용자_피드백.md)
+- 상세 피드백: [`ADAIR_사용자_피드백.md`](docs/common/ADAIR_사용자_피드백.md)
 
 ---
 
