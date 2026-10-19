@@ -369,6 +369,8 @@ UGV_DRIVER=px4 UGV_PX4_RESOURCES=A-ugv1 UGV_TIME_SCALE=4 UGV_ENV_URL=http://<환
 
 ## 7. 발표에서 보여줄 동작
 
+> 2026-10-12 기준으로 정리한 계획입니다 (영상 10, `2026-10-12_thermal` 시험).
+
 드론과 겹치는 부분도 있으며 Gazebo 시연도 따로 있으므로, 발표 시간 관계상 UGV는 다음 두 가지면 충분하다고 봅니다.
 
 1. **알고리즘** — 수행 가능성 평가와 Dijkstra 경로 ([3장](#3-어떻게-판단하나)) - ppt에 gif
