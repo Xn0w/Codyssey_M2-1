@@ -16,7 +16,7 @@
 
 3. 사용자 정의 시뮬레이션 파라미터 적용:
 
-    python visualize_fire.py --x 14 --y 101 --steps 30 --fps 5 --seed 42
+    python visualize_fire.py --x 14 --y 101 --steps 65 --seed 42
 
 """
 

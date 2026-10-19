@@ -558,12 +558,14 @@ environment/
 │   ├── observation.py               # UAV/UGV 관측 보고서(ObservationReport) 반영기
 │   ├── risk.py                      # Dynamic Risk Scoring WLC 다기준 집계 모듈
 │   └── weather.py                   # 시계열 ASOS 기상 데이터 공급 및 풍향/풍속 벡터 평균 모듈
+├── images/                          # 시각화 gif 파일 저장
+├── tests/                           # 환경 테스트 관련 파일 저장
 ├── evaluate_2019_inje.py            # 2019 인제 산불 재구성 정량 평가 및 CSV/GeoTIFF 출력 실행 도구
 ├── run_ca_sensitivity.py            # CA 파라미터 민감도 분석 스크립트
 ├── server.py                        # 환경 계약 FastAPI HTTP 서버 (포트 8300, 총괄/웹 연동용)
-├── visualize_fire.py                # 6-Layer 통합 GIS 시각화 및 애니메이션 실행 도구
-├── requirements.txt                 # 환경 모델링 서브시스템 패키지 의존성 목록
-├── images/                          # 시각화 gif 파일 저장
+├── visualize_fire_inje.py           # 2019년 인제 산불 재현 GIS 시각화 및 애니메이션 실행 도구
+├── visualize_fire.py                # 기상관련 고정값으로 산불 재현 GIS 시각화 및 애니메이션 실행 도구
+├── REPORT.md                        # 신규 구현 및 개선 사항을 매주 단계별로 기록한 주간 개발 일지
 └── README.md                        # 본 환경 모델 시스템 통합 안내서
 ```
 * `data/inje2019/burned_area/inje_2019_burn_reference_binary.tif`: Sentinel-2 dNBR에서 추정한 2019 인제 산불 피해 reference footprint (ground truth아님)
@@ -587,14 +589,15 @@ environment/
 
 ## 🚀 Integrated GIS Visualization 실행 방법
 
-`visualize_fire.py` 스크립트는 래스터 지형, 음영 기복, 식생, 도로망, 119 안전센터 및 산불 확산 레이어를 한눈에 시각화하고 애니메이션 파일(.gif)로 저장할 수 있는 통합 도구이다.
+`visualize_fire.py`는 래스터 지형, 음영 기복, 식생, 도로망, 119 안전센터 및 산불 확산 레이어를 한눈에 시각화하고 애니메이션 파일(.gif)로 저장할 수 있는 도구이다.
 
 ### 기본 실행 명령
 
 ```bash
-python visualize_fire.py --x 120 --y 120 --steps 30         # 기상 관측 고정값 사용 시
-python visualize_fire_inje.py --x 120 --y 120 --steps 30    # 2019년 인제 산불 당시 기상 관측 시계열 사용 시
+python visualize_fire.py --x 14 --y 101 --steps 65         # 기상 관측 고정값 사용 시 추천
+python visualize_fire_inje.py --x 14 --y 101 --steps 65    # 2019년 인제 산불 당시 기상 관측 시계열 사용 시 추천
 ```
+* `--steps` 값을 높이면 산불 확산 범위가 넓어짐.
 
 ### CLI 주요 매개변수 옵션 (CLI Arguments)
 
@@ -618,14 +621,14 @@ mode: "timeseries"    # 2019년 인제 산불 재현하는 경우
 mode: "fixed"         # 재현 아닌 경우 풍향,풍속,습도 등 고정값
 ```
 
-#### 1. 특정 발화점 지정 및 30 Step 저장
+#### 1. 특정 발화점 지정 및 65 Step 저장
 ```bash
-python visualize_fire_inje.py --x 120 --y 120 --steps 30 --save fire_spread.gif --fps 5
+python visualize_fire_inje.py --x 14 --y 101 --steps 65 --save fire_spread.gif
 ```
 
 #### 2. 시드값을 변경하여 재현성 비교 테스트
 ```bash
-python visualize_fire_inje.py --seed 1004 --steps 40 --interval 100
+python visualize_fire_inje.py --seed 1004 --steps 65 --interval 100
 ```
 
 ### 실행 화면
@@ -642,7 +645,7 @@ $ python visualize_fire_inje.py --steps 65
 참고) 2019년 인제 산불 검증 리포트 생성
 ```bash
 cd environment
-python evaluate_2019_inje.py --steps 50
+python evaluate_2019_inje.py --steps 65
 ```
 
 ---

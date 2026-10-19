@@ -1062,8 +1062,23 @@ class Orchestrator:
         return done
 
     def poll(self) -> List[dict]:
+        # 이번 추적 주기의 진행·관측·반영·완료 사건에 시뮬레이션 시각을 남긴다 (할 일이 있을 때만 환경을 한 번 읽는다).
+        # 값은 "추적 주기 시작 시각" — 한 주기 안의 사건은 모두 같은 값이다
+        atts = self.ledger.list_attempts(substatuses=ACTIVE_ATTEMPT)
+        sim = self._poll_sim_time() if atts or self.ledger.pending_applies(run_id=ACTIVE) else None
+        with self.ledger.default_sim_time(sim):
+            return self._poll(atts)
+
+    def _poll_sim_time(self) -> Optional[float]:
+        try:
+            snap = self.env.read()
+        except Exception:  # noqa: BLE001 — 시각을 못 읽어도 추적은 한다 (그 주기 사건은 시각 없이 기록)
+            return None
+        return snap.simulation_time_s if snap.run_id == self.ledger.active_run() else None
+
+    def _poll(self, atts: List[dict]) -> List[dict]:
         updates, first_error = [], None
-        for att in self.ledger.list_attempts(substatuses=ACTIVE_ATTEMPT):
+        for att in atts:
             client = self.uav if att["command"]["resource_type"] == "UAV" else self.ugv
             if client is None:
                 continue

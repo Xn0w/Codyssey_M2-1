@@ -25,12 +25,12 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 | `UGV_TARGET_SNAP_M` | `2000` | 화재에서 가장 가까운 도로 노드가 이보다 멀면 `TARGET_UNREACHABLE` |
 | `UGV_APPROACH_FALLBACK` | `0` | `1` 이면 가장 가까운 노드로 못 갈 때 다음 노드로 접근 |
 | `UGV_ENV_URL` | `http://127.0.0.1:8300` | 환경 서버. UGV 시계가 환경 시각(`/health` simulation_time_s)을 따라가고, 상황판은 시나리오 시각(scenario_start_kst + 초)으로 보인다. 처음 연결하면 환경 시각에 멈춰 있다가 환경이 한 스텝 나아가거나 차가 처음 출발하면 흐른다. 비우면 혼자 (서버 시작 = 0) |
-| `UGV_TARGET_MODE` | `node` | `road_point` 이면 `target`(좌표)을 노드 대신 가장 가까운 **도로 위 점**에 붙여 거기 선다. 요청마다 `target_mode` 로도 고른다 |
+| `UGV_TARGET_MODE` | `road_point` | `road_point` 이면 `target`(좌표)을 노드 대신 가장 가까운 **도로 위 점**에 붙여 거기 선다 (10/11부터 기본). `node` 면 가장 가까운 교차로에 선다. 요청마다 `target_mode` 로도 고른다 |
 | `UGV_APPROACH_MAX_M` | `500` | fallback 접근 노드의 화재 거리 상한 |
 | `UGV_COUNTER` | `0` | `1` 이면 목표가 도로에서 `UGV_TARGET_SNAP_M` 보다 멀지만 `UGV_COUNTER_MAX_M` 안일 때 거절 대신 `COUNTER` (evaluate 참고) |
 | `UGV_COUNTER_MAX_M` | `3000` | 역제안을 낼 목표~도로 거리 상한 (m) |
 | `UGV_TIME_SCALE` | `1` | 시뮬레이션 초 / 벽시계 초. PX4 쪽 `PX4_SIM_SPEED_FACTOR`(px4-start.sh 의 `SPEED`)와 같은 값. sim 차량도 이 배율로 달린다 |
-| `UGV_SECONDS_PER_ENV_STEP` | `60` | 환경 CA 1스텝이 몇 시뮬레이션 초인가. **잠정값 (INT-05 미정)** |
+| `UGV_SECONDS_PER_ENV_STEP` | `60` | 환경 단계 번호로 시계를 맞출 때(`POST /clock/env`) 한 단계가 몇 시뮬레이션 초인가. 트윈에서는 환경 시각(`simulation_time_s`)을 직접 따라가므로 쓰지 않는다 |
 | `UGV_ORCH_URL` | `http://127.0.0.1:8200` | 총괄 주소. 상황판 출동 요청을 여기 `POST /tasks` 로 전달 |
 | `UGV_HISTORY_DIR` | `ugv/.state/history` | 실행 기록 폴더. `UGV_STATE_DIR` 과 따로 둔다 (run_twin 은 실행마다 새 STATE_DIR) |
 | `UGV_HISTORY` | `1` | 실행 기록 (`{UGV_STATE_DIR}/history/<run_id>.jsonl`, 도로 상황판 재생용). `0` 이면 끔. 보관 개수 `UGV_HISTORY_KEEP`(30) |
@@ -41,7 +41,7 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 
 - 서버 1개가 지상자원 전부(`ugv/config.py` 의 `RESOURCES`)를 맡는다. UAV 는 기체 1대당 서버 1개지만, UGV 는 자원들이 도로망 그래프 하나를 공유해야 도로 차단이 모든 자원의 판단에 동시에 반영된다.
 - 도로망은 환경 데이터(`environment/data/processed/roads_reprojected.gpkg`, EPSG:5186)를 변환한 `ugv/data/road_network.json` (노드 534, 도로 672, 184 km, 도로 선형 포함). 거점 노드 id 는 `A`(인제119), `B`(기린119) — 좌표는 팀 공통 거점 파일(`environment/config/fire_stations.json`).
-- 모든 시각·ETA·속도는 **시뮬레이션 초** 기준 (`ugv/sim_clock.py`). 환경 스텝을 `POST /clock/env` 로 받으면 거기에 맞춘다.
+- 모든 시각·ETA·속도는 **시뮬레이션 초** 기준 (`ugv/sim_clock.py`). 트윈에서는 환경 `/health` 의 시각(`simulation_time_s`)을 1초마다 읽어 따라간다. 환경 스텝을 `POST /clock/env` 로 받아 맞출 수도 있다.
 - 도로 환경(차단 도로·경유 불가 노드·혼잡)은 UGV 것이고 환경 모듈과 별개다. 시나리오 파일의 시간대가 정하고, `/roads/*` API 로 덧붙일 수 있다. 화재는 도로를 막지 않는다 (팀 결정).
 - 차량은 노드 사이 직선이 아니라 **도로 선형을 따라** 달린다 (`ugv/route_plan.py`). 주행 중 남은 경로가 막히면 지금 도로 끝에서 재탐색한다.
 - 도로 노드 id 는 UGV 내부 값이다. 호출측은 위경도로 요청하고, 응답의 `target_node` 로 실제 목적지를 확인한다.
@@ -56,6 +56,7 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 | POST | `/ugv/{resource_id}/evaluate` | 수행 가능성 판단 (**움직이지 않음**) |
 | POST | `/ugv/{resource_id}/execute` | 주행 시작 (**Safety ALLOW 이후에만 호출**) |
 | POST | `/ugv/{resource_id}/stop` | 주행 중지 |
+| POST | `/ugv/{resource_id}/suppress` | 소방차 진압 시작·중지 — 미통합 기능, `UGV_SUPPRESSION=1` 일 때만 동작 |
 | GET | `/ugv/{resource_id}/task/{task_id}` | 주행 진행·결과 |
 | GET | `/ugv/{resource_id}/observation` | 현재 위치의 도로 상태 관측 |
 | GET | `/graph/nodes/{node_id}` | 도로 노드 좌표 |
@@ -161,8 +162,8 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 ### 도로 위 지점에 서기 (`target_mode: "road_point"`, `ugv/road_point.py`)
 
 교차로 사이 도로가 길면 노드 방식은 목표에서 먼 교차로에 선다. 도로 위 지점 방식은 목표 좌표를 가장 가까운 도로 선형에 투영한 점에 선다
-(긴 도로 중간 계측용). evaluate·execute 에 `"target_mode": "road_point"` 를 주거나 서버를 `UGV_TARGET_MODE=road_point` 로 띄운다
-(기본 `node` — 지금까지 동작 그대로. `cargo` 가 있거나 `target` 없이 `target_node` 만 주면 노드 방식.
+(긴 도로 중간 계측용). 서버 기본값(`UGV_TARGET_MODE=road_point`)이 이 방식이고, 요청마다 `"target_mode"` 로 바꿀 수 있다
+(`node` 로 띄우면 노드 방식. `cargo` 가 있거나 `target` 없이 `target_node` 만 주면 노드 방식.
 총괄은 평가에서 받은 `target_node` 를 실행 때 `target` 과 같이 돌려보내는데, 이때는 `target` 기준으로 다시 골라 평가와 같은 지점에 선다).
 
 1. 목표 좌표 → 가장 가까운 도로 위 점 (`TARGET_SNAP_M` 보다 멀면 `TARGET_UNREACHABLE`)
@@ -177,7 +178,7 @@ GUI=1 ./ugv/tools/px4-start.sh 0                       # PX4 SITL rover (gz_r1_r
 
 ETA(시뮬레이션 초)는 도로마다 `길이 ÷ min(max(도로 제한속도, 50 km/h), 차량 속도) × 혼잡 배율` 의 합이다 (하한 `UGV_MIN_ROAD_SPEED_KMH`).
 차량 속도는 `ugv/config.py`: PX4 주행은 `max_speed_mps` (Gazebo r1_rover 2.0 m/s, A→B 29 km ≈ 4.1 h),
-sim 드라이버 주행은 `sim_speed_mps` — 세 대 모두 60 km/h(상한)라 도로마다 50~60 km/h. ETA 와 주행이 같은 값을 쓴다.
+sim 드라이버 주행은 `sim_speed_mps` — 모든 차량(4대) 60 km/h(상한)라 도로마다 50~60 km/h. ETA 와 주행이 같은 값을 쓴다.
 PX4 차량도 같은 구간 속도로 달린다 (미션 항목별 속도).
 
 ## POST /ugv/{resource_id}/execute

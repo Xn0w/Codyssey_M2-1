@@ -1,0 +1,19 @@
+﻿
+seq sim_time_s event_type          resource_id result                  reason                            
+--- ---------- ----------          ----------- ------                  ------                            
+ 26      780.0 TASK_RECEIVED                   CREATED                                                   
+ 87      900.0 PURPOSE_TRANSITION              PENDING->EVALUATING     DISPATCH_EVALUATION               
+ 88      900.0 CANDIDATES_FILTERED                                                                       
+ 89      900.0 LOCAL_RESPONSE      A-fire1     ACCEPT                                                    
+ 90      900.0 SAFETY_JUDGEMENT    A-fire1     ALLOW                                                     
+ 91      900.0 PURPOSE_TRANSITION              EVALUATING->APPROVED    SAFETY_ALLOW_RESERVED             
+ 92      900.0 EXECUTION_SENT      A-fire1     ACK                                                       
+ 93            PURPOSE_TRANSITION              APPROVED->IN_EXECUTION  EXECUTION_SENT                    
+229            EXECUTION_PROGRESS  A-fire1     ARRIVED                 PROVIDER_COMPLETED_IMPLIES_ARRIVAL
+230            OBSERVATION         A-fire1     ROAD_STATUS                                               
+231            PURPOSE_TRANSITION              IN_EXECUTION->COMPLETED GROUND_ARRIVAL_OBSERVED           
+232            TASK_COMPLETE       A-fire1     COMPLETED                                                 
+233            EXECUTION_PROGRESS  A-fire1     RELEASED                RESOURCE_READY_CONFIRMED          
+
+
+
