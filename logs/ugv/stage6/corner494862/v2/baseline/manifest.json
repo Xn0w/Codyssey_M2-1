@@ -1,0 +1,172 @@
+{
+ "head": "78fbf446f026c9526753495fb9eba2d3c4dc0d4f",
+ "conditions": {
+  "r20 (기준)": {
+   "source": "HEAD 78fbf44 ugv 그대로",
+   "plan": "plan_r20.json",
+   "runs": "r20_01..20 (INVALID_r20_* 제외)"
+  },
+  "fixv (수정1)": {
+   "source": "HEAD + fix1_reconstructed.patch (현재 미커밋 diff 에서 마지막 구간 hunk·그 시험만 되돌림)",
+   "plan": "plan_fixv.json",
+   "runs": "fixv_01..05",
+   "note": "당시 manifest 는 78fbf44-dirty 뿐 — 소스 바이트 동일성은 입증 불가. 재구성 소스로 sim 계획을 다시 만들면 plan_xy·plan_v·items·eta 가 plan_fixv.json 과 완전 일치 (아래 repro)"
+  },
+  "fixw (수정1+2)": {
+   "source": "HEAD + fix12_uncommitted.patch (작업 시작 시점 미커밋 diff)",
+   "plan": "plan_fixw.json",
+   "runs": "없음"
+  }
+ },
+ "repro_inproc": {
+  "base": {
+   "ref": "plan_r20.json",
+   "plan_xy_equal": true,
+   "plan_v_equal": true,
+   "items_equal": true,
+   "eta": [
+    58,
+    58
+   ],
+   "item_speeds": [
+    6.13,
+    3.36,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    3.16,
+    5.72,
+    3.35,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    3.16,
+    5.72,
+    13.88,
+    13.88,
+    13.69,
+    7.51,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.82
+   ]
+  },
+  "fix1": {
+   "ref": "plan_fixv.json",
+   "plan_xy_equal": true,
+   "plan_v_equal": true,
+   "items_equal": true,
+   "eta": [
+    62,
+    62
+   ],
+   "item_speeds": [
+    6.13,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    4.67,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    4.66,
+    13.8,
+    13.88,
+    13.56,
+    7.25,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.82
+   ]
+  },
+  "fix12": {
+   "ref": "plan_fixw.json",
+   "plan_xy_equal": true,
+   "plan_v_equal": true,
+   "items_equal": true,
+   "eta": [
+    62,
+    62
+   ],
+   "item_speeds": [
+    6.13,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    4.67,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    2.9,
+    4.66,
+    13.8,
+    13.88,
+    13.56,
+    7.25,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.2,
+    3.2
+   ]
+  }
+ },
+ "sha256": {
+  "ugv/roads.py": "3d6585ef56fab6218f4e9895582a830fbffdd2c6c4f45560ec0be5233ad0e83c",
+  "ugv/config.py": "610d779707bfc2a921811f92cd11439d94eccc40a6d16e12862cfe7c38610ca0",
+  "ugv/drive_graph.py": "106ce8e6f33671529ea431da8eca81bd3e689302f6e24435fbf0e4d82187beaa",
+  "ugv/profiles.py": "f289ee4264216e6d18329d83b96d1ab65bbc7f671030d33b995720ec41692d41",
+  "ugv/drivers/px4.py": "9c945b8edcdc1a2ca4477f07d6036f4ba14c67fe8aa802d2e8b507e300e96e33",
+  "ugv/px4/airframes/51100_gz_adair_ugv": "4f06585405fcbe51f4457592df3435a3a4bceafad920a27a0ca9e7edf1b85864",
+  "ugv/gazebo/models/adair_ugv/model.sdf": "a00b9b8a822527a4b8229ea5904388cf6bd3d5592bb0dc20c19798029a8bb196",
+  "logs/integ/wsl_world_b.sh": "2762911477f624dc26af5df8fdbc6feeb5235f3c74f694448e2e1828b4f37931",
+  "logs\\ugv\\stage6\\corner494862\\run_corner.sh": "e41774ca19c46ee01ad134b0676eaaf694e50628b56e8d98b77de74edcf37537",
+  "logs\\ugv\\stage6\\corner494862\\judge_corner.py": "065ad3edd915faef69e52bb34c211e3e5084fa82f3ace1f53c314cfb1f15f41d",
+  "logs\\ugv\\stage6\\corner494862\\judge_corner_v2.py": "a0c294704c55d7057701588dabf44491f91b86ff23079eb3e4b8d58245c487af",
+  "logs\\ugv\\stage6\\corner494862\\plan_r20.json": "341938205943a5487312d131374601a9740aa742950fcda6d15e8e8308dc378a",
+  "logs\\ugv\\stage6\\corner494862\\plan_fixv.json": "0099ab8a5007bdb87e76943b41e65782b838b2bf9a49ff91fd75eb80d36d0762",
+  "logs\\ugv\\stage6\\corner494862\\plan_fixw.json": "09d4e752a828de9890e5b5001037de9b9c3d60b9ff73c3844fe0e1ab1f75a51c",
+  "logs\\ugv\\stage6\\corner494862\\fleet_c.json": "37b9d0d56745bb3f3a95ba2b0fe766cfac6fd6ebaeebc11a420608fa46347dfa",
+  "logs\\ugv\\stage6\\corner494862\\fleet_c_sim.json": "367fbc1458dca2ff7fd7eeb3fca5acb32979e6a04c9fef15e1b8ed6b60bdaec5",
+  "logs\\ugv\\stage6\\corner494862\\spawn_c.txt": "d3733e14e769cca9ec72a05c2b06acc6ce70fe2884310cfc9ba950cf40690ad9",
+  "logs/ugv/stage5/tiles_v2c1/road_subset_ab_route_v1.json": "d0c30511a6f83be9c0386f084d03a56ea0f52691da7d4d144640c1224fd01ed3",
+  "logs\\ugv\\stage6\\corner494862\\v2\\baseline\\fix12_uncommitted.patch": "b3627d479812146800837cb8104b0a7bec41d9e7cd2b2c160e3c9055e69b6029",
+  "logs\\ugv\\stage6\\corner494862\\v2\\baseline\\fix1_reconstructed.patch": "a28856ce7ee9cfcb32329b7700579c7fcca080a055dab8a9e4dc6a64de77efdf",
+  "wt_base/ugv/roads.py": "efc78f0348cfdfd228a7023922b8c23adf4f774e89a2017c07e5ebeb2f061ec1",
+  "wt_fix1/ugv/roads.py": "32be1630443467d18107433a6efaaeb33923a859940ce1b70a42217da69b4153",
+  "wt_fix12/ugv/roads.py": "3d6585ef56fab6218f4e9895582a830fbffdd2c6c4f45560ec0be5233ad0e83c"
+ },
+ "head_roads_py_sha256": "7a8785cb3b56ddef8d9881e2e91166da4771aa33debe8a674ac16fde87fb6f8e"
+}
