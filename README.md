@@ -1,76 +1,71 @@
-# wildfire-disaster-response — D파트(시스템 통합·관제·로그) 뼈대
+# ADAIR — 물리 시뮬레이션 레포
 
-박수진님의 **"01. Integration Contract"**, **"02. Integration Test Cases"** 문서를
-기준으로 전면 재작성한 뼈대입니다.
+ADAIR(산불 대응 UAV·UGV 협업 시스템)를 **물리 시뮬레이션으로 시험·검증하는 레포**입니다.
+팀 레포([Xn0w/Codyssey_M2-1](https://github.com/Xn0w/Codyssey_M2-1))의 코드를 바탕으로 합니다. 거기에 Gazebo + PX4 SITL 차량 시뮬레이션,
+디지털 트윈, 시험 도구·판정기와 시험 기록을 더했습니다. 팀 레포에는 `ADAIR` 브랜치로 올라가 있습니다 (PR 없음).
 
-## 폴더 구조
+- 기본 브랜치: `feat/orchestrator-final`
+- 시연용 안정 버전 태그: `demo-stable-20261019`
+- 검증 중인 수정은 `verify/*` 브랜치에 따로 둡니다. 검증이 끝난 뒤에만 기본 브랜치에 합칩니다.
 
-```
-├── main.py                          # 전체 흐름 실행 (process_task가 핵심 로직)
-├── orchestration_demo.py            # IT-01/IT-02 Mock 오케스트레이션 폐루프 시연
-├── config.py                        # 좌표·Grid·연결방식·schema_version 등 설정값
-├── ids.py                           # run_id/task_id/decision_id 생성 (Decision ID 원칙)
-├── logger.py                        # 이벤트 단위 JSONL 로거
-├── interfaces/
-│   └── schema.py                    # Task, ResourceStatus, LocalResponse, SafetyVerdict 등
-├── connectors/
-│   ├── fire_connector.py            # 환경 Connector
-│   ├── uav_connector.py             # UAV Connector
-│   ├── ugv_connector.py             # Ground Resource Connector (UGV·소방차 공통)
-│   ├── orchestrator_connector.py    # Task 생성·제안·재평가 (Mock)
-│   └── safety_connector.py          # Safety Layer (ALLOW/MODIFY/REJECT)
-├── tests/
-│   └── it_cases.py                  # IT-01, IT-02 실행 가능한 테스트
-└── logs/                            # 실행 시 생성 (1 Run = 1 Log File)
-```
+## 무엇을 시뮬레이션하나
 
-## 실행 방법
+| 대상 | 시뮬레이션 | 위치 |
+|---|---|---|
+| UGV·소방차 | Gazebo(gz sim) 지형·도로 월드 + PX4 SITL rover. 차체 동역학·조향·제동을 그대로 돌립니다. 물리 없이 빠르게 돌리는 `sim` 드라이버도 있습니다 | `ugv/` (`ugv/gazebo/`, `ugv/drivers/px4.py`, `ugv/drivers/sim.py`) |
+| UAV | PX4 SITL 또는 mock 드론 | `uav/uav-agent` |
+| 산불 | 2019 인제 산불 재현 CA 확산 모델 (지형·연료·기상) | `environment/` |
+| 총괄 | 임무 생성, 후보 평가, Safety, 재평가, 관측 계획 | `orchestrator/` |
+| 관제 | 3D 재현·관제판 웹 | `web/` |
 
+## 실행
+
+### 1. 디지털 트윈 (물리 없이 전체 시스템)
 ```bash
-python3 orchestration_demo.py   # IT-01 정상 흐름 + IT-02 REJECT 재할당 시연
-python3 main.py                 # 일반 시뮬레이션 (10 스텝)
-python3 -m tests.it_cases       # IT-01, IT-02 통합 테스트
+bash tools/run_twin.sh                  # 서버 6개 + 트윈 시계 (UAV mock, 100배속)
+UAV_MODE=real bash tools/run_twin.sh    # UAV 는 PX4 SITL, 시계 1배속
+```
+| 서버 | 주소 |
+|---|---|
+| 환경 | `:8300` |
+| UAV | `:8000`, `:8001` |
+| UGV | `:8100` |
+| 총괄 | `:8200`, 관제판은 `/board` |
+| 웹 | `:8080/inje3d` |
+
+트윈은 배속을 쓰기 때문에, 트윈에서만 켜는 임시 설정이 있습니다. 예: `ORCH_SAFETY_SNAPSHOT_RECHECK`. 자세한 내용은 `tools/run_twin.sh` 주석을 보세요.
+
+### 2. Gazebo + PX4 차량 시험 (WSL Ubuntu)
+```bash
+./ugv/tools/px4-start.sh                                          # 월드 + 차량 + PX4 SITL 1대
+python -m ugv.tools.road_test --target 38.0275 128.13328          # 단일 차량 도로 주행 시험
+python -m ugv.tools.fleet_test separate                           # 4대(UGV·소방차) 동시 운용 시험
+python -m ugv.tools.road_test --analyze logs/ugv/road_xxx.json    # 기록 다시 판정
+```
+- PX4-Autopilot 빌드가 필요합니다 (`~/PX4-Autopilot/build/px4_sitl_default`). PX4 소스는 고치지 않고, 우리 airframe 만 복사합니다.
+- 판정은 Gazebo 실제 자세로만 합니다: 도착 거리, 곡선 횡가속, 차체 둘레 도로 이탈, 차량 간격, RTF.
+- 여러 시험이 Gazebo·서버 포트를 같이 쓸 때는 `../.adair_port_lock` 잠금 파일로 순서를 맞춥니다. 규칙은 같은 폴더의 `.adair_port_lock.README` 에 있습니다 (레포 밖, 이 컴퓨터 한정).
+
+### 3. 단위 시험
+```bash
+python -m pytest ugv/tests orchestrator/tests --ignore=orchestrator/tests/test_live_uav.py --ignore=orchestrator/tests/test_live_ugv.py
 ```
 
-`orchestration_demo.py`는 Environment, UAV, Safety를 Mock으로 두고 가운데 Orchestrator의
-선택 → Local 응답 → Safety → 실행 → 관측 → 환경 갱신 → 완료 흐름을 출력합니다.
-IT-02에서는 첫 UAV의 `HIGH_WIND` 거절 후 새 `decision_id`로 다른 UAV를
-재할당하는 과정도 확인할 수 있습니다. 상세 이벤트는 `logs/`의 JSONL에도 저장됩니다.
+### 4. 통합 폐루프 (PX4·Gazebo 없이)
+[INTEGRATION_README.md](INTEGRATION_README.md) 를 보세요 (`python run_integrated.py`).
 
-## Integration Contract/Test Cases 반영 사항
+## 폴더
 
-- **Task 개념**: 환경 상태 → Task 생성 → Orchestrator 후보 평가 → 자원 선택 흐름을
-  `Task` dataclass와 `orchestrator_connector.create_task()`로 구현
-- **Decision ID 원칙**: REJECT/COUNTER/Safety REJECT로 재평가가 발생하면
-  `ids.new_decision_id()`로 반드시 새 ID 부여 (`tests/it_cases.py`에서 검증)
-- **ACCEPT 후에만 Safety 호출**: `main.py`의 `process_task()`에서 순서 강제
-- **Safety 3단계 응답**: `ALLOW`/`MODIFY`/`REJECT` (`SafetyVerdict`)
-- **REJECT 사유 고정 Enum**: `LOW_BATTERY`, `HIGH_WIND`, `ROAD_BLOCKED` 등 9종
-- **이벤트 단위 로그(JSONL)**: 스텝 하나에 여러 이벤트 줄이 남는 구조로 전환
-- **Resource 상태값**: `READY/ASSIGNED/RUNNING/RETURNING/STALE/OFFLINE/UNAVAILABLE`
-- **resource_type**: `UAV`/`UGV`/`FIRE_ENGINE`으로 공통 Resource 관리
-
-## 초기 범위에서 제외된 것 (Integration Test Cases 4번 기준)
-
-아래는 지금 구현하지 않았고, 대표 시나리오 구현 단계에서 필요할 때 추가합니다.
-
-- COUNTER 세부 처리 (지금은 REJECT와 동일하게 처리)
-- 배터리 저하 및 임무 인계
-- Heartbeat / STALE / OFFLINE 전이
-- 통신 복구, Retry
-- 중복/오래된 메시지 처리
-- 이기종 자원 대체
-- 환경 변화에 따른 부분/전체 재계획
-- Safety MODIFY의 세부 수정 로직 (지금은 REJECT와 동일하게 재평가로 처리)
-
-## 아직 TBD인 것 (config.py에 표시됨)
-
-- 최종 대상지역 좌표계, Raster 해상도/Cell Size
-- 실제 PX4 연결 방식, 최종 웹 배포 방식
-- Safety 세부 임계값, 풍속·배터리 등 최종 운용 임계값
-
-## Mock → 실제 모듈로 교체하는 방법
-
-1. `config.py`에서 해당 `_CONNECTION_MODE`를 `"mock"` → `"real"`로 변경
-2. 각 `connectors/xxx_connector.py`의 `raise NotImplementedError(...)` 부분에 실제 연동 코드 작성
-3. `main.py`는 그대로 — connector가 알아서 real 로직을 타게 됨
+```
+ugv/            UGV·소방차 서버(:8100)·경로 계획(drive_graph, approach)·교통(traffic)·차량 감시(vehicle)
+  gazebo/       월드·차량 모델 (adair_ugv, adair_firetruck)
+  tools/        Gazebo 시험 하네스·판정기 (road_test, fleet_test, gz_track …)
+  tests/        단위 시험
+uav/            UAV Agent (PX4 / mock)
+environment/    산불 확산 모델·환경 계약 서버(:8300)
+orchestrator/   총괄 서버(:8200)
+web/            3D 재현·관제판
+tools/          디지털 트윈 실행(run_twin.sh)·트윈 시계·운영자
+docs/           파트별 설계·검증 문서 (docs/ugv: 단계별 Gazebo 검증 기록)
+logs/           시험 실행 기록 (logs/ugv/stage*: Gazebo 시험 결과·판정)
+```
