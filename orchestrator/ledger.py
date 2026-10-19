@@ -730,13 +730,22 @@ class Ledger:
                  result, reason, _dumps(detail), run_id or self._active_run))
             return cur.lastrowid
 
-    def events(self, task_id: Optional[str] = None, after_seq: int = 0, run_id=ALL_RUNS) -> List[dict]:
+    def events(self, task_id: Optional[str] = None, after_seq: int = 0, run_id=ALL_RUNS,
+               event_types: Optional[tuple] = None) -> List[dict]:
         where, scope_args = self._scope(run_id)
         q, args = f"SELECT * FROM events WHERE seq>? AND {where}", [after_seq] + scope_args
         if task_id:
             q, args = q + " AND task_id=?", args + [task_id]
+        if event_types:
+            q, args = q + f" AND event_type IN ({','.join('?' * len(event_types))})", args + list(event_types)
         return [{**dict(r), "detail": _loads(r["detail"])}
                 for r in self._conn.execute(q + " ORDER BY seq", args)]
+
+    def last_event_seq(self, task_id: str, event_types: tuple) -> Optional[int]:
+        """그 Task 의 해당 종류 사건 중 마지막 seq (사건은 덧붙기만 하므로 바뀌었는지 확인용)"""
+        r = self._conn.execute(f"SELECT MAX(seq) FROM events WHERE task_id=? AND event_type IN "
+                               f"({','.join('?' * len(event_types))})", [task_id] + list(event_types)).fetchone()
+        return r[0] if r else None
 
     def last_event(self, event_type: str, run_id=ALL_RUNS) -> Optional[dict]:
         """그 종류의 가장 최근 이벤트 하나 (events() 전체를 읽어 뒤에서 찾는 것과 같은 결과)"""
@@ -812,6 +821,20 @@ class Ledger:
                 if not self._conn.in_transaction:   # 되돌려질 수 있는 쓰기를 본 결과는 남기지 않는다 (seq 가 다시 쓰일 수 있다)
                     self._knowledge_cache[key] = hit
         return [dict(r) for r in hit[1]]
+
+    def knowledge_count(self, kind: str, run_id=ACTIVE) -> int:
+        """len(knowledge(kind)) 와 같은 값 (행을 읽어 풀지 않는다)"""
+        where, args = self._scope(run_id)
+        return self._conn.execute(f"SELECT COUNT(*) FROM knowledge WHERE {where} AND kind=?",
+                                  args + [kind]).fetchone()[0]
+
+    def knowledge_after(self, kind: str, after_seq: int, run_id=ACTIVE) -> List[dict]:
+        """knowledge() 와 같은 형식·순서로, seq 가 after_seq 보다 큰 행만 (증분 계산용)"""
+        where, args = self._scope(run_id)
+        rows = self._conn.execute(f"SELECT * FROM knowledge WHERE {where} AND kind=? AND seq>? "
+                                  "ORDER BY sim_time_s, seq", args + [kind, after_seq])
+        return [{"seq": r["seq"], "key": r["key"], "subject": r["subject"], "sim_time_s": r["sim_time_s"],
+                 "source": r["source"], "body": _loads(r["body"])} for r in rows]
 
     def get_knowledge(self, key: str, run_id=ACTIVE) -> Optional[dict]:
         where, args = self._scope(run_id)

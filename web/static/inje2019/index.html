@@ -640,6 +640,18 @@ function placeLabels(){
     const vis = v3.z < 1 && obj.visible !== false; el.style.display = vis ? '' : 'none';
     el.style.left = (v3.x*0.5+0.5)*W+'px'; el.style.top = (-v3.y*0.5+0.5)*H+'px'; };
   for (const m of marks) put(m.el, m.obj, m.dy);
+  // 같은 자리(집결지 등)에 선 기체 이름표가 겹치지 않게 위로 쌓는다 (팀 트윈 시험 2026-10-19: A-uav2·A-ugv1 겹침)
+  const placed = [];
+  for (const m of marks){
+    if (m.el.style.display === 'none') continue;
+    const x = parseFloat(m.el.style.left), w = m.el.offsetWidth, h = m.el.offsetHeight + 2;
+    let y = parseFloat(m.el.style.top);
+    for (let moved = true; moved;){
+      moved = false;
+      for (const p of placed) if (Math.abs(p.x - x) < (p.w + w)/2 && Math.abs(p.y - y) < h){ y = p.y - h; moved = true; }
+    }
+    m.el.style.top = y+'px'; placed.push({x, y, w});
+  }
   if (uav.visible) put(uavLabel, uav, 160);
   put(windLabel, windArrow, 120);
   if (fireLabel._obj && fireLabel.style.display !== 'none') put(fireLabel, fireLabel._obj, fireLabel._dy);

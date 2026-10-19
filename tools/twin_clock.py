@@ -56,7 +56,8 @@ def _wait_llm(cx, orch) -> float:
     paused = None
     while True:
         try:
-            busy = (cx.get(f"{orch}/health", timeout=5).json().get("llm") or {}).get("in_flight")
+            # 가벼운 경로 (/health 는 판단 화면 요약까지 실어 무겁다 — 2026-10-19)
+            busy = cx.get(f"{orch}/llm/in_flight", timeout=5).json().get("in_flight")
         except (httpx.HTTPError, ValueError):
             busy = 0
         if not busy:
