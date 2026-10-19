@@ -645,7 +645,7 @@ $ python visualize_fire_inje.py --steps 65
 참고) 2019년 인제 산불 검증 리포트 생성
 ```bash
 cd environment
-python evaluate_2019_inje.py --steps 50
+python evaluate_2019_inje.py --steps 65
 ```
 
 ---
