@@ -53,7 +53,8 @@ for spec in "A-uav1 8000" "A-uav2 8001"; do set -- $spec
   ( cd uav/uav-agent && UAV_ID=$1 UAV_MODE=$MODE UAV_STATE_DIR="$LOG/uav" UAV_HOME="$UAV_HOME_ENV" exec "$PY" -m uvicorn main:app --host 127.0.0.1 --port $2 --log-level warning ) >"$LOG/uav_$1.log" 2>&1 &
   PIDS+=($!); echo "  uav $1 → $LOG/uav_$1.log"; done
 # 차량 배속 = 트윈 시계 배속 (run_servers.py 와 같음). 빠지면 시계만 100배로 가고 차량은 1배라 60 s 정체 판정으로 모두 고장 (2026-10-19 확인)
-start ugv      env UGV_DRIVER=sim UGV_STATE_DIR="$LOG/ugv" UGV_TIME_SCALE="${UGV_TIME_SCALE:-$SPEED}" "$PY" -m uvicorn ugv.server:app --host 127.0.0.1 --port 8100 --log-level warning
+# 화재 자료 = 환경 계약 서버 (run_servers.py 트윈과 같음). 빠지면 UGV 가 FIRE_DATA_UNAVAILABLE 로 모든 출동을 거절 (2026-10-19 확인)
+start ugv      env UGV_DRIVER=sim UGV_STATE_DIR="$LOG/ugv" UGV_TIME_SCALE="${UGV_TIME_SCALE:-$SPEED}" UGV_ENV_URL="${UGV_ENV_URL:-http://127.0.0.1:8300}" "$PY" -m uvicorn ugv.server:app --host 127.0.0.1 --port 8100 --log-level warning
 wait_http http://127.0.0.1:8300/health && wait_http http://127.0.0.1:8000/health && wait_http http://127.0.0.1:8100/ugv
 start orch     "$PY" -m orchestrator.api
 start web      "$PY" -m uvicorn web.app:app --host 0.0.0.0 --port 8080 --log-level warning
