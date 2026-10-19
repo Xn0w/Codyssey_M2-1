@@ -98,6 +98,10 @@ def server_defs(opts: dict) -> dict:
     orch_env = {**tw, "ORCH_ENV_MODE": "team_http", "ORCH_DB_PATH": str(run / "orchestrator.sqlite3")} if tw else {}
     # UGV 임무 후 거점 귀소 (사용자 결정 2026-10-16: 발표 시연에서 켬, 소방차는 제외 — orchestrator/config.py UGV_RETURN_HOME)
     orch_env["ORCH_UGV_RETURN_HOME"] = os.environ.get("ORCH_UGV_RETURN_HOME", "1")
+    # 트윈 한정 임시 (사용자 결정 2026-10-19): 시계 진행만으로 바뀐 snapshot 버전 때문에 출동이 막히지 않게 새 snapshot 으로 재확인
+    #   — orchestrator/config.py SAFETY_SNAPSHOT_RECHECK
+    if tw:
+        orch_env["ORCH_SAFETY_SNAPSHOT_RECHECK"] = os.environ.get("ORCH_SAFETY_SNAPSHOT_RECHECK", "1")
     speed = str(opts.get("twin_speed") or 100)
     uv = [PY, "-m", "uvicorn"]
     return {

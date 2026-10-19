@@ -17,6 +17,7 @@ orchestrator/knowledge.py
 import csv
 import json
 import math
+import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -26,6 +27,9 @@ from .ledger import Ledger
 
 KST = timezone(timedelta(hours=9))
 BURNING_STATUSES = ("REPORTED", "CONFIRMED")
+# fire_states 가 캐시보다 이른 시각 조회를 칸 단위로 처리하는 범위 (모의 초). 스레드 사이 시각 차이(100배속에서 수백 초)를
+# 넉넉히 덮는다. 이보다 이른 시각은 전부 다시 접는다
+FIRE_PAST_WINDOW_S = 3600.0
 
 
 def _haversine_m(lat1, lon1, lat2, lon2) -> float:
@@ -35,9 +39,35 @@ def _haversine_m(lat1, lon1, lat2, lon2) -> float:
     return 2 * 6371000.0 * math.asin(math.sqrt(min(1.0, max(0.0, a))))
 
 
+def _fold_key(k: dict):
+    """ledger.knowledge 의 정렬 순서 (sim_time_s, seq). SQLite 는 NULL 시각을 맨 앞에 둔다"""
+    t = k["sim_time_s"]
+    return (t is not None, t if t is not None else 0.0, k["seq"])
+
+
+def _fold_fire(out: Dict[str, dict], k: dict) -> None:
+    """FIRE 사실 한 행을 칸별 믿음에 접는다 (Knowledge.fire_states 규칙)"""
+    fact = {**k["body"], "sim_time_s": k["sim_time_s"], "source": k["source"]}
+    prev = out.get(k["subject"])
+    if fact.get("status") == "NOT_DETECTED_PARTIAL":
+        partial = {"status": "NOT_DETECTED_PARTIAL", "sim_time_s": k["sim_time_s"], "source": k["source"],
+                   "observation_id": fact.get("observation_id"), "resource_id": fact.get("resource_id"),
+                   "coverage_fraction": fact.get("coverage_fraction"),
+                   "unobserved_fraction": (None if fact.get("coverage_fraction") is None
+                                           else round(1.0 - fact["coverage_fraction"], 6))}
+        if prev is not None and prev["status"] != "NOT_DETECTED_PARTIAL":
+            out[k["subject"]] = {**prev, "last_partial_observation": partial}
+        else:
+            out[k["subject"]] = {**fact, "last_partial_observation": partial}
+    else:
+        out[k["subject"]] = fact          # 전체 관측·신고는 믿음을 새로 정한다 (이전 부분 관측 표시는 지운다)
+
+
 class Knowledge:
     def __init__(self, ledger: Ledger):
         self.ledger = ledger
+        self._fire_cache = None                   # fire_states 증분 계산 상태
+        self._fire_lock = threading.RLock()
 
     # ------------------------------------------------------------------ 화재
     def report_fire(self, cell_id: str, sim_time_s: float, source: str, key: str, detail: dict = None) -> bool:
@@ -72,24 +102,86 @@ class Knowledge:
         믿음은 그대로 두고 last_partial_observation 에 본 범위·시각·출처를 덧붙인다. 새 확률·위험 수치는 만들지 않는다.
         그 칸에 기존 근거가 없을 때만 NOT_DETECTED_PARTIAL 이 그대로 상태가 된다 (화재 후보 아님).
         """
+        # 증분 계산: 지난번에 접은 결과에 새 행만 더 접는다. 매번 전부 다시 읽으면 관측이 쌓일수록 느려진다
+        # (팀 트윈 시험 2026-10-19: 4분에 2만 행 → 관제판 /priority/board 6 s+, 화면 view() 마다 두 번씩 호출).
+        # 결과는 전부 다시 접은 것과 같아야 한다 — 접는 순서(sim_time_s, seq)보다 앞에 끼는 행이 오면 처음부터 다시 접는다.
+        # 지난번보다 이른 시각 조회(스레드마다 읽은 시각이 조금씩 다르다 — 배정은 최신, 추적은 주기 시작, 관제판은 요청 시작)는
+        # FIRE_PAST_WINDOW_S 안이면 그 사이에 새 사실이 접힌 칸만 다시 접는다. 칸마다 base(창 밖 행을 접은 결과) +
+        # recent(창 안 행)를 두어 out[칸] == base[칸] 에 recent[칸] 을 차례로 접은 결과가 되게 유지한다.
+        with self._fire_lock:                     # 추적·배정·API 스레드가 함께 부른다
+            run = self.ledger.active_run()
+            c = self._fire_cache
+            if c is not None and c["run"] == run and now_s < c["now"]:
+                return self._fire_states_past(c, now_s)
+            if c is None or c["run"] != run:
+                c = self._fire_cache = {"run": run, "now": now_s, "seq": 0, "mark": None, "out": {}, "pending": [],
+                                        "base": {}, "recent": {}}
+            new = self.ledger.knowledge_after("FIRE", c["seq"])
+            if new:
+                c["seq"] = max(k["seq"] for k in new)
+            rows = sorted(c["pending"] + new, key=_fold_key)
+            if rows and c["mark"] is not None and _fold_key(rows[0]) < c["mark"]:
+                # 이미 접은 행보다 앞 순서의 행이 새로 들어옴 → 처음부터
+                self._fire_cache = None
+                return self.fire_states(now_s)
+            c["now"], c["pending"] = now_s, []
+            for k in rows:
+                if k["sim_time_s"] is not None and k["sim_time_s"] > now_s:
+                    c["pending"].append(k)        # 아직 오지 않은 시각의 사실 — 그 시각이 되면 접는다
+                    continue
+                _fold_fire(c["out"], k)
+                c["mark"] = _fold_key(k)
+                if k["sim_time_s"] is None:
+                    _fold_fire(c["base"], k)      # 시각 불명 사실은 어느 시각 조회에도 들어간다
+                else:
+                    c["recent"].setdefault(k["subject"], []).append(k)
+            edge = now_s - FIRE_PAST_WINDOW_S     # 창 밖으로 나간 행은 base 에 접고 버린다
+            for cid in list(c["recent"]):
+                lst = c["recent"][cid]
+                n = 0
+                while n < len(lst) and lst[n]["sim_time_s"] < edge:
+                    _fold_fire(c["base"], lst[n])
+                    n += 1
+                if n == len(lst):
+                    del c["recent"][cid]
+                elif n:
+                    del lst[:n]
+            return {cid: dict(v) for cid, v in c["out"].items()}
+
+    def _fire_states_past(self, c: dict, now_s: float) -> Dict[str, dict]:
+        """캐시보다 이른 시각 조회 (_fire_lock 안). 캐시의 접은 결과는 바꾸지 않는다."""
+        if now_s < c["now"] - FIRE_PAST_WINDOW_S:
+            return self._fold_all(self.ledger.knowledge("FIRE"), now_s)
+        new = self.ledger.knowledge_after("FIRE", c["seq"])
+        # pending 도 본다: 앞선 과거 조회가 (그때 now_s, c["now"]] 사이 행을 pending 에 넣었을 수 있고,
+        # 그 행은 c["out"] 에 아직 접히지 않았으므로 지금 now_s 이전이면 빠뜨리게 된다
+        if any(k["sim_time_s"] is None or k["sim_time_s"] <= now_s for k in new + c["pending"]):
+            return self._fold_all(self.ledger.knowledge("FIRE"), now_s)     # 늦게 들어온 과거 사실 — 드묾
+        if new:                                   # 모두 now_s 뒤의 사실 → 다음 전진 조회에서 접는다
+            c["seq"] = max(k["seq"] for k in new)
+            c["pending"].extend(new)
+        out = {cid: dict(v) for cid, v in c["out"].items()}
+        for cid, lst in c["recent"].items():
+            if lst[-1]["sim_time_s"] <= now_s:
+                continue                          # 이 칸은 now_s 뒤에 접힌 사실이 없다 → 캐시 값 그대로
+            tmp = {cid: c["base"][cid]} if cid in c["base"] else {}
+            for k in lst:
+                if k["sim_time_s"] > now_s:
+                    break
+                _fold_fire(tmp, k)
+            if cid in tmp:
+                out[cid] = dict(tmp[cid])
+            else:
+                out.pop(cid, None)
+        return out
+
+    @staticmethod
+    def _fold_all(rows, now_s: float) -> Dict[str, dict]:
         out = {}
-        for k in self.ledger.knowledge("FIRE"):
+        for k in rows:
             if k["sim_time_s"] is not None and k["sim_time_s"] > now_s:
                 continue
-            fact = {**k["body"], "sim_time_s": k["sim_time_s"], "source": k["source"]}
-            prev = out.get(k["subject"])
-            if fact.get("status") == "NOT_DETECTED_PARTIAL":
-                partial = {"status": "NOT_DETECTED_PARTIAL", "sim_time_s": k["sim_time_s"], "source": k["source"],
-                           "observation_id": fact.get("observation_id"), "resource_id": fact.get("resource_id"),
-                           "coverage_fraction": fact.get("coverage_fraction"),
-                           "unobserved_fraction": (None if fact.get("coverage_fraction") is None
-                                                   else round(1.0 - fact["coverage_fraction"], 6))}
-                if prev is not None and prev["status"] != "NOT_DETECTED_PARTIAL":
-                    out[k["subject"]] = {**prev, "last_partial_observation": partial}
-                else:
-                    out[k["subject"]] = {**fact, "last_partial_observation": partial}
-            else:
-                out[k["subject"]] = fact          # 전체 관측·신고는 믿음을 새로 정한다 (이전 부분 관측 표시는 지운다)
+            _fold_fire(out, k)
         return out
 
     def known_fires(self, now_s: float) -> Dict[str, dict]:
